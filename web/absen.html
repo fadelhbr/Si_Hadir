@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Absensi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #qrcode {
+            margin: 20px 0;
+        }
+        #message, #absenStatus {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #dateTime {
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sistem Absensi</h1>
+    <div id="greeting"></div>
+    <div id="loggedInUser"></div>
+    <div id="qrcode"></div>
+    <div id="message"></div>
+    <div id="absenStatus"></div>
+    <div id="dateTime"></div>
+
+    <script>
+        // Fungsi untuk mendapatkan salam berdasarkan waktu
+        function getGreeting() {
+            const hour = new Date().getHours();
+            if (hour >= 5 && hour < 12) return "Selamat Pagi";
+            if (hour >= 12 && hour < 15) return "Selamat Siang";
+            if (hour >= 15 && hour < 18) return "Selamat Sore";
+            return "Selamat Malam";
+        }
+
+        // Fungsi untuk memperbarui tanggal dan waktu
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('dateTime').textContent = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`;
+        }
+
+        // Simulasi login (ganti dengan sistem login yang sebenarnya)
+        const loggedInUser = "mulyono";
+
+        // Mengatur elemen-elemen halaman
+        document.getElementById('greeting').textContent = getGreeting();
+        document.getElementById('loggedInUser').textContent = `Selamat datang, ${loggedInUser}!`;
+
+        // Membuat QR code
+        new QRCode(document.getElementById("qrcode"), {
+            text: `${loggedInUser}-${new Date().toISOString()}`,
+            width: 128,
+            height: 128
+        });
+
+        // Menampilkan pesan pengumuman
+        document.getElementById('message').textContent = "Pengumuman: lembur ntar malem!!";
+
+        // Simulasi status absensi (ganti dengan logika absensi yang sebenarnya)
+        const sudahAbsen = Math.random() < 0.5;
+        document.getElementById('absenStatus').textContent = sudahAbsen ? "Anda sudah absen hari ini." : "Anda belum absen hari ini.";
+
+        // Memperbarui tanggal dan waktu setiap detik
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    </script>
+</body>
+</html>
