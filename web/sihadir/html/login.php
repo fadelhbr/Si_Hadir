@@ -5,16 +5,16 @@ session_start();
 include 'auth.php'; // Pastikan file ini terkoneksi dengan database
 
 // Define variables and initialize with empty values
-$nama = $password = "";
-$nama_err = $password_err = "";
+$username = $password = "";
+$username_err = $password_err = "";
 
 // Process form data when submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Validate nama (username)
-    if (empty(trim($_POST["nama"]))) {
-        $nama_err = "Mohon masukkan nama.";
+    // Validate username
+    if (empty(trim($_POST["username"]))) {
+        $username_err = "Mohon masukkan username.";
     } else {
-        $nama = trim($_POST["nama"]);
+        $username = trim($_POST["username"]);
     }
 
     // Validate password
@@ -25,13 +25,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Check credentials
-    if (empty($nama_err) && empty($password_err)) {
+    if (empty($username_err) && empty($password_err)) {
         // Prepare a select statement
-        $sql = "SELECT nama, password, role FROM Karyawan WHERE nama = :nama";
+        $sql = "SELECT username, password, role FROM Karyawan WHERE username = :username";
         
         if ($stmt = $pdo->prepare($sql)) {
             // Bind variables to the prepared statement
-            $stmt->bindParam(":nama", $nama, PDO::PARAM_STR);
+            $stmt->bindParam(":username", $username, PDO::PARAM_STR);
             
             // Execute the statement
             if ($stmt->execute()) {
@@ -43,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     if ($password == $row['password']) {
                         // Password is correct, start a new session
                         $_SESSION['loggedin'] = true;
-                        $_SESSION['nama'] = $nama;
+                        $_SESSION['username'] = $username;
                         $_SESSION['role'] = $row['role']; // Save role in session
 
                         // Redirect based on the role
@@ -54,10 +54,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         }
                         exit;
                     } else {
-                        $password_err = "Nama atau password salah";
+                        $password_err = "Username atau password salah";
                     }
                 } else {
-                    $nama_err = "Nama atau password salah";
+                    $username_err = "Username atau password salah";
                 }
             } else {
                 echo "Error executing statement.";
@@ -181,6 +181,7 @@ unset($pdo);
             margin-bottom: 15px;
         }
     </style>
+
 </head>
 <body>
     <div class="login-container">
@@ -190,16 +191,16 @@ unset($pdo);
             <p class="error"><?php echo $error_msg; ?></p>
         <?php endif; ?>
         <form action="login.php" method="post">
-            <div class="input-group">
-                <label for="nama">Username</label>
-                <input type="text" id="nama" name="nama" required>
-                <span class="error"><?php echo $nama_err; ?></span>
-            </div>
-            <div class="input-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-                <span class="error"><?php echo $password_err; ?></span>
-            </div>
+    <div class="input-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+        <span class="error"><?php echo $username_err; ?></span>
+    </div>
+    <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+        <span class="error"><?php echo $password_err; ?></span>
+    </div>
             <div class="remember-me">
                 <input type="checkbox" id="remember" name="remember">
                 <label for="remember">Ingat saya</label>

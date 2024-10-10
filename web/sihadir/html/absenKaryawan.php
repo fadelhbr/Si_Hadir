@@ -30,7 +30,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <title>Si Hadir - Pengumuman</title>
+        <title>Si Hadir - Absen</title>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
         <!-- Core theme CSS (includes Bootstrap)-->
@@ -129,42 +129,11 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Pengumuman</h1>
-                    <div class="container mt-4">
-                        <h2>Daftar Pengumuman</h2>
-                        <table class="table table-bordered">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>No</th>
-                                    <th>Judul Pengumuman</th>
-                                    <th>Tanggal</th>
-                                    <th>Deskripsi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>Pengumuman Rapat</td>
-                                    <td>12 Oktober 2024</td>
-                                    <td>Rapat akan dilaksanakan pada pukul 10.00 WIB di ruang rapat utama.</td>
-                                </tr>
-                                <tr>
-                                    <td>2</td>
-                                    <td>Pengumuman Libur</td>
-                                    <td>14 Oktober 2024</td>
-                                    <td>Libur nasional dalam rangka Hari Raya.</td>
-                                </tr>
-                                <tr>
-                                    <td>3</td>
-                                    <td>Pengumuman Kegiatan</td>
-                                    <td>16 Oktober 2024</td>
-                                    <td>Akan diadakan kegiatan seminar motivasi untuk seluruh anggota.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <h1 class="mt-4">Absen</h1>
+                    <!-- Add your form or content for adding members here -->
                 </div>
-                
+            </div>
+        </div>
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
@@ -178,7 +147,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
             sidebarToggle.addEventListener('click', function () {
                 sidebarWrapper.classList.toggle('collapsed');
             });
-            
         </script>
     </body>
 </html>
