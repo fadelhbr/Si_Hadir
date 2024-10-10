@@ -4832,7 +4832,8 @@ textarea.form-control-lg {
 
 .list-group-item {
   position: relative;
-  display: block;
+  display: flex;
+  align-items: center;
   padding: var(--bs-list-group-item-padding-y) var(--bs-list-group-item-padding-x);
   color: var(--bs-list-group-color);
   text-decoration: none;
