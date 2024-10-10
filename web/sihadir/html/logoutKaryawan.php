@@ -111,7 +111,7 @@ if (isset($_POST['logout']) && $_POST['logout'] == 'yes') {
                 <button type="submit" class="logout-button">Ya, Logout</button>
             </form>
             <!-- Tombol batal kembali ke dashboard -->
-            <a href="dashboard.php">
+            <a href="dashboardKaryawan.php">
                 <button class="cancel-button">Tidak, Kembali</button>
             </a>
         </div>
