@@ -27,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Check credentials
     if (empty($nama_err) && empty($password_err)) {
         // Prepare a select statement
-        $sql = "SELECT nama, password FROM Karyawan WHERE nama = :nama";
+        $sql = "SELECT nama, password, role FROM Karyawan WHERE nama = :nama";
         
         if ($stmt = $pdo->prepare($sql)) {
             // Bind variables to the prepared statement
@@ -44,7 +44,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         // Password is correct, start a new session
                         $_SESSION['loggedin'] = true;
                         $_SESSION['nama'] = $nama;
-                        header('Location: dashboard.php'); // Redirect to the dashboard
+                        $_SESSION['role'] = $row['role']; // Save role in session
+
+                        // Redirect based on the role
+                        if ($row['role'] == 'admin') {
+                            header('Location: dashboardAdmin.php'); // Redirect to admin dashboard
+                        } else {
+                            header('Location: dashboardKaryawan.php'); // Redirect to karyawan dashboard
+                        }
                         exit;
                     } else {
                         $password_err = "Nama atau password salah";
@@ -183,26 +190,25 @@ unset($pdo);
             <p class="error"><?php echo $error_msg; ?></p>
         <?php endif; ?>
         <form action="login.php" method="post">
-    <div class="input-group">
-        <label for="nama">Username</label>
-        <input type="text" id="nama" name="nama" required>
-        <span class="error"><?php echo $nama_err; ?></span>
-    </div>
-    <div class="input-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" required>
-        <span class="error"><?php echo $password_err; ?></span>
-    </div>
-    <div class="remember-me">
-        <input type="checkbox" id="remember" name="remember">
-        <label for="remember">Ingat saya</label>
-    </div>
-    <div class="forgot-password">
-        <a href="register.html">Register</a>
-    </div>
-    <button type="submit" class="login-button">Log In</button>
-</form>
-
+            <div class="input-group">
+                <label for="nama">Username</label>
+                <input type="text" id="nama" name="nama" required>
+                <span class="error"><?php echo $nama_err; ?></span>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                <span class="error"><?php echo $password_err; ?></span>
+            </div>
+            <div class="remember-me">
+                <input type="checkbox" id="remember" name="remember">
+                <label for="remember">Ingat saya</label>
+            </div>
+            <div class="forgot-password">
+                <a href="register.html">Register</a>
+            </div>
+            <button type="submit" class="login-button">Log In</button>
+        </form>
     </div>
 </body>
 </html>

@@ -1,3 +1,15 @@
+<?php
+session_start();
+
+// Check if user is logged in and is an admin
+if (!isset($_SESSION['loggedin']) || $_SESSION['role'] != 'admin') {
+    // Destroy the session
+    session_destroy();
+    header('Location: login.php');
+    exit;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
     <head>

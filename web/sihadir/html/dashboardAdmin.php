@@ -123,7 +123,7 @@ if (!isset($_SESSION['loggedin'])) {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Dashboard</h1>
+                    <h1 class="mt-4">Dashboard Admin</h1>
                 </div>
             </div>
         </div>

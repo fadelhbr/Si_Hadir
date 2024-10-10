@@ -1,8 +1,10 @@
 <?php
 session_start();
-if (!isset($_SESSION['loggedin'])) {
-    header("Location: login.php");
-    exit();
+
+// Check if user is logged in and is a karyawan
+if (!isset($_SESSION['loggedin']) || $_SESSION['role'] != 'karyawan') {
+    header('Location: login.php');
+    exit;
 }
 ?>
 
@@ -13,7 +15,7 @@ if (!isset($_SESSION['loggedin'])) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <title>Si Hadir - Absen</title>
+        <title>Si Hadir - Pengumuman</title>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
         <!-- Core theme CSS (includes Bootstrap)-->
@@ -68,23 +70,11 @@ if (!isset($_SESSION['loggedin'])) {
             <div class="border-end-0 bg-white" id="sidebar-wrapper">
                 <div class="sidebar-heading border-bottom-0"><strong>Si Hadir</strong></div>
                 <div class="list-group list-group-flush">
-                    <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="dashboard.php">
+                    <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="pengumumanKaryawan.php">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
-                            <path d="M520-600v-240h320v240H520ZM120-440v-400h320v400H120Zm400 320v-400h320v400H520Zm-400 0v-240h320v240H120Zm80-400h160v-240H200v240Zm400 320h160v-240H600v240Zm0-480h160v-80H600v80ZM200-200h160v-80H200v80Zm160-320Zm240-160Zm0 240ZM360-280Z"/>
+                            <path d="M720-440v-80h160v80H720Zm48 280-128-96 48-64 128 96-48 64Zm-80-480-48-64 128-96 48 64-128 96ZM200-200v-160h-40q-33 0-56.5-23.5T80-440v-80q0-33 23.5-56.5T160-600h160l200-120v480L320-360h-40v160h-80Zm240-182v-196l-98 58H160v80h182l98 58Zm120 36v-268q27 24 43.5 58.5T620-480q0 41-16.5 75.5T560-346ZM300-480Z"/>
                         </svg>
-                        Dashboard
-                    </a>
-                    <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="addMember.php">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
-                            <path d="M720-400v-120H600v-80h120v-120h80v120h120v80H800v120h-80Zm-360-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v112H40Zm80-80h480v-32q0-11-5.5-20T580-306q-54-27-109-40.5T360-360q-56 0-111 13.5T140-306q-9 5-14.5 14t-5.5 20v32Zm240-320q33 0 56.5-23.5T440-640q0-33-23.5-56.5T360-720q-33 0-56.5 23.5T280-640q0 33 23.5 56.5T360-560Zm0-80Zm0 400Z"/>
-                        </svg>
-                        Add Member
-                    </a>
-                    <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="riwayatKehadiran.php">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
-                            <path d="M160-200v-440 440-15 15Zm0 80q-33 0-56.5-23.5T80-200v-440q0-33 23.5-56.5T160-720h160v-80q0-33 23.5-56.5T400-880h160q33 0 56.5 23.5T640-800v80h160q33 0 56.5 23.5T880-640v171q-18-13-38-22.5T800-508v-132H160v440h283q3 21 9 41t15 39H160Zm240-600h160v-80H400v80ZM720-40q-83 0-141.5-58.5T520-240q0-83 58.5-141.5T720-440q83 0 141.5 58.5T920-240q0 83-58.5 141.5T720-40Zm20-208v-112h-40v128l86 86 28-28-74-74Z"/>
-                        </svg>
-                        Riwayat kehadiran
+                        Pengumuman
                     </a>
                     <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="absen.php">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
@@ -92,11 +82,11 @@ if (!isset($_SESSION['loggedin'])) {
                         </svg>
                         Absen
                     </a>
-                    <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="pengumuman.php">
+                    <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="riwayatKehadiran.php">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
-                            <path d="M720-440v-80h160v80H720Zm48 280-128-96 48-64 128 96-48 64Zm-80-480-48-64 128-96 48 64-128 96ZM200-200v-160h-40q-33 0-56.5-23.5T80-440v-80q0-33 23.5-56.5T160-600h160l200-120v480L320-360h-40v160h-80Zm240-182v-196l-98 58H160v80h182l98 58Zm120 36v-268q27 24 43.5 58.5T620-480q0 41-16.5 75.5T560-346ZM300-480Z"/>
+                            <path d="M160-200v-440 440-15 15Zm0 80q-33 0-56.5-23.5T80-200v-440q0-33 23.5-56.5T160-720h160v-80q0-33 23.5-56.5T400-880h160q33 0 56.5 23.5T640-800v80h160q33 0 56.5 23.5T880-640v171q-18-13-38-22.5T800-508v-132H160v440h283q3 21 9 41t15 39H160Zm240-600h160v-80H400v80ZM720-40q-83 0-141.5-58.5T520-240q0-83 58.5-141.5T720-440q83 0 141.5 58.5T920-240q0 83-58.5 141.5T720-40Zm20-208v-112h-40v128l86 86 28-28-74-74Z"/>
                         </svg>
-                        Pengumuman
+                        Riwayat kehadiran
                     </a>
                     <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="settings.php">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
@@ -124,11 +114,42 @@ if (!isset($_SESSION['loggedin'])) {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Absen</h1>
-                    <!-- Add your form or content for adding members here -->
+                    <h1 class="mt-4">Pengumuman</h1>
+                    <div class="container mt-4">
+                        <h2>Daftar Pengumuman</h2>
+                        <table class="table table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Judul Pengumuman</th>
+                                    <th>Tanggal</th>
+                                    <th>Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Pengumuman Rapat</td>
+                                    <td>12 Oktober 2024</td>
+                                    <td>Rapat akan dilaksanakan pada pukul 10.00 WIB di ruang rapat utama.</td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Pengumuman Libur</td>
+                                    <td>14 Oktober 2024</td>
+                                    <td>Libur nasional dalam rangka Hari Raya.</td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>Pengumuman Kegiatan</td>
+                                    <td>16 Oktober 2024</td>
+                                    <td>Akan diadakan kegiatan seminar motivasi untuk seluruh anggota.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        </div>
+                
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
@@ -142,6 +163,7 @@ if (!isset($_SESSION['loggedin'])) {
             sidebarToggle.addEventListener('click', function () {
                 sidebarWrapper.classList.toggle('collapsed');
             });
+            
         </script>
     </body>
 </html>
