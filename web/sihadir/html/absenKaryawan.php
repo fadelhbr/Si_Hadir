@@ -129,24 +129,141 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Absen</h1>
-                    <!-- Add your form or content for adding members here -->
+                <h1 class="mt-4">Absen</h1>
+                <div class="attendance-options">
+                    <button id="qr-option" class="btn btn-primary">Absen dengan QR Code</button>
+                    <button id="manual-option" class="btn btn-secondary">Absen Manual / Ijin / Sakit</button>
+                </div>
+                <div id="qr-reader" style="display: none;">
+                    <video id="qr-video"></video>
+                    <canvas id="qr-canvas"></canvas>
+                    <div id="qr-result"></div>
+                    <button id="start-scan" class="btn btn-primary mt-3">Mulai Scan</button>
+                </div>
+                <div id="manual-form" style="display: none;">
+                    <form action="process_attendance.php" method="POST">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="attendance" id="hadir" value="hadir" required>
+                            <label class="form-check-label" for="hadir">Hadir</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="attendance" id="ijin" value="ijin">
+                            <label class="form-check-label" for="ijin">Ijin</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="attendance" id="sakit" value="sakit">
+                            <label class="form-check-label" for="sakit">Sakit</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                    </form>
                 </div>
             </div>
         </div>
-        <!-- Bootstrap core JS-->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- Core theme JS-->
-        <script src="../js/scripts.js"></script>
+    </div>
 
-        <!-- Custom JS to handle sidebar toggle -->
-        <script>
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebarWrapper = document.getElementById('sidebar-wrapper');
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/scripts.js"></script>
+    
+    <script>
+        const qrOption = document.getElementById('qr-option');
+        const manualOption = document.getElementById('manual-option');
+        const qrReader = document.getElementById('qr-reader');
+        const manualForm = document.getElementById('manual-form');
+        const video = document.getElementById('qr-video');
+        const canvas = document.getElementById('qr-canvas');
+        const result = document.getElementById('qr-result');
+        const startScanButton = document.getElementById('start-scan');
 
-            sidebarToggle.addEventListener('click', function () {
-                sidebarWrapper.classList.toggle('collapsed');
+        let scanning = false;
+
+        qrOption.onclick = () => {
+            qrReader.style.display = 'block';
+            manualForm.style.display = 'none';
+        };
+
+        manualOption.onclick = () => {
+            qrReader.style.display = 'none';
+            manualForm.style.display = 'block';
+        };
+
+        startScanButton.onclick = () => {
+            if (scanning) {
+                scanning = false;
+                startScanButton.textContent = 'Mulai Scan';
+                video.srcObject.getTracks().forEach(track => track.stop());
+            } else {
+                startScanning();
+            }
+        };
+
+        function startScanning() {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    scanning = true;
+                    startScanButton.textContent = 'Stop Scan';
+                    video.srcObject = stream;
+                    video.setAttribute("playsinline", true);
+                    video.play();
+                    requestAnimationFrame(tick);
+                })
+                .catch(function(err) {
+                    console.error("Error accessing the camera", err);
+                    result.textContent = "Error: " + err.message;
+                });
+        }
+
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+                var imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+                var code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+                if (code) {
+                    console.log("QR Code detected", code.data);
+                    result.textContent = "QR Code terdeteksi: " + code.data;
+                    submitAttendance(code.data);
+                    scanning = false;
+                    startScanButton.textContent = 'Mulai Scan';
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+            }
+            if (scanning) {
+                requestAnimationFrame(tick);
+            }
+        }
+
+        function submitAttendance(qrData) {
+            fetch('process_attendance.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'qr_data=' + encodeURIComponent(qrData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    result.textContent = "Absensi berhasil dicatat!";
+                } else {
+                    result.textContent = "Error: " + data.message;
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                result.textContent = "Terjadi kesalahan saat mengirim data.";
             });
-        </script>
-    </body>
+        }
+
+        // Sidebar toggle functionality
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarWrapper = document.getElementById('sidebar-wrapper');
+
+        sidebarToggle.addEventListener('click', function () {
+            sidebarWrapper.classList.toggle('collapsed');
+        });
+    </script>
+</body>
 </html>
