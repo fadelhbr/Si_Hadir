@@ -37,6 +37,7 @@ public class WelcomeActivity extends AppCompatActivity {
                 // Pindah ke Activity Register
                 Intent intent = new Intent(WelcomeActivity.this, LoginActivity.class);
                 startActivity(intent);
+                finish();
             }
         });
 

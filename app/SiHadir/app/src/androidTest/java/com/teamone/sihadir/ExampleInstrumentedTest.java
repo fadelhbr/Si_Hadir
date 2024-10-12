@@ -1,4 +1,4 @@
-package com.teamone.sihadir;
+package com.example.hadir;
 
 import android.content.Context;
 
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.teamone.sihadir", appContext.getPackageName());
+        assertEquals("com.example.hadir", appContext.getPackageName());
     }
 }

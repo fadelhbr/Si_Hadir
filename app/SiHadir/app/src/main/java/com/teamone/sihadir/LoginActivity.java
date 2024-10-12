@@ -1,7 +1,6 @@
 package com.example.hadir;
 
-import com.example.hadir.R;
-
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -20,18 +19,17 @@ import java.io.IOException;
 public class LoginActivity extends AppCompatActivity {
 
     private EditText usernameEditText, passwordEditText;
-    private Button loginButton;
+    private Button btnLogin;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-
         usernameEditText = findViewById(R.id.txtUsername);
         passwordEditText = findViewById(R.id.txtPassword);
-        loginButton = findViewById(R.id.btnLogin);
+        btnLogin = findViewById(R.id.btnLogin);
 
-        loginButton.setOnClickListener(v -> login());
+        btnLogin.setOnClickListener(v -> login());
     }
 
     private void login() {
@@ -46,7 +44,7 @@ public class LoginActivity extends AppCompatActivity {
                 .build();
 
         Request request = new Request.Builder()
-                .url("http://10.0.2.2/si_hadir/api_login.php") // Ganti localhost dengan 10.0.2.2
+                .url("http://10.0.2.2/si_hadir/api_login.php")
                 .post(formBody)
                 .build();
 
@@ -60,10 +58,13 @@ public class LoginActivity extends AppCompatActivity {
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     String jsonResponse = response.body().string();
-                    // Tangani respons di sini (misalnya, parsing JSON)
+                    // Handle the response here (e.g., parse JSON)
                     runOnUiThread(() -> {
-                        // Tampilkan pesan atau navigasi sesuai respons
                         Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
+                        // Navigate to DashboardActivity
+                        Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);
+                        startActivity(intent);
+                        finish(); // Close LoginActivity
                     });
                 } else {
                     runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Login failed!", Toast.LENGTH_SHORT).show());

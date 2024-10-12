@@ -19,5 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Si Hadir"
+rootProject.name = "Hadir"
 include(":app")
+ 
