@@ -50,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         if ($row['role'] == 'admin') {
                             header('Location: dashboardAdmin.php'); // Redirect to admin dashboard
                         } else {
-                            header('Location: dashboardKaryawan.php'); // Redirect to karyawan dashboard
+                            header('Location: pengumumanKaryawan.php'); // Redirect to karyawan dashboard
                         }
                         exit;
                     } else {
