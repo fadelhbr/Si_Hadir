@@ -190,7 +190,7 @@ unset($pdo);
         <?php if (!empty($error_msg)): ?>
             <p class="error"><?php echo $error_msg; ?></p>
         <?php endif; ?>
-        <form action="login.php" method="post">
+        <form action="index.php" method="post">
     <div class="input-group">
         <label for="username">Username</label>
         <input type="text" id="username" name="username" required>

@@ -10,7 +10,7 @@ if (isset($_POST['logout']) && $_POST['logout'] == 'yes') {
     session_destroy();
 
     // Redirect ke halaman login
-    header("Location: login.php");
+    header("Location: index.php");
     exit;
 }
 ?>

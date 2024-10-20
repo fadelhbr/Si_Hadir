@@ -3,7 +3,7 @@ session_start();
 
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: login.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -18,7 +18,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
     header('Cache-Control: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
     
-    header('Location: login.php');
+    header('Location: index.php');
     exit;
 }
 ?>
