@@ -1,8 +1,25 @@
 <?php
 session_start();
-if (!isset($_SESSION['loggedin'])) {
-    header("Location: login.php");
-    exit();
+
+// Check if user is logged in
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header('Location: login.php');
+    exit;
+}
+
+// Check if the user role is employee
+if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
+    // Unset session variables and destroy session
+    session_unset();
+    session_destroy();
+    
+    // Set headers to prevent caching
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Pragma: no-cache');
+    
+    header('Location: login.php');
+    exit;
 }
 ?>
 
@@ -13,11 +30,11 @@ if (!isset($_SESSION['loggedin'])) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <title>Si Hadir - Add Member</title>
+        <title>Si Hadir - Setting</title>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
         <!-- Core theme CSS (includes Bootstrap)-->
-        <link href="../css/styles.css" rel="stylesheet" />
+        <link href="css/styles.css" rel="stylesheet" />
         <!-- Link Google Fonts untuk Poppins -->
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
         
@@ -124,7 +141,7 @@ if (!isset($_SESSION['loggedin'])) {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Add Member</h1>
+                    <h1 class="mt-4">Setting</h1>
                     <!-- Add your form or content for adding members here -->
                 </div>
             </div>
@@ -132,7 +149,7 @@ if (!isset($_SESSION['loggedin'])) {
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
-        <script src="../js/scripts.js"></script>
+        <script src="js/scripts.js"></script>
 
         <!-- Custom JS to handle sidebar toggle -->
         <script>

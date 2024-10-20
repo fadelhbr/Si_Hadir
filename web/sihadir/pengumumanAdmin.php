@@ -30,11 +30,11 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <title>Si Hadir - Setting</title>
+        <title>Si Hadir - Pengumuman</title>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
         <!-- Core theme CSS (includes Bootstrap)-->
-        <link href="../css/styles.css" rel="stylesheet" />
+        <link href="css/styles.css" rel="stylesheet" />
         <!-- Link Google Fonts untuk Poppins -->
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
         
@@ -129,7 +129,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                     </a>
                 </div>
             </div>
-            <!-- Page content wrapper-->
             <div id="page-content-wrapper">
                 <!-- Top navigation-->
                 <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
@@ -141,15 +140,46 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Setting</h1>
-                    <!-- Add your form or content for adding members here -->
+                    <h1 class="mt-4">Pengumuman</h1>
+                    <div class="container mt-4">
+                        <h2>Daftar Pengumuman</h2>
+                        <table class="table table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Judul Pengumuman</th>
+                                    <th>Tanggal</th>
+                                    <th>Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Pengumuman Rapat</td>
+                                    <td>12 Oktober 2024</td>
+                                    <td>Rapat akan dilaksanakan pada pukul 10.00 WIB di ruang rapat utama.</td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Pengumuman Libur</td>
+                                    <td>14 Oktober 2024</td>
+                                    <td>Libur nasional dalam rangka Hari Raya.</td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>Pengumuman Kegiatan</td>
+                                    <td>16 Oktober 2024</td>
+                                    <td>Akan diadakan kegiatan seminar motivasi untuk seluruh anggota.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        </div>
+                
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
-        <script src="../js/scripts.js"></script>
+        <script src="js/scripts.js"></script>
 
         <!-- Custom JS to handle sidebar toggle -->
         <script>
@@ -159,6 +189,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
             sidebarToggle.addEventListener('click', function () {
                 sidebarWrapper.classList.toggle('collapsed');
             });
+            
         </script>
     </body>
 </html>
