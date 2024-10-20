@@ -2,7 +2,7 @@
 // Start the session
 session_start();
 
-include 'auth.php'; // Pastikan file ini terkoneksi dengan database
+include 'auth/auth.php'; // Pastikan file ini terkoneksi dengan database
 
 // Define variables and initialize with empty values
 $username = $password = "";
