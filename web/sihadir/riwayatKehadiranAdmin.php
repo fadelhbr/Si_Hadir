@@ -142,7 +142,50 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 <!-- Page content-->
                 <div class="container-fluid">
                     <h1 class="mt-4">Riwayat Kehadiran</h1>
-                    <!-- Add your form or content for adding members here -->
+                    <div class="container-fluid">
+                    
+                    <!-- Filter Section -->
+                    <div class="filter-container">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <label for="filterTanggal">Filter Tanggal:</label>
+                                <input type="date" class="form-control" id="filterTanggal">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label for="filterKaryawan">Filter Karyawan:</label>
+                                <input type="text" class="form-control" id="filterKaryawan" placeholder="Nama Karyawan">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label for="filterStatus">Filter Status:</label>
+                                <select class="form-control" id="filterStatus">
+                                    <option value="">Semua Status</option>
+                                    <option value="Hadir">Hadir</option>
+                                    <option value="Terlambat">Terlambat</option>
+                                    <option value="Alfa">Alfa</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-2 d-flex align-items-end">
+                                <button class="btn btn-primary w-100" onclick="resetFilter()">Reset Filter</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Section -->
+                    <div class="table-container">
+                        <table id="riwayatTable" class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama</th>
+                                    <th>Tanggal</th>
+                                    <th>Jam Masuk</th>
+                                    <th>Jam Keluar</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

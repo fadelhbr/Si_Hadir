@@ -125,10 +125,73 @@ if (!isset($_SESSION['loggedin'])) {
                 <!-- Page content-->
                 <div class="container-fluid">
                     <h1 class="mt-4">Add Member</h1>
-                    <!-- Add your form or content for adding members here -->
+                     <!-- Page content-->
+                    <div class="form-container">
+                        <div class="card">
+                            <div class="card-header">
+                            </div>
+                            <div class="card-body">
+                                <form action="process_add_member.php" method="POST">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="nama" class="form-label">Nama</label>
+                                            <input type="text" class="form-control" id="nama" name="nama" required maxlength="100">
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="username" class="form-label">Username</label>
+                                            <input type="text" class="form-control" id="username" name="username" required maxlength="255">
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="email" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="email" name="email" required maxlength="100">
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="password" class="form-label">Password</label>
+                                            <input type="password" class="form-control" id="password" name="password" required maxlength="255">
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="no_telepon" class="form-label">No. Telepon</label>
+                                            <input type="text" class="form-control" id="no_telepon" name="no_telepon" maxlength="20">
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="role" class="form-label">Role</label>
+                                            <select class="form-control" id="role" name="role" required>
+                                                <option value="karyawan">Karyawan</option>
+                                                <option value="admin">Admin</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="alamat" class="form-label">Alamat</label>
+                                        <textarea class="form-control" id="alamat" name="alamat" rows="3"></textarea>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label for="qr_code" class="form-label">QR Code</label>
+                                        <input type="text" class="form-control" id="qr_code" name="qr_code" required maxlength="255">
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary">Tambah Member</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->

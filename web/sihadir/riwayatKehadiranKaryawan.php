@@ -130,10 +130,27 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                 <!-- Page content-->
                 <div class="container-fluid">
                     <h1 class="mt-4">Riwayat Kehadiran</h1>
-                    <!-- Add your form or content for adding members here -->
+                    <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Tanggal</th>
+                                    <th>Waktu Masuk</th>
+                                    <th>Waktu Keluar</th>
+                                    <th>Status</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
+
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->

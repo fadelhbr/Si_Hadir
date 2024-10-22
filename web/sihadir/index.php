@@ -1,6 +1,5 @@
 <?php
 // Start the session
-session_start();
 
 include 'auth/auth.php'; // Pastikan file ini terkoneksi dengan database
 

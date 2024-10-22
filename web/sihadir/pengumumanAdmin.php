@@ -140,56 +140,138 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Pengumuman</h1>
-                    <div class="container mt-4">
-                        <h2>Daftar Pengumuman</h2>
-                        <table class="table table-bordered">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>No</th>
-                                    <th>Judul Pengumuman</th>
-                                    <th>Tanggal</th>
-                                    <th>Deskripsi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>Pengumuman Rapat</td>
-                                    <td>12 Oktober 2024</td>
-                                    <td>Rapat akan dilaksanakan pada pukul 10.00 WIB di ruang rapat utama.</td>
-                                </tr>
-                                <tr>
-                                    <td>2</td>
-                                    <td>Pengumuman Libur</td>
-                                    <td>14 Oktober 2024</td>
-                                    <td>Libur nasional dalam rangka Hari Raya.</td>
-                                </tr>
-                                <tr>
-                                    <td>3</td>
-                                    <td>Pengumuman Kegiatan</td>
-                                    <td>16 Oktober 2024</td>
-                                    <td>Akan diadakan kegiatan seminar motivasi untuk seluruh anggota.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
+                    <h1>Pengumuman</h1>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAnnouncementModal">
+                        Tambah Pengumuman
+                    </button>
+                </div>
+            </div>
+            <div class="container mt-4">
+                <!-- Table content goes here -->
+                <table class="table table-bordered">
+                    <!-- ... rest of your table code ... -->
+                </table>
+            </div>
+                        <!-- Add this button above the table -->
+            <!-- Modal for adding announcement -->
+            <div class="modal fade" id="addAnnouncementModal" tabindex="-1" aria-labelledby="addAnnouncementModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addAnnouncementModalLabel">Tambah Pengumuman</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="announcementForm" action="process_announcement.php" method="POST">
+                                <div class="mb-3">
+                                    <label for="judul" class="form-label">Judul Pengumuman</label>
+                                    <input type="text" class="form-control" id="judul" name="judul" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tanggal" class="form-label">Tanggal</label>
+                                    <input type="date" class="form-control" id="tanggal" name="tanggal" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="deskripsi" class="form-label">Deskripsi</label>
+                                    <textarea class="form-control" id="deskripsi" name="deskripsi" rows="3" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Pilih Karyawan</label>
+                                    <div class="d-flex justify-content-end mb-2">
+                                        <button type="button" class="btn btn-secondary btn-sm me-2" id="selectAll">Select All</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" id="deselectAll">Deselect All</button>
+                                    </div>
+                                    <div class="border p-3" style="max-height: 200px; overflow-y: auto;">
+                                        <!-- This will be populated by PHP with actual employee data -->
+                                        <div class="form-check">
+                                            <input class="form-check-input employee-checkbox" type="checkbox" name="employees[]" value="1" id="employee1">
+                                            <label class="form-check-label" for="employee1">GEDA GEDI GEDA O</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input employee-checkbox" type="checkbox" name="employees[]" value="2" id="employee2">
+                                            <label class="form-check-label" for="employee2">fakhry ngaceng</label>
+                                        </div>
+                                        <!-- More employees will be added here -->
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                    <button type="submit" class="btn btn-primary">Simpan</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-                
-        <!-- Bootstrap core JS-->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- Core theme JS-->
-        <script src="js/scripts.js"></script>
+            </div>
 
-        <!-- Custom JS to handle sidebar toggle -->
-        <script>
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebarWrapper = document.getElementById('sidebar-wrapper');
+            <!-- Add this JavaScript before the closing body tag -->
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const selectAllBtn = document.getElementById('selectAll');
+                const deselectAllBtn = document.getElementById('deselectAll');
+                const employeeCheckboxes = document.getElementsByClassName('employee-checkbox');
 
-            sidebarToggle.addEventListener('click', function () {
-                sidebarWrapper.classList.toggle('collapsed');
+                selectAllBtn.addEventListener('click', function() {
+                    Array.from(employeeCheckboxes).forEach(checkbox => {
+                        checkbox.checked = true;
+                    });
+                });
+
+                deselectAllBtn.addEventListener('click', function() {
+                    Array.from(employeeCheckboxes).forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                });
             });
-            
-        </script>
-    </body>
-</html>
+            </script>
+                                    <table class="table table-bordered">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>No</th>
+                                                <th>Judul Pengumuman</th>
+                                                <th>Tanggal</th>
+                                                <th>Deskripsi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>1</td>
+                                                <td>Pengumuman Rapat</td>
+                                                <td>12 Oktober 2024</td>
+                                                <td>Rapat akan dilaksanakan pada pukul 10.00 WIB di ruang rapat utama.</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2</td>
+                                                <td>Pengumuman Libur</td>
+                                                <td>14 Oktober 2024</td>
+                                                <td>Libur nasional dalam rangka Hari Raya.</td>
+                                            </tr>
+                                            <tr>
+                                                <td>3</td>
+                                                <td>Pengumuman Kegiatan</td>
+                                                <td>16 Oktober 2024</td>
+                                                <td>Akan diadakan kegiatan seminar motivasi untuk seluruh anggota.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                    <!-- Bootstrap core JS-->
+                    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+                    <!-- Core theme JS-->
+                    <script src="js/scripts.js"></script>
+
+                    <!-- Custom JS to handle sidebar toggle -->
+                    <script>
+                        const sidebarToggle = document.getElementById('sidebarToggle');
+                        const sidebarWrapper = document.getElementById('sidebar-wrapper');
+
+                        sidebarToggle.addEventListener('click', function () {
+                            sidebarWrapper.classList.toggle('collapsed');
+                        });
+                        
+                    </script>
+                </body>
+            </html>
