@@ -1,5 +1,6 @@
 <?php
 // Start the session
+session_start();
 
 include 'auth/auth.php'; // Pastikan file ini terkoneksi dengan database
 
@@ -26,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Check credentials
     if (empty($username_err) && empty($password_err)) {
         // Prepare a select statement
-        $sql = "SELECT username, password, role FROM Karyawan WHERE username = :username";
+        $sql = "SELECT username, password, role FROM users WHERE username = :username"; // Menggunakan tabel users
         
         if ($stmt = $pdo->prepare($sql)) {
             // Bind variables to the prepared statement
@@ -38,11 +39,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     // Fetch the row
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
                     
-                    // Check if the password matches (without hashing)
+                    // Verifikasi password tanpa hash
                     if ($password == $row['password']) {
                         // Password is correct, start a new session
                         $_SESSION['loggedin'] = true;
-                        $_SESSION['username'] = $username;
+                        $_SESSION['username'] = $username; // Simpan username di session
                         $_SESSION['role'] = $row['role']; // Save role in session
 
                         // Redirect based on the role
@@ -186,26 +187,26 @@ unset($pdo);
     <div class="login-container">
         <h1 class="login-title">Si Hadir</h1>
         <!-- Show error message if there's any -->
-        <?php if (!empty($error_msg)): ?>
-            <p class="error"><?php echo $error_msg; ?></p>
+        <?php if (!empty($username_err) || !empty($password_err)): ?>
+            <p class="error"><?php echo !empty($username_err) ? $username_err : $password_err; ?></p>
         <?php endif; ?>
         <form action="index.php" method="post">
-    <div class="input-group">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" required>
-        <span class="error"><?php echo $username_err; ?></span>
-    </div>
-    <div class="input-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" required>
-        <span class="error"><?php echo $password_err; ?></span>
-    </div>
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+                <span class="error"><?php echo $username_err; ?></span>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                <span class="error"><?php echo $password_err; ?></span>
+            </div>
             <div class="remember-me">
                 <input type="checkbox" id="remember" name="remember">
                 <label for="remember">Ingat saya</label>
             </div>
             <div class="forgot-password">
-                <a href="register.html">Register</a>
+                <a href="register.php">Register</a>
             </div>
             <button type="submit" class="login-button">Log In</button>
         </form>

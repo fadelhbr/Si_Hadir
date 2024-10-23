@@ -1,9 +1,6 @@
 <?php
 // auth.php
 
-// Start the session
-session_start();
-
 // Database configuration
 $host = 'localhost'; // Your database host
 $db   = 'si_hadir';       // Your database name

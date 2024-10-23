@@ -21,6 +21,30 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
     header('Location: index.php');
     exit;
 }
+    // Database Connection
+    $host = 'localhost';
+    $dbname = 'si_hadir';
+    $username = 'root';
+    $password = '';
+    $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+
+    $data = json_decode(file_get_contents("php://input"));
+
+    if (isset($data->userId)) {
+        $userId = $data->userId;
+        $waktu = date('Y-m-d H:i:s');
+        
+        // Simpan ke database
+        $stmt = $conn->prepare("INSERT INTO absensi (user_id, waktu_absen) VALUES (:user_id, :waktu)");
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->bindParam(':waktu', $waktu);
+        
+        if ($stmt->execute()) {
+            echo json_encode(["message" => "Absen berhasil direkap!"]);
+        } else {
+            echo json_encode(["message" => "Gagal menyimpan data."]);
+        }
+}
 ?>
 
 <!DOCTYPE html>
@@ -75,6 +99,23 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 .navbar-nav .dropdown-menu {
                     position: absolute;
                 }
+            }
+                        .pesan-status {
+                padding: 10px;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+
+            .pesan-status.sukses {
+                background-color: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+
+            .pesan-status.error {
+                background-color: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
             }
         </style>
         
@@ -135,18 +176,18 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
                     <div class="container-fluid">
                         <button class="btn btn-primary" id="sidebarToggle">☰</button>
-                        <div id="navbarSupportedContent">
-                        </div>
+                        <div id="navbarSupportedContent"></div>
                     </div>
-                </nav>  
+                </nav>
                 <!-- Page content-->
                 <body>
     <div class="container-fluid">
         <div class="attendance-container">
+        <div id="manual-result" class="status-message mt-3"></div>
             <h2 class="mb-4">Absensi</h2>
             
             <div class="attendance-options">
-                <button id="qr-option" class="btn btn-primary">Scan QR Code</button>
+                <button id="qr-option" class="btn btn-primary">input toket</button>
                 <button id="manual-option" class="btn btn-secondary">Absen Manual</button>
             </div>
 
@@ -161,30 +202,60 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 <div id="qr-result" class="status-message mt-3"></div>
             </div>
 
-            <div id="manual-form" class="manual-form" style="display: none;">
-                <form id="attendance-form" method="POST" enctype="multipart/form-data">
-                    <div class="attendance-type">
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="attendance_type" id="sakit" value="sakit">
-                            <label class="form-check-label" for="sakit">Sakit</label>
-                        </div>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="attendance_type" id="ijin" value="ijin">
-                            <label class="form-check-label" for="ijin">Izin</label>
-                        </div>
-                    </div>
-
-                    <div id="description-area" class="description-area">
-                        <div class="form-group">
-                            <label for="description">Keterangan:</label>
-                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Masukkan keterangan..."></textarea>
-                        </div>
-                </form>
-                <div id="manual-result" class="status-message mt-3"></div>
-                <button type="submit" class="btn btn-primary">Kirim</button>
+            <div id="manual-form" class="manual-form">
+    <form id="attendance-form" method="POST" enctype="multipart/form-data">
+        <div class="attendance-type">
+        <div id="manual-result" class="status-message mt-3"></div>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="attendance_type" id="sakit" value="sakit">
+                <label class="form-check-label" for="sakit">Sakit</label>
+            </div>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="attendance_type" id="ijin" value="ijin">
+                <label class="form-check-label" for="ijin">Izin</label>
             </div>
         </div>
-    </div>
+        
+        <div id="description-area" class="description-area">
+            <div class="form-group">
+                <label for="description">Keterangan:</label>
+                <div id="manual-result" class="status-message mt-3"></div>
+                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Mengapa anda izin?"></textarea>
+            </div>
+        </div>
+        
+                <form id="absenForm">
+                <div id="manual-result" class="status-message mt-3"></div>
+        <button type="submit" class="btn btn-primary">Kirim</button>
+    </form>
+</div>
+
+        <p id="status"></p>
+
+        </div>
+
+        <script>
+        document.getElementById('absenForm').addEventListener('submit', function(event) {
+    event.preventDefault(); // Mencegah reload halaman
+
+    const userId = document.getElementById('userId').value;
+
+    // Kirim data ke server melalui AJAX atau Fetch API
+    fetch('process_absen.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId: userId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Tampilkan status absen
+        document.getElementById('status').innerText = data.message;
+    })
+    .catch(error => console.error('Error:', error));
+});
+</script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
@@ -316,6 +387,16 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 });
             }
         });
-    </script>
-</body>
-</html>
+            </script>
+            <script src="js/scripts.js"></script>
+                <!-- Custom JS to handle sidebar toggle -->
+                <script>
+                    const sidebarToggle = document.getElementById('sidebarToggle');
+                    const sidebarWrapper = document.getElementById('sidebar-wrapper');
+            
+                    sidebarToggle.addEventListener('click', function () {
+                        sidebarWrapper.classList.toggle('collapsed');
+                    });
+            </script>
+        </body>
+    </html>
