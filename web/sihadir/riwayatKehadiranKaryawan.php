@@ -129,7 +129,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Riwayat Kehadiran</h1>
+                    <h1 class="mt-4">Riwayat</h1>
                     <div class="table-container">
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
