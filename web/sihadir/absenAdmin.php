@@ -138,143 +138,183 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         <div id="navbarSupportedContent">
                         </div>
                     </div>
-                </nav>
+                </nav>  
                 <!-- Page content-->
-                <div class="container-fluid">
-                <h1 class="mt-4">Absen</h1>
-                <div class="attendance-options">
-                    <button id="qr-option" class="btn btn-primary">Absen dengan QR Code</button>
-                    <button id="manual-option" class="btn btn-secondary">Absen Manual / Ijin / Sakit</button>
+                <body>
+    <div class="container-fluid">
+        <div class="attendance-container">
+            <h2 class="mb-4">Absensi</h2>
+            
+            <div class="attendance-options">
+                <button id="qr-option" class="btn btn-primary">Scan QR Code</button>
+                <button id="manual-option" class="btn btn-secondary">Absen Manual</button>
+            </div>
+
+            <div id="qr-reader" style="display: none;">
+                <div class="text-center mb-3">
+                    <video id="qr-video" playsinline></video>
+                    <canvas id="qr-canvas" style="display: none;"></canvas>
                 </div>
-                <div id="qr-reader" style="display: none;">
-                    <video id="qr-video"></video>
-                    <canvas id="qr-canvas"></canvas>
-                    <div id="qr-result"></div>
-                    <button id="start-scan" class="btn btn-primary mt-3">Mulai Scan</button>
+                <div class="text-center">
+                    <button id="start-scan" class="btn btn-primary">Mulai Scan</button>
                 </div>
-                <div id="manual-form" style="display: none;">
-                    <form action="process_attendance.php" method="POST">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attendance" id="hadir" value="hadir" required>
-                            <label class="form-check-label" for="hadir">Hadir</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attendance" id="ijin" value="ijin">
-                            <label class="form-check-label" for="ijin">Ijin</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attendance" id="sakit" value="sakit">
+                <div id="qr-result" class="status-message mt-3"></div>
+            </div>
+
+            <div id="manual-form" class="manual-form" style="display: none;">
+                <form id="attendance-form" method="POST" enctype="multipart/form-data">
+                    <div class="attendance-type">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="attendance_type" id="sakit" value="sakit">
                             <label class="form-check-label" for="sakit">Sakit</label>
                         </div>
-                        <button type="submit" class="btn btn-primary mt-3">Submit</button>
-                    </form>
-                </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="attendance_type" id="ijin" value="ijin">
+                            <label class="form-check-label" for="ijin">Izin</label>
+                        </div>
+                    </div>
+
+                    <div id="description-area" class="description-area">
+                        <div class="form-group">
+                            <label for="description">Keterangan:</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Masukkan keterangan..."></textarea>
+                        </div>
+                </form>
+                <div id="manual-result" class="status-message mt-3"></div>
+                <button type="submit" class="btn btn-primary">Kirim</button>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/scripts.js"></script>
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
     
     <script>
-        const qrOption = document.getElementById('qr-option');
-        const manualOption = document.getElementById('manual-option');
-        const qrReader = document.getElementById('qr-reader');
-        const manualForm = document.getElementById('manual-form');
-        const video = document.getElementById('qr-video');
-        const canvas = document.getElementById('qr-canvas');
-        const result = document.getElementById('qr-result');
-        const startScanButton = document.getElementById('start-scan');
+        document.addEventListener('DOMContentLoaded', function() {
+            const qrOption = document.getElementById('qr-option');
+            const manualOption = document.getElementById('manual-option');
+            const qrReader = document.getElementById('qr-reader');
+            const manualForm = document.getElementById('manual-form');
+            const video = document.getElementById('qr-video');
+            const startScanButton = document.getElementById('start-scan');
+            const attendanceTypeInputs = document.querySelectorAll('input[name="attendance_type"]');
+            const descriptionArea = document.getElementById('description-area');
 
-        let scanning = false;
+            let scanner = null;
 
-        qrOption.onclick = () => {
-            qrReader.style.display = 'block';
-            manualForm.style.display = 'none';
-        };
+            // Toggle antara opsi QR dan manual
+            qrOption.onclick = () => {
+                qrReader.style.display = 'block';
+                manualForm.style.display = 'none';
+            };
 
-        manualOption.onclick = () => {
-            qrReader.style.display = 'none';
-            manualForm.style.display = 'block';
-        };
+            manualOption.onclick = () => {
+                qrReader.style.display = 'none';
+                manualForm.style.display = 'block';
+            };
 
-        startScanButton.onclick = () => {
-            if (scanning) {
-                scanning = false;
-                startScanButton.textContent = 'Mulai Scan';
-                video.srcObject.getTracks().forEach(track => track.stop());
-            } else {
-                startScanning();
-            }
-        };
-
-        function startScanning() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function(stream) {
-                    scanning = true;
-                    startScanButton.textContent = 'Stop Scan';
-                    video.srcObject = stream;
-                    video.setAttribute("playsinline", true);
-                    video.play();
-                    requestAnimationFrame(tick);
-                })
-                .catch(function(err) {
-                    console.error("Error accessing the camera", err);
-                    result.textContent = "Error: " + err.message;
+            // Tampilkan/sembunyikan area deskripsi berdasarkan jenis absensi
+            attendanceTypeInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    descriptionArea.style.display = 
+                        (this.value === 'ijin') ? 'block' : 'none';
                 });
-        }
-
-        function tick() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
-                canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-                var imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
-                var code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                if (code) {
-                    console.log("QR Code detected", code.data);
-                    result.textContent = "QR Code terdeteksi: " + code.data;
-                    submitAttendance(code.data);
-                    scanning = false;
-                    startScanButton.textContent = 'Mulai Scan';
-                    video.srcObject.getTracks().forEach(track => track.stop());
-                }
-            }
-            if (scanning) {
-                requestAnimationFrame(tick);
-            }
-        }
-
-        function submitAttendance(qrData) {
-            fetch('process_attendance.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'qr_data=' + encodeURIComponent(qrData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    result.textContent = "Absensi berhasil dicatat!";
-                } else {
-                    result.textContent = "Error: " + data.message;
-                }
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                result.textContent = "Terjadi kesalahan saat mengirim data.";
             });
-        }
 
-        // Sidebar toggle functionality
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebarWrapper = document.getElementById('sidebar-wrapper');
+            // Set initial state of description area based on default selected radio
+            descriptionArea.style.display = 
+                document.querySelector('input[name="attendance_type"]:checked').value === 'ijin' 
+                    ? 'block' 
+                    : 'none';
 
-        sidebarToggle.addEventListener('click', function () {
-            sidebarWrapper.classList.toggle('collapsed');
+            // Penanganan pemindaian QR
+            startScanButton.onclick = () => {
+                if (scanner) {
+                    scanner.stop();
+                    scanner = null;
+                    startScanButton.textContent = 'Mulai Scan';
+                    return;
+                }
+
+                scanner = new Instascan.Scanner({ video: video });
+                scanner.addListener('scan', function(content) {
+                    submitAttendance(content);
+                });
+
+                Instascan.Camera.getCameras()
+                    .then(function(cameras) {
+                        if (cameras.length > 0) {
+                            // Coba gunakan kamera belakang terlebih dahulu
+                            const backCamera = cameras.find(camera => camera.name.toLowerCase().includes('back'));
+                            scanner.start(backCamera || cameras[0]);
+                            startScanButton.textContent = 'Hentikan Scan';
+                        } else {
+                            console.error('Tidak ada kamera ditemukan.');
+                            alert('Tidak ada kamera ditemukan.');
+                        }
+                    })
+                    .catch(function(err) {
+                        console.error(err);
+                        alert('Error mengakses kamera: ' + err.message);
+                    });
+            };
+
+            // Penanganan pengiriman form
+            document.getElementById('attendance-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const resultDiv = document.getElementById('manual-result');
+                    resultDiv.textContent = data.message;
+                    resultDiv.className = 'status-message mt-3 ' + (data.success ? 'success' : 'error');
+                    
+                    if (data.success) {
+                        this.reset();
+                        descriptionArea.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const resultDiv = document.getElementById('manual-result');
+                    resultDiv.textContent = 'Terjadi kesalahan pada sistem';
+                    resultDiv.className = 'status-message mt-3 error';
+                });
+            });
+
+            function submitAttendance(qrData) {
+                const formData = new FormData();
+                formData.append('qr_data', qrData);
+                
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const resultDiv = document.getElementById('qr-result');
+                    resultDiv.textContent = data.message;
+                    resultDiv.className = 'status-message mt-3 ' + (data.success ? 'success' : 'error');
+                    
+                    if (data.success && scanner) {
+                        scanner.stop();
+                        scanner = null;
+                        startScanButton.textContent = 'Mulai Scan';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const resultDiv = document.getElementById('qr-result');
+                    resultDiv.textContent = 'Terjadi kesalahan pada sistem';
+                    resultDiv.className = 'status-message mt-3 error';
+                });
+            }
         });
     </script>
 </body>
