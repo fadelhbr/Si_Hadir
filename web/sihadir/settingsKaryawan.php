@@ -129,7 +129,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Setting</h1>
+                    <h1 class="mt-4">Pengaturan</h1>
                     <!-- Add your form or content for adding members here -->
                 </div>
             </div>
