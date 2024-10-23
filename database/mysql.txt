@@ -1,0 +1,116 @@
+-- Create database
+CREATE DATABASE IF NOT EXISTS si_hadir;
+USE si_hadir;
+
+-- Table structure for table `Absensi`
+CREATE TABLE `Absensi` (
+  `id_absensi` int(11) NOT NULL AUTO_INCREMENT,
+  `id_karyawan` int(11) DEFAULT NULL,
+  `id_shift` int(11) DEFAULT NULL,
+  `tanggal` date NOT NULL,
+  `waktu_check_in` datetime DEFAULT NULL,
+  `waktu_check_out` datetime DEFAULT NULL,
+  `status_kehadiran` enum('hadir','terlambat','alpha','izin','sakit') NOT NULL,
+  `keterangan` text DEFAULT NULL,
+  PRIMARY KEY (`id_absensi`),
+  KEY `id_karyawan` (`id_karyawan`),
+  KEY `id_shift` (`id_shift`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `Jadwal_Shift`
+CREATE TABLE `Jadwal_Shift` (
+  `id_jadwal` int(11) NOT NULL AUTO_INCREMENT,
+  `id_karyawan` int(11) DEFAULT NULL,
+  `id_shift` int(11) DEFAULT NULL,
+  `tanggal` date NOT NULL,
+  PRIMARY KEY (`id_jadwal`),
+  KEY `id_karyawan` (`id_karyawan`),
+  KEY `id_shift` (`id_shift`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `Karyawan`
+CREATE TABLE `Karyawan` (
+  `id_karyawan` int(11) NOT NULL AUTO_INCREMENT,
+  `nama` varchar(100) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `no_telepon` varchar(20) DEFAULT NULL,
+  `alamat` text DEFAULT NULL,
+  `tanggal_masuk` date NOT NULL,
+  `role` enum('admin','karyawan') NOT NULL DEFAULT 'karyawan',
+  `qr_code` varchar(255) NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  PRIMARY KEY (`id_karyawan`),
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `qr_code` (`qr_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `Log_Akses`
+CREATE TABLE `Log_Akses` (
+  `id_log` int(11) NOT NULL AUTO_INCREMENT,
+  `id_karyawan` int(11) DEFAULT NULL,
+  `waktu_akses` datetime DEFAULT current_timestamp(),
+  `ip_address` varchar(45) DEFAULT NULL,
+  `jenis_akses` enum('login','logout','absensi') NOT NULL,
+  `status` enum('berhasil','gagal') NOT NULL,
+  `keterangan` text DEFAULT NULL,
+  PRIMARY KEY (`id_log`),
+  KEY `id_karyawan` (`id_karyawan`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `Penerima_Pengumuman`
+CREATE TABLE `Penerima_Pengumuman` (
+  `id_penerima` int(11) NOT NULL AUTO_INCREMENT,
+  `id_pengumuman` int(11) DEFAULT NULL,
+  `id_karyawan` int(11) DEFAULT NULL,
+  `status_baca` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id_penerima`),
+  KEY `id_pengumuman` (`id_pengumuman`),
+  KEY `id_karyawan` (`id_karyawan`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `Pengumuman`
+CREATE TABLE `Pengumuman` (
+  `id_pengumuman` int(11) NOT NULL AUTO_INCREMENT,
+  `judul` varchar(255) NOT NULL,
+  `isi` text NOT NULL,
+  `tanggal_dibuat` datetime DEFAULT current_timestamp(),
+  `tanggal_berlaku_mulai` date DEFAULT NULL,
+  `tanggal_berlaku_selesai` date DEFAULT NULL,
+  `id_admin` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id_pengumuman`),
+  KEY `id_admin` (`id_admin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `Shift`
+CREATE TABLE `Shift` (
+  `id_shift` int(11) NOT NULL AUTO_INCREMENT,
+  `nama_shift` varchar(50) NOT NULL,
+  `waktu_mulai` time NOT NULL,
+  `waktu_selesai` time NOT NULL,
+  PRIMARY KEY (`id_shift`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Add constraints
+ALTER TABLE `Absensi`
+  ADD CONSTRAINT `Absensi_ibfk_1` FOREIGN KEY (`id_karyawan`) REFERENCES `Karyawan` (`id_karyawan`),
+  ADD CONSTRAINT `Absensi_ibfk_2` FOREIGN KEY (`id_shift`) REFERENCES `Shift` (`id_shift`);
+
+ALTER TABLE `Jadwal_Shift`
+  ADD CONSTRAINT `Jadwal_Shift_ibfk_1` FOREIGN KEY (`id_karyawan`) REFERENCES `Karyawan` (`id_karyawan`),
+  ADD CONSTRAINT `Jadwal_Shift_ibfk_2` FOREIGN KEY (`id_shift`) REFERENCES `Shift` (`id_shift`);
+
+ALTER TABLE `Log_Akses`
+  ADD CONSTRAINT `Log_Akses_ibfk_1` FOREIGN KEY (`id_karyawan`) REFERENCES `Karyawan` (`id_karyawan`);
+
+ALTER TABLE `Penerima_Pengumuman`
+  ADD CONSTRAINT `Penerima_Pengumuman_ibfk_1` FOREIGN KEY (`id_pengumuman`) REFERENCES `Pengumuman` (`id_pengumuman`),
+  ADD CONSTRAINT `Penerima_Pengumuman_ibfk_2` FOREIGN KEY (`id_karyawan`) REFERENCES `Karyawan` (`id_karyawan`);
+
+ALTER TABLE `Pengumuman`
+  ADD CONSTRAINT `Pengumuman_ibfk_1` FOREIGN KEY (`id_admin`) REFERENCES `Karyawan` (`id_karyawan`);
+
+-- Insert sample data for Karyawan table
+INSERT INTO `Karyawan` (`id_karyawan`, `nama`, `username`, `email`, `password`, `no_telepon`, `alamat`, `tanggal_masuk`, `role`, `qr_code`, `is_active`) 
+VALUES (21313221, 'fadel', 'fadell', 'fadel@gmail.com', 'fadel', '081281082', 'sancefila', '2024-10-10', 'karyawan', '132132123', 1);
