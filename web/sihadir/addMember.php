@@ -124,7 +124,7 @@ if (!isset($_SESSION['loggedin'])) {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid">
-                    <h1 class="mt-4">Add Member</h1>
+                    <h1 class="mt-4">Add member</h1>
                      <!-- Page content-->
                     <div class="form-container">
                         <div class="card">
