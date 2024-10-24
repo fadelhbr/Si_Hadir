@@ -160,11 +160,6 @@ try {
                     </div>
                 </nav>
                 <!-- Page content-->
-<<<<<<< Updated upstream
-                <div class="container-fluid">
-                    <h1 class="mt-4">Riwayat</h1>
-                    <div class="table-container">
-=======
 <!-- Page content-->
 <div class="container-fluid">
                 <h1 class="mt-4">Riwayat Kehadiran</h1>
@@ -175,7 +170,6 @@ try {
                 <?php endif; ?>
                 
                 <div class="table-container mt-4">
->>>>>>> Stashed changes
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
                             <thead class="table-dark">

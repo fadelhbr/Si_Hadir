@@ -1,10 +1,5 @@
 <?php
-<<<<<<< Updated upstream
-// Start the session
-session_start();
-=======
 session_start(); // Start the session
->>>>>>> Stashed changes
 
 include 'auth/auth.php'; // Pastikan file ini terkoneksi dengan database
 
@@ -31,11 +26,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Check credentials
     if (empty($username_err) && empty($password_err)) {
         // Prepare a select statement
-<<<<<<< Updated upstream
-        $sql = "SELECT username, password, role FROM users WHERE username = :username"; // Menggunakan tabel users
-=======
         $sql = "SELECT id, username, password, role FROM users WHERE username = :username";
->>>>>>> Stashed changes
         
         if ($stmt = $pdo->prepare($sql)) {
             // Bind variables to the prepared statement
@@ -47,11 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     // Fetch the row
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
                     
-<<<<<<< Updated upstream
-                    // Verifikasi password tanpa hash
-=======
                     // Check if the password matches
->>>>>>> Stashed changes
                     if ($password == $row['password']) {
                         // Password is correct, start a new session
                         $_SESSION['loggedin'] = true;
