@@ -11,15 +11,47 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
     // Unset session variables and destroy session
     session_unset();
-    session_destroy();
-    
-    // Set headers to prevent caching
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Cache-Control: post-check=0, pre-check=0', false);
-    header('Pragma: no-cache');
-    
+    session_destroy(); 
     header('Location: index.php');
     exit;
+}
+
+// Include database connection
+require_once 'auth/auth.php';
+
+try {
+    // Modified query to use karyawan_id instead of js.id
+    $stmt = $pdo->prepare("
+        SELECT 
+            js.id, 
+            js.tanggal,
+            s.nama_shift,
+            a.waktu_masuk,
+            a.waktu_keluar,
+            a.status_kehadiran,
+            a.keterangan
+        FROM 
+            jadwal_shift js
+        JOIN 
+            shift s ON js.shift_id = s.id
+        LEFT JOIN 
+            absensi a ON js.id = a.jadwal_shift_id
+        WHERE 
+            js.karyawan_id = :karyawan_id
+        ORDER BY 
+            js.tanggal DESC
+    ");
+    
+    // Bind parameter untuk ID karyawan dari session
+    $stmt->bindParam(':karyawan_id', $_SESSION['id'], PDO::PARAM_INT);
+    $stmt->execute();
+
+    // Fetch all records
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Log error and show user-friendly message
+    error_log("Database error: " . $e->getMessage());
+    $error_message = "Terjadi kesalahan saat mengambil data. Silakan coba lagi nanti.";
 }
 ?>
 
@@ -128,15 +160,29 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                     </div>
                 </nav>
                 <!-- Page content-->
+<<<<<<< Updated upstream
                 <div class="container-fluid">
                     <h1 class="mt-4">Riwayat</h1>
                     <div class="table-container">
+=======
+<!-- Page content-->
+<div class="container-fluid">
+                <h1 class="mt-4">Riwayat Kehadiran</h1>
+                <?php if (isset($error_message)): ?>
+                    <div class="alert alert-danger" role="alert">
+                        <?php echo htmlspecialchars($error_message); ?>
+                    </div>
+                <?php endif; ?>
+                
+                <div class="table-container mt-4">
+>>>>>>> Stashed changes
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
                             <thead class="table-dark">
                                 <tr>
                                     <th>No</th>
                                     <th>Tanggal</th>
+                                    <th>Shift</th>
                                     <th>Waktu Masuk</th>
                                     <th>Waktu Keluar</th>
                                     <th>Status</th>
@@ -144,11 +190,32 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                                 </tr>
                             </thead>
                             <tbody>
+                                <?php if (!empty($rows)): ?>
+                                    <?php $no = 1; ?>
+                                    <?php foreach ($rows as $row): ?>
+                                        <tr>
+                                            <td><?php echo $no++; ?></td>
+                                            <td><?php echo htmlspecialchars($row['tanggal']); ?></td>
+                                            <td><?php echo htmlspecialchars($row['nama_shift']); ?></td>
+                                            <td><?php echo htmlspecialchars($row['waktu_masuk'] ?? '-'); ?></td>
+                                            <td><?php echo htmlspecialchars($row['waktu_keluar'] ?? '-'); ?></td>
+                                            <td><?php echo htmlspecialchars($row['status_kehadiran'] ?? 'Belum Absen'); ?></td>
+                                            <td><?php echo htmlspecialchars($row['keterangan'] ?? '-'); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="7" class="text-center">Tidak ada data kehadiran</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+
     </div>
 
         <!-- Bootstrap core JS-->
@@ -158,6 +225,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
 
         <!-- Custom JS to handle sidebar toggle -->
         <script>
+            
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebarWrapper = document.getElementById('sidebar-wrapper');
 
