@@ -150,7 +150,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         </div>
                     </div>
                 </nav>
-                <!-- Page content-->
+                <!-- Page content-->    
                 <div class="container-fluid p-4">
                 <h1 class="text-3xl font-semibold mb-4">Cuti & Perizinan</h1>
                 <div class="flex items-center justify-between mb-4">
@@ -166,6 +166,32 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 <div class="bg-blue-100 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
                 <p>Jika kamu ingin mendownload data absen, silakan buka sub menu laporan absensi di menu <a href="report.php" class="text-blue-500 underline">Laporan</a>.</p>
             </div>
+            <div class="grid grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-gray-600">Pending Requests</h3>
+                    <span class="text-yellow-500 bg-yellow-100 rounded-full px-3 py-1 text-sm">3 New</span>
+                </div>
+                <p class="text-3xl font-bold text-gray-800 mt-2">5</p>
+                <canvas id="pendingChart" class="mt-4 h-20"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-gray-600">Approved Today</h3>
+                    <span class="text-green-500 bg-green-100 rounded-full px-3 py-1 text-sm">+2</span>
+                </div>
+                <p class="text-3xl font-bold text-gray-800 mt-2">7</p>
+                <canvas id="approvedChart" class="mt-4 h-20"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-gray-600">Team Available</h3>
+                    <span class="text-blue-500 bg-blue-100 rounded-full px-3 py-1 text-sm">85%</span>
+                </div>
+                <p class="text-3xl font-bold text-gray-800 mt-2">17/20</p>
+                <canvas id="availableChart" class="mt-4 h-20"></canvas>
+            </div>
+        </div>
         <div class="bg-white shadow rounded-lg p-4 mb-4">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -182,23 +208,27 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
                         <td class="px-6 py-4 whitespace-nowrap">Belum Ditentukan</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Masih Berjalan</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">Pending</span>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:00</td>
                         <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
+                            <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm">disetujui</button>
+                            <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm"">ditolak</button>
                         </td>
                     </tr>
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
                         <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">selesai</span>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
+                        <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm">disetujui</button>
+                        <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm"">ditolak</button>
                         </td>
                     </tr>
                     <tr>

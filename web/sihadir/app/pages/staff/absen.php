@@ -3,7 +3,7 @@ session_start();
 
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: index.php');
+    header('Location: ../../../login.php');
     exit;
 }
 
@@ -34,7 +34,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
         <!-- Core theme CSS (includes Bootstrap)-->
-        <link href="css/styles.css" rel="stylesheet" />
+        <link href="../../../assets/css/styles.css" rel="stylesheet" />
         <!-- Link Google Fonts untuk Poppins -->
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
         
