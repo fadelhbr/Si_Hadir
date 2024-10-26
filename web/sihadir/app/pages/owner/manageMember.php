@@ -21,6 +21,80 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
     header('Location: login.php');
     exit;
 }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ambil data dari form
+    $username = $_POST['username'] ?? null; // Menggunakan null coalescing operator
+    $password = $_POST['password'] ?? null;
+    $nama_lengkap = $_POST['nama_lengkap'] ?? null;
+    $email = $_POST['email'] ?? null;
+    $role = $_POST['role'] ?? null;
+    $no_telp = $_POST['no_telp'] ?? null; 
+    $divisi_id = $_POST['divisi_id'];// ID divisi yang dipilih
+    
+    try {
+        // Koneksi ke database
+        $pdo = new PDO('mysql:host=localhost;dbname=si_hadir', 'root', '');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        // Hash password
+        $password_hashed = password_hash($password, PASSWORD_DEFAULT);
+
+        // Proses insert ke tabel 'users'
+        $query_user = "INSERT INTO users (username, password, nama_lengkap, email, role, no_telp)
+                       VALUES (:username, :password, :nama_lengkap, :email, :role, :no_telp)";
+        $stmt_user = $pdo->prepare($query_user);
+        
+        // Bind parameter
+        $stmt_user->bindParam(':username', $username);
+        $stmt_user->bindParam(':password', $password_hashed);
+        $stmt_user->bindParam(':nama_lengkap', $nama_lengkap);
+        $stmt_user->bindParam(':email', $email);
+        $stmt_user->bindParam(':role', $role);
+        $stmt_user->bindParam(':no_telp', $no_telp);
+        $stmt_user->execute();
+        $user_id = $pdo->lastInsertId();
+
+        // Jika role adalah 'karyawan', insert juga ke tabel 'karyawan'
+        if ($role === 'karyawan') {
+            $query_karyawan = "INSERT INTO pegawai (user_id, divisi_id)
+                               VALUES (:user_id, :divisi_id)";
+            $stmt_karyawan = $pdo->prepare($query_karyawan);
+            // Bind parameter untuk tabel karyawan
+            $stmt_karyawan->bindParam(':user_id', $user_id);
+            $stmt_karyawan->bindParam(':divisi_id', $divisi_id);
+            
+            
+            // Eksekusi query untuk karyawan
+            $stmt_karyawan->execute();
+        }
+
+        $divisi_names = [
+            1 => 'IT',
+            2 => 'HR',
+            3 => 'Finance',
+            4 => 'Marketing',
+            5 => 'Operations'
+        ];
+
+        if (!empty($divisi_names[$divisi_id])) {
+            $nama_divisi = $divisi_names[$divisi_id];
+            $query_divisi = "INSERT INTO divisi (id, nama_divisi) VALUES (:id, :nama_divisi)
+                             ON DUPLICATE KEY UPDATE nama_divisi = :nama_divisi"; // Update jika divisi sudah ada
+            $stmt_divisi = $pdo->prepare($query_divisi);
+            $stmt_divisi->bindParam(':id', $divisi_id);
+            $stmt_divisi->bindParam(':nama_divisi', $nama_divisi);
+            $stmt_divisi->execute();
+        }
+        
+        echo "Data berhasil dimasukkan!";
+        
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage();
+    }
+}
+
+
 ?>
 
 <!DOCTYPE html>
@@ -152,29 +226,94 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 </nav>
                 <!-- Page content-->
                 <div class="container-fluid p-4">
-                <h1 class="text-3xl font-semibold mb-4">Manajemen staff</h1>
-                <div class="flex items-center justify-between mb-4">
-                <div class="flex space-x-2">
-                    <input type="date" class="border border-gray-300 rounded px-2 py-1" value="2023-11-23">
-                    <select class="border border-gray-300 rounded px-2 py-1">
-                        <option>Semua Jadwal</option>
-                    </select>
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded">Edit Excel Absensi</button>
-                </div>
-                <input type="text" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari nama/email/kode staff">
+    <h1 class="text-3xl font-semibold mb-4">Manajemen Staff</h1>
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex space-x-2">
+            <!-- Button to open the modal -->
+            <button class="bg-blue-500 text-white px-4 py-2 rounded" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                Tambah Member
+            </button>
+        </div>
+        <input type="text" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari nama/email/kode staff">
+    </div>
+
+    <!-- Modal Structure for "Tambah Member" -->
+    <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg"> <!-- Menambah ukuran dialog agar lebih lebar -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMemberModalLabel">Tambah Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-                <div class="bg-blue-100 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
-                <p>Jika kamu ingin mendownload data absen, silakan buka sub menu laporan absensi di menu <a href="report.php" class="text-blue-500 underline">Laporan</a>.</p>
+            <div class="modal-body">
+                <form id="memberForm" action="manageMember.php" method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="namaLengkap" class="form-label">Nama Lengkap</label>
+                            <input type="text" class="form-control" id="namaLengkap" name="nama_lengkap" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="mb-3">
+                            <label for="noTelepon" class="form-label">No Telepon</label>
+                            <input type="text" class="form-control" id="noTelepon" name="no_telepon" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="role" class="form-label">Role</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="" disabled selected>--- Pilih Role ---</option>
+                                <option value="karyawan">Karyawan</option>  
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="divisi" class="form-label">Divisi</label>
+                            <select class="form-select" id="divisi" name="divisi_id">
+                                <option value="" disabled selected>--- Pilih Divisi ---</option>
+                                <option value="1">IT</option>
+                                <option value="2">HR</option>
+                                <option value="3">Finance</option>
+                                <option value="4">Marketing</option>
+                                <option value="5">Operations</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button onclick="location.reload()" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Tambahkan</button>
+                    </div>
+                </form>
             </div>
+        </div>
+    </div>
+</div>
+
+            
         <div class="bg-white shadow rounded-lg p-4 mb-4">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Jadwal</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Lengkap</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No Telepon</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                     </tr>
                 </thead>
@@ -186,8 +325,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:00</td>
                         <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
                         </td>
                     </tr>
                     <tr>
@@ -197,8 +336,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
                         </td>
                     </tr>
                     <tr>
@@ -208,8 +347,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
                         </td>
                     </tr>
                     <tr>
@@ -219,8 +358,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">16:00</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
                         </td>
                     </tr>
                     <tr>
@@ -230,8 +369,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
                         <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
                         </td>
                     </tr>
                     <tr>
@@ -241,8 +380,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
                         <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
                         </td>
                     </tr>
                     <tr>
@@ -252,8 +391,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
                         <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
+                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
                         </td>
                     </tr>
                 </tbody>
