@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once '../../../app/auth/auth.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
@@ -9,17 +10,62 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 
 // Check if the user role is employee
 if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
-    // Unset session variables and destroy session
     session_unset();
     session_destroy();
-    
-    // Set headers to prevent caching
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Cache-Control: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
-    
     header('Location: login.php');
     exit;
+}
+
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
+        switch ($_POST['action']) {
+            case 'add':
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO shift (nama_shift, jam_masuk, jam_keluar) VALUES (?, ?, ?)");
+                    $stmt->execute([$_POST['nama_shift'], $_POST['jam_masuk'], $_POST['jam_keluar']]);
+                    header('Location: ' . $_SERVER['PHP_SELF']);
+                    exit;
+                } catch (PDOException $e) {
+                    $error = "Error adding shift: " . $e->getMessage();
+                }
+                break;
+
+            case 'edit':
+                try {
+                    $stmt = $pdo->prepare("UPDATE shift SET nama_shift = ?, jam_masuk = ?, jam_keluar = ? WHERE id = ?");
+                    $stmt->execute([$_POST['nama_shift'], $_POST['jam_masuk'], $_POST['jam_keluar'], $_POST['id']]);
+                    header('Location: ' . $_SERVER['PHP_SELF']);
+                    exit;
+                } catch (PDOException $e) {
+                    $error = "Error updating shift: " . $e->getMessage();
+                }
+                break;
+
+            case 'delete':
+                try {
+                    $stmt = $pdo->prepare("DELETE FROM shift WHERE id = ?");
+                    $stmt->execute([$_POST['id']]);
+                    header('Location: ' . $_SERVER['PHP_SELF']);
+                    exit;
+                } catch (PDOException $e) {
+                    $error = "Error deleting shift: " . $e->getMessage();
+                }
+                break;
+        }
+    }
+}
+
+// Fetch all shifts
+try {
+    $stmt = $pdo->query("SELECT * FROM shift ORDER BY jam_masuk");
+    $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $error = "Error fetching shifts: " . $e->getMessage();
+    $shifts = [];
 }
 ?>
 
@@ -150,116 +196,134 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         </div>
                     </div>
                 </nav>
-                <!-- Page content-->
-                <div class="container-fluid p-4">
+                 <!-- Page content-->
+            <div class="container-fluid p-4">
                 <h1 class="text-3xl font-semibold mb-4">Jadwal</h1>
-                <div class="flex items-center justify-between mb-4">
-                <div class="flex space-x-2">
-                    <input type="date" class="border border-gray-300 rounded px-2 py-1" value="2023-11-23">
-                    <select class="border border-gray-300 rounded px-2 py-1">
-                        <option>Semua Jadwal</option>
-                    </select>
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded">Edit Excel Absensi</button>
+                
+                <!-- Add Shift Modal -->
+                <div id="addShiftModal" class="modal fade" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Tambah Jadwal Baru</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST">
+                                <div class="modal-body">
+                                    <input type="hidden" name="action" value="add">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nama Jadwal</label>
+                                        <input type="text" class="form-control" name="nama_shift" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Jam Masuk</label>
+                                        <input type="time" class="form-control" name="jam_masuk" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Jam Pulang</label>
+                                        <input type="time" class="form-control" name="jam_keluar" required>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-primary">Simpan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <input type="text" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari nama/email/kode staff">
-            </div>
-                <div class="bg-blue-100 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
-                <p>Jika kamu ingin mendownload data absen, silakan buka sub menu laporan absensi di menu <a href="report.php" class="text-blue-500 underline">Laporan</a>.</p>
-            </div>
-        <div class="bg-white shadow rounded-lg p-4 mb-4">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Jadwal</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Belum Ditentukan</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Masih Berjalan</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Suhada Akbra</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">16:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Absen Pulang</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Masuk</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah †</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">Cuti</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+
+                <!-- Edit Shift Modal -->
+                <div id="editShiftModal" class="modal fade" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Jadwal</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST">
+                                <div class="modal-body">
+                                    <input type="hidden" name="action" value="edit">
+                                    <input type="hidden" name="id" id="edit_id">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nama Jadwal</label>
+                                        <input type="text" class="form-control" name="nama_shift" id="edit_nama_shift" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Jam Masuk</label>
+                                        <input type="time" class="form-control" name="jam_masuk" id="edit_jam_masuk" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Jam Pulang</label>
+                                        <input type="time" class="form-control" name="jam_keluar" id="edit_jam_keluar" required>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-primary">Simpan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex space-x-2">
+                        <button class="bg-blue-500 text-white px-4 py-2 rounded" data-bs-toggle="modal" data-bs-target="#addShiftModal">
+                            Tambah Jadwal
+                        </button>
+                    </div>
+                    <input type="text" id="searchInput" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari Jadwal">
+                </div>
+
+                <?php if (isset($error)): ?>
+                    <div class="alert alert-danger"><?php echo $error; ?></div>
+                <?php endif; ?>
+
+                <div class="bg-white shadow rounded-lg p-4 mb-4">
+                    <table class="min-w-full divide-y divide-gray-200 text-center">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Jadwal</th>
+                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
+                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
+                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php foreach ($shifts as $shift): ?>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($shift['nama_shift']); ?></td>
+                                    <td class="px-6 py-4 whitespace-nowrap"><?php echo date('H:i', strtotime($shift['jam_masuk'])); ?></td>
+                                    <td class="px-6 py-4 whitespace-nowrap"><?php echo date('H:i', strtotime($shift['jam_keluar'])); ?></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm edit-btn" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editShiftModal"
+                                                data-id="<?php echo $shift['id']; ?>"
+                                                data-nama="<?php echo htmlspecialchars($shift['nama_shift']); ?>"
+                                                data-masuk="<?php echo $shift['jam_masuk']; ?>"
+                                                data-keluar="<?php echo $shift['jam_keluar']; ?>">
+                                            Edit
+                                        </button>
+                                        <form method="POST" class="inline-block">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?php echo $shift['id']; ?>">
+                                            <button type="submit" class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm" 
+                                                    onclick="return confirm('Apakah Anda yakin ingin menghapus jadwal ini?')">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+    </div>
+
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
@@ -273,6 +337,26 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
             sidebarToggle.addEventListener('click', function () {
                 sidebarWrapper.classList.toggle('collapsed');
             });
+        // Handle edit button clicks
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('edit_id').value = this.dataset.id;
+                document.getElementById('edit_nama_shift').value = this.dataset.nama;
+                document.getElementById('edit_jam_masuk').value = this.dataset.masuk;
+                document.getElementById('edit_jam_keluar').value = this.dataset.keluar;
+            });
+        });
+
+        // Handle search functionality
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const nama = row.cells[0].textContent.toLowerCase();
+                row.style.display = nama.includes(searchValue) ? '' : 'none';
+            });
+        });
         </script>
     </body>
 </html>
