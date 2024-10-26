@@ -132,12 +132,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                             </svg>
                             Laporan
                         </a>
-                        <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="settings.php">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
-                                <path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/>
-                            </svg>
-                            Setting
-                        </a>
                         <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="logout.php">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
                                 <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z"/>
@@ -157,9 +151,9 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         </div>
                     </nav>
                     <!-- Page content-->
-                    <div class="container-fluid">
-                    <h1 class="text-2xl font-semibold mb-4"></h1>
-            <div class="flex items-center justify-between mb-4">
+                <div class="container-fluid p-4">
+                <h1 class="text-3xl font-semibold mb-4">Monitor Absensi</h1>
+                <div class="flex items-center justify-between mb-4">
                 <div class="flex space-x-2">
                     <input type="date" class="border border-gray-300 rounded px-2 py-1" value="2023-11-23">
                     <select class="border border-gray-300 rounded px-2 py-1">
@@ -169,7 +163,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                 </div>
                 <input type="text" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari nama/email/kode staff">
             </div>
-            <div class="bg-blue-100 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
+                <div class="bg-blue-100 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
                 <p>Jika kamu ingin mendownload data absen, silakan buka sub menu laporan absensi di menu <a href="report.php" class="text-blue-500 underline">Laporan</a>.</p>
             </div>
             <div class="bg-white shadow rounded-lg p-4 mb-4">
@@ -200,99 +194,73 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
                         <p class="text-2xl font-bold text-green-500">1</p>
                     </div>
                 </div>
-            </div>
-         <div class="bg-white shadow rounded-lg p-4 mb-4">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Jadwal</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Belum Ditentukan</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Masih Berjalan</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Suhada Akbra</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">16:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Absen Pulang</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Masuk</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah †</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">Cuti</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            
+                    </div>
+
+                        <!-- tabel kehadiran -->
+                    <div class="bg-white shadow rounded-lg p-4 mb-4">
+                    <h2 class="text-lg font-semibold mb-4">Aktivitas</h2>
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jabatan</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jadwal</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Belum Ditentukan</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Masih Berjalan</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Pagi</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:00</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Pagi</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">Suhada Akbra</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Siang</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">Diah</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Siang</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">Diah</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Absen Pulang</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Petang</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">Diah</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Masuk</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Petang</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">Diah</td>
+                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-orange-500">Cuti</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         <!-- Bootstrap core JS-->
