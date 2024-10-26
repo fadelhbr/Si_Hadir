@@ -1,6 +1,13 @@
 <?php
 session_start();
 
+require_once '../../../app/auth/auth.php';
+
+$stmt = $pdo->prepare("SELECT nama_lengkap, username, email, role, no_telp FROM users");
+$stmt->execute();
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header('Location: login.php');
@@ -24,12 +31,12 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Ambil data dari form
-    $username = $_POST['username'] ?? null; // Menggunakan null coalescing operator
-    $password = $_POST['password'] ?? null;
-    $nama_lengkap = $_POST['nama_lengkap'] ?? null;
-    $email = $_POST['email'] ?? null;
-    $role = $_POST['role'] ?? null;
-    $no_telp = $_POST['no_telp'] ?? null; 
+    $username = $_POST['username'] ?? ''; // Menggunakan null coalescing operator
+    $password = $_POST['password'] ?? '';
+    $nama_lengkap = $_POST['nama_lengkap'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $role = 'karyawan';
+    $no_telp = $_POST['no_telp'] ?? ''; 
     $divisi_id = $_POST['divisi_id'];// ID divisi yang dipilih
     
     try {
@@ -87,7 +94,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_divisi->execute();
         }
         
-        echo "Data berhasil dimasukkan!";
+        echo "<script>
+                $(document).ready(function() {
+                    $('#successToast').toast('show');
+                });
+              </script>";
         
     } catch (PDOException $e) {
         echo "Error: " . $e->getMessage();
@@ -105,6 +116,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <meta name="description" content="" />
         <meta name="author" content="" />
         <title>Si Hadir - Dashboard</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        <!-- Script untuk Bootstrap JS (jika perlu) -->
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="../../../assets/icon/favicon.ico" />
         <!-- Core theme CSS (includes Bootstrap)-->
@@ -214,6 +230,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </a>
                 </div>
             </div>
+
+            <div class="toast" id="successToast" style="position: absolute; top: 20px; right: 20px;" data-autohide="true" data-delay="3000">
+                <div class="toast-header">
+                    <strong class="mr-auto">Sukses</strong>
+                    <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="toast-body">
+                    Member berhasil ditambahkan!
+                </div>
+            </div>
+
             <!-- Page content wrapper-->
             <div id="page-content-wrapper">
                 <!-- Top navigation-->
@@ -253,14 +282,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="text" class="form-control" id="namaLengkap" name="nama_lengkap" required>
                         </div>
                         <div class="col-md-6">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" name="username" required>
+                            <label for="email" class="form-label">Email</label>
+                            <input type="text" class="form-control" id="email" name="email" required>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
+                            <label for="username" class="form-label">Username</label>
+                            <input type="username" class="form-control" id="username" name="username" required>
                         </div>
                         <div class="col-md-6">
                             <label for="password" class="form-label">Password</label>
@@ -269,18 +298,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="row mb-3">
-                        <div class="mb-3">
-                            <label for="noTelepon" class="form-label">No Telepon</label>
-                            <input type="text" class="form-control" id="noTelepon" name="no_telepon" required>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="role" class="form-label">Role</label>
-                            <select class="form-select" id="role" name="role" required>
-                                <option value="" disabled selected>--- Pilih Role ---</option>
-                                <option value="karyawan">Karyawan</option>  
-                            </select>
+                            <label for="noTelepon" class="form-label">No Telepon</label>
+                            <input type="text" class="form-control" id="noTelepon" name="no_telp" required>
                         </div>
                         <div class="col-md-6">
                             <label for="divisi" class="form-label">Divisi</label>
@@ -309,7 +329,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Lengkap</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
@@ -318,83 +338,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
+                <?php foreach ($users as $user) : ?>
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Belum Ditentukan</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Masih Berjalan</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
+                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['nama_lengkap'] ?? ''); ?></td>
+                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['username'] ?? ''); ?></td>
+                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['email'] ?? ''); ?></td>
+                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['role'] ?? ''); ?></td>
+                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['no_telp'] ?? ''); ?></td>
+
+                    <td class="px-6 py-4 whitespace-nowrap">                            
+                        <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
                             <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
                         </td>
                     </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Suhada Akbra</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">16:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Absen Pulang</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Masuk</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah †</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">Cuti</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
-                        </td>
-                    </tr>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
             </div>
