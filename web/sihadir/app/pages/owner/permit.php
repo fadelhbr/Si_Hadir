@@ -3,12 +3,12 @@ session_start();
 
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: login.php');
+    header('Location: ../../../login.php');
     exit;
 }
 
 // Check if the user role is employee
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
+if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     // Unset session variables and destroy session
     session_unset();
     session_destroy();
@@ -18,7 +18,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
     header('Cache-Control: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
     
-    header('Location: login.php');
+    header('Location: ../../../login.php');
     exit;
 }
 ?>

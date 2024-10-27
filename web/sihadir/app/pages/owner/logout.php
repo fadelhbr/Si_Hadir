@@ -4,18 +4,33 @@ session_start();
 // Pastikan file koneksi database di-include
 require_once '../../../app/auth/auth.php';
 
+// Check if user is logged in
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header('Location: ../../../login.php');
+    exit;
+}
+
+// Check if the user role is employee
+if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
+    // Unset session variables and destroy session
+    session_unset();
+    session_destroy();
+    
+    // Set headers to prevent caching
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Pragma: no-cache');
+    
+    header('Location: ../../../login.php');
+    exit;
+}
+
 // Function untuk mencatat error ke file log
 function logError($message) {
     $log_file = 'error.log';
     $timestamp = date('Y-m-d H:i:s');
     $log_message = "[$timestamp] $message\n";
     error_log($log_message, 3, $log_file);
-}
-
-// Check if user is logged in, if not redirect to login page
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: ../../../login.php');
-    exit;
 }
 
 // Set timezone

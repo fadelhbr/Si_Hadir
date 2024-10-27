@@ -1,7 +1,27 @@
 <?php
 session_start();
-
 require_once '../../../app/auth/auth.php';
+
+// Check if user is logged in
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header('Location: ../../../login.php');
+    exit;
+}
+
+// Check if the user role is employee
+if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
+    // Unset session variables and destroy session
+    session_unset();
+    session_destroy();
+    
+    // Set headers to prevent caching
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Pragma: no-cache');
+    
+    header('Location: ../../../login.php');
+    exit;
+}
 
 // Fetch divisions from database
 $stmt = $pdo->prepare("SELECT id, nama_divisi FROM divisi");
@@ -438,7 +458,7 @@ if(isset($_POST['remove_device'])) {
             Tambah Member
         </button>
         <button class="bg-green-500 text-white px-4 py-2 rounded" data-bs-toggle="modal" data-bs-target="#addDivisionModal">
-            Tambah Divisi
+            Atur Divisi
         </button>
     </div>
             <form action="" method="GET" class="flex">
