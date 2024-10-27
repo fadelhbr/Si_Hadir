@@ -8,12 +8,20 @@ $stmt = $pdo->prepare("SELECT id, nama_divisi FROM divisi");
 $stmt->execute();
 $divisi_names = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-// Get users with their division names
+// Fetch shifts from database
+$stmt = $pdo->prepare("SELECT id, nama_shift FROM shift");
+$stmt->execute();
+$shifts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Get users with their division names (excluding owner role)
 $stmt = $pdo->prepare("
-    SELECT u.*, p.divisi_id, d.nama_divisi 
+    SELECT u.*, p.divisi_id, d.nama_divisi, s.id as shift_id, s.nama_shift
     FROM users u 
     LEFT JOIN pegawai p ON u.id = p.user_id 
     LEFT JOIN divisi d ON p.divisi_id = d.id
+    LEFT JOIN jadwal_shift js ON p.id = js.pegawai_id
+    LEFT JOIN shift s ON js.shift_id = s.id
+    WHERE u.role != 'owner'
 ");
 $stmt->execute();
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -22,150 +30,68 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 if(isset($_GET['search'])) {
     $search = '%' . $_GET['search'] . '%';
     $stmt = $pdo->prepare("
-        SELECT u.*, p.divisi_id, d.nama_divisi 
+        SELECT u.*, p.divisi_id, d.nama_divisi, s.id as shift_id, s.nama_shift
         FROM users u 
         LEFT JOIN pegawai p ON u.id = p.user_id 
-        LEFT JOIN divisi d ON p.divisi_id = d.id 
-        WHERE u.nama_lengkap LIKE :search 
-        OR u.email LIKE :search 
-        OR u.username LIKE :search
-        OR u.no_telp LIKE :search
+        LEFT JOIN divisi d ON p.divisi_id = d.id
+        LEFT JOIN jadwal_shift js ON p.id = js.pegawai_id
+        LEFT JOIN shift s ON js.shift_id = s.id
+        WHERE u.role != 'owner' AND (
+            u.nama_lengkap LIKE :search 
+            OR u.email LIKE :search 
+            OR u.username LIKE :search
+            OR u.no_telp LIKE :search
+        )
     ");
     $stmt->execute(['search' => $search]);
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Delete user
-if(isset($_POST['delete_user'])) {
-    try {
-        $user_id = $_POST['user_id'];
-        
-        // Begin transaction
-        $pdo->beginTransaction();
-        
-        // Delete from pegawai table first (foreign key)
-        $stmt = $pdo->prepare("DELETE FROM pegawai WHERE user_id = :user_id");
-        $stmt->execute(['user_id' => $user_id]);
-        
-        // Then delete from users table
-        $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
-        $stmt->execute(['user_id' => $user_id]);
-        
-        $pdo->commit();
-        
-        $_SESSION['toast'] = [
-            'type' => 'success',
-            'message' => 'User berhasil dihapus!'
-        ];
-    } catch(PDOException $e) {
-        $pdo->rollBack();
-        $_SESSION['toast'] = [
-            'type' => 'error',
-            'message' => 'Gagal menghapus user: ' . $e->getMessage()
-        ];
-    }
-    header('Location: ' . $_SERVER['PHP_SELF']);
-    exit;
-}
-
-// Update user
-if(isset($_POST['update_user'])) {
-    try {
-        $user_id = $_POST['user_id'];
-        $nama_lengkap = $_POST['nama_lengkap'];
-        $email = $_POST['email'];
-        $username = $_POST['username'];
-        $no_telp = $_POST['no_telp'];
-        $divisi_id = $_POST['divisi_id'];
-        
-        $pdo->beginTransaction();
-        
-        // Update users table
-        $stmt = $pdo->prepare("
-            UPDATE users 
-            SET nama_lengkap = :nama_lengkap, 
-                email = :email, 
-                username = :username, 
-                no_telp = :no_telp 
-            WHERE id = :user_id
-        ");
-        
-        $stmt->execute([
-            'nama_lengkap' => $nama_lengkap,
-            'email' => $email,
-            'username' => $username,
-            'no_telp' => $no_telp,
-            'user_id' => $user_id
-        ]);
-        
-        // Update pegawai table
-        $stmt = $pdo->prepare("
-            UPDATE pegawai 
-            SET divisi_id = :divisi_id 
-            WHERE user_id = :user_id
-        ");
-        
-        $stmt->execute([
-            'divisi_id' => $divisi_id,
-            'user_id' => $user_id
-        ]);
-        
-        $pdo->commit();
-        
-        $_SESSION['toast'] = [
-            'type' => 'success',
-            'message' => 'Data user berhasil diupdate!'
-        ];
-    } catch(PDOException $e) {
-        $pdo->rollBack();
-        $_SESSION['toast'] = [
-            'type' => 'error',
-            'message' => 'Gagal mengupdate user: ' . $e->getMessage()
-        ];
-    }
-    header('Location: ' . $_SERVER['PHP_SELF']);
-    exit;
-}
-
-// Add user
+// Add user with proper transaction handling
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     try {
-        $nama_lengkap = $_POST['nama_lengkap'];
-        $email = $_POST['email'];
-        $username = $_POST['username'];
-        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-        $no_telp = $_POST['no_telp'];
-        $divisi_id = $_POST['divisi_id'];
-        
         $pdo->beginTransaction();
-        
-        // Insert into users table
+
+        // 1. Insert into users table
         $stmt = $pdo->prepare("
             INSERT INTO users (nama_lengkap, email, username, password, no_telp, role) 
-            VALUES (:nama_lengkap, :email, :username, :password, :no_telp, 'staff')
+            VALUES (:nama_lengkap, :email, :username, :password, :no_telp, 'karyawan')
         ");
         
         $stmt->execute([
-            'nama_lengkap' => $nama_lengkap,
-            'email' => $email,
-            'username' => $username,
-            'password' => $password,
-            'no_telp' => $no_telp
+            'nama_lengkap' => $_POST['nama_lengkap'],
+            'email' => $_POST['email'],
+            'username' => $_POST['username'],
+            'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+            'no_telp' => $_POST['no_telp']
         ]);
         
-        $user_id = $pdo->lastInsertId();
-        
-        // Insert into pegawai table
+        $userId = $pdo->lastInsertId();
+
+        // 2. Insert into pegawai table
         $stmt = $pdo->prepare("
-            INSERT INTO pegawai (user_id, divisi_id) 
-            VALUES (:user_id, :divisi_id)
+            INSERT INTO pegawai (user_id, divisi_id, status_aktif) 
+            VALUES (:user_id, :divisi_id, 'aktif')
         ");
         
         $stmt->execute([
-            'user_id' => $user_id,
-            'divisi_id' => $divisi_id
+            'user_id' => $userId,
+            'divisi_id' => $_POST['divisi_id']
         ]);
+
+        $pegawaiId = $pdo->lastInsertId();
+
+        // 3. Insert into jadwal_shift table
+        $stmt = $pdo->prepare("
+            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status) 
+            VALUES (:pegawai_id, :shift_id, CURRENT_DATE, 'aktif')
+        ");
         
+        $stmt->execute([
+            'pegawai_id' => $pegawaiId,
+            'shift_id' => $_POST['shift_id']
+        ]);
+
         $pdo->commit();
         
         $_SESSION['toast'] = [
@@ -183,6 +109,166 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     exit;
 }
 
+// Add division
+if(isset($_POST['add_division'])) {
+    try {
+        $stmt = $pdo->prepare("INSERT INTO divisi (nama_divisi) VALUES (:nama_divisi)");
+        $stmt->execute(['nama_divisi' => $_POST['nama_divisi']]);
+        
+        $_SESSION['toast'] = [
+            'type' => 'success',
+            'message' => 'Divisi berhasil ditambahkan!'
+        ];
+    } catch(PDOException $e) {
+        $_SESSION['toast'] = [
+            'type' => 'error',
+            'message' => 'Gagal menambahkan divisi: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Delete division
+if(isset($_POST['delete_division'])) {
+    try {
+        $stmt = $pdo->prepare("DELETE FROM divisi WHERE id = :id");
+        $stmt->execute(['id' => $_POST['division_id']]);
+        
+        $_SESSION['toast'] = [
+            'type' => 'success',
+            'message' => 'Divisi berhasil dihapus!'
+        ];
+    } catch(PDOException $e) {
+        $_SESSION['toast'] = [
+            'type' => 'error',
+            'message' => 'Gagal menghapus divisi: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Update user with password
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
+    try {
+        $pdo->beginTransaction();
+
+        // Base update query
+        $updateQuery = "UPDATE users SET 
+            nama_lengkap = :nama_lengkap,
+            email = :email,
+            username = :username,
+            no_telp = :no_telp";
+        
+        // Add password to update if provided
+        $params = [
+            'user_id' => $_POST['user_id'],
+            'nama_lengkap' => $_POST['nama_lengkap'],
+            'email' => $_POST['email'],
+            'username' => $_POST['username'],
+            'no_telp' => $_POST['no_telp']
+        ];
+
+        if (!empty($_POST['password'])) {
+            $updateQuery .= ", password = :password";
+            $params['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        }
+
+        $updateQuery .= " WHERE id = :user_id";
+        
+        $stmt = $pdo->prepare($updateQuery);
+        $stmt->execute($params);
+
+        // Update division
+        $stmt = $pdo->prepare("
+            UPDATE pegawai 
+            SET divisi_id = :divisi_id
+            WHERE user_id = :user_id
+        ");
+        $stmt->execute([
+            'divisi_id' => $_POST['divisi_id'],
+            'user_id' => $_POST['user_id']
+        ]);
+
+        $pdo->commit();
+        $_SESSION['toast'] = [
+            'type' => 'success',
+            'message' => 'Member berhasil diupdate!'
+        ];
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        $_SESSION['toast'] = [
+            'type' => 'error',
+            'message' => 'Gagal mengupdate member: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Delete user
+if(isset($_POST['delete_user'])) {
+    try {
+        $pdo->beginTransaction();
+        
+        // Delete from jadwal_shift
+        $stmt = $pdo->prepare("
+            DELETE js FROM jadwal_shift js 
+            INNER JOIN pegawai p ON js.pegawai_id = p.id 
+            WHERE p.user_id = :user_id
+        ");
+        $stmt->execute(['user_id' => $_POST['user_id']]);
+        
+        // Delete from log_akses
+        $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $_POST['user_id']]);
+        
+        // Delete from pegawai
+        $stmt = $pdo->prepare("DELETE FROM pegawai WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $_POST['user_id']]);
+        
+        // Delete from users
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
+        $stmt->execute(['user_id' => $_POST['user_id']]);
+        
+        $pdo->commit();
+        $_SESSION['toast'] = [
+            'type' => 'success',
+            'message' => 'User berhasil dihapus!'
+        ];
+    } catch(PDOException $e) {
+        $pdo->rollBack();
+        $_SESSION['toast'] = [
+            'type' => 'error',
+            'message' => 'Gagal menghapus user: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Perbaiki fungsi remove device
+if(isset($_POST['remove_device'])) {
+    try {
+        $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $_POST['user_id']]);
+        
+        $_SESSION['toast'] = [
+            'type' => 'success',
+            'message' => 'Device berhasil dihapus!'
+        ];
+    } catch(PDOException $e) {
+        $_SESSION['toast'] = [
+            'type' => 'error',
+            'message' => 'Gagal menghapus device: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Rest of your HTML code remains the same
 ?>
 
 <!DOCTYPE html>
@@ -345,12 +431,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     <!-- Page content -->
     <div class="container-fluid p-4">
         <h1 class="text-3xl font-semibold mb-4">Manajemen Staff</h1>
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex space-x-2">
-                <button class="bg-blue-500 text-white px-4 py-2 rounded" data-bs-toggle="modal" data-bs-target="#addMemberModal">
-                    Tambah Member
-                </button>
-            </div>
+        <!-- Modified button section in your HTML -->
+<div class="flex items-center justify-between mb-4">
+    <div class="flex space-x-2">
+        <button class="bg-blue-500 text-white px-4 py-2 rounded" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+            Tambah Member
+        </button>
+        <button class="bg-green-500 text-white px-4 py-2 rounded" data-bs-toggle="modal" data-bs-target="#addDivisionModal">
+            Tambah Divisi
+        </button>
+    </div>
             <form action="" method="GET" class="flex">
                 <input type="text" name="search" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari nama/email/username/telepon" value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
                 <button type="submit" class="bg-blue-500 text-white px-4 py-1 rounded ml-2">Cari</button>
@@ -362,15 +452,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No Telepon</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">No Telepon</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-200 text-center">
                     <?php foreach ($users as $user) : ?>
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['nama_lengkap']) ?></td>
@@ -378,16 +468,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
                         <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['email']) ?></td>
                         <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['nama_divisi'] ?? '-') ?></td>
                         <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['no_telp']) ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap space-x-2">
-                            <button onclick="editUser(<?= htmlspecialchars(json_encode($user)) ?>)" 
-                            class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm edit-btn">
-                                Edit
-                            </button>
-                            <button onclick="deleteUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['nama_lengkap']) ?>')" 
-                            class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm">
-                                Hapus
-                            </button>
-                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+    <div class="flex space-x-2 justify-center">
+        <button onclick="editUser(<?= htmlspecialchars(json_encode($user)) ?>)" 
+            class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm">
+            Edit
+        </button>
+        <button onclick="showDeleteConfirm(<?= $user['id'] ?>, '<?= htmlspecialchars($user['nama_lengkap']) ?>')" 
+            class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm">
+            Hapus
+        </button>
+        <button onclick="showRemoveDeviceConfirm(<?= $user['id'] ?>, '<?= htmlspecialchars($user['nama_lengkap']) ?>')" 
+            class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm">
+            Remove Device
+        </button>
+    </div>
+</td>
+
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -440,6 +537,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+                            <div class="col-md-6">
+                            <label class="form-label">Shift</label>
+                            <select class="form-select" name="shift_id" required>
+                                <option value="">Pilih Shift</option>
+                                <?php foreach ($shifts as $id => $nama): ?>
+                                    <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -479,11 +585,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
                                 <input type="text" class="form-control" name="username" id="edit_username" required>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label">Password Baru</label>
+                                <input type="password" class="form-control" name="password">
+                            </div>
+                            
+                        </div>
+                        <div class="row mb-3">
+                        <div class="col-md-6">
                                 <label class="form-label">No Telepon</label>
                                 <input type="text" class="form-control" name="no_telp" id="edit_no_telp" required>
                             </div>
-                        </div>
-                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Divisi</label>
                                 <select class="form-select" name="divisi_id" id="edit_divisi_id" required>
@@ -493,6 +604,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -526,6 +638,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             </div>
         </div>
     </div>
+    
+   <!-- Modify the Add Division Modal -->
+<div class="modal fade" id="addDivisionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manajemen Divisi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Add Division Form -->
+                <form id="addDivisionForm" action="" method="POST" class="mb-4">
+                    <input type="hidden" name="add_division" value="1">
+                    <div class="mb-3">
+                        <label class="form-label">Tambah Divisi Baru</label>
+                        <input type="text" class="form-control" name="nama_divisi" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Tambah Divisi</button>
+                </form>
+
+                <!-- Division List -->
+                <div class="mt-4">
+                    <h6 class="mb-3">Daftar Divisi</h6>
+                    <?php foreach ($divisi_names as $id => $nama): ?>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span><?= htmlspecialchars($nama) ?></span>
+                        <form action="" method="POST" class="d-inline">
+                            <input type="hidden" name="delete_division" value="1">
+                            <input type="hidden" name="division_id" value="<?= $id ?>">
+                            <button type="submit" class="btn btn-danger btn-sm" 
+                                    onclick="return confirm('Yakin ingin menghapus divisi ini?')">
+                                Hapus
+                            </button>
+                        </form>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Remove Device Confirmation Modal -->
+<div class="modal fade" id="removeDeviceConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Konfirmasi Hapus Device</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin menghapus semua device untuk user <span id="remove_device_user_name" class="font-semibold"></span>?</p>
+            </div>
+            <div class="modal-footer">
+                <form id="removeDeviceForm" action="" method="POST">
+                    <input type="hidden" name="remove_device" value="1">
+                    <input type="hidden" name="user_id" id="remove_device_user_id">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning">Hapus Device</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 
     <!-- Scripts -->
     <script>
@@ -542,6 +722,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             new bootstrap.Modal(document.getElementById('editMemberModal')).show();
         }
 
+        function showDeleteConfirm(userId, userName) {
+        document.getElementById('delete_user_id').value = userId;
+        document.getElementById('delete_user_name').textContent = userName;
+        new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+    }
+
+    function showRemoveDeviceConfirm(userId, userName) {
+        document.getElementById('remove_device_user_id').value = userId;
+        document.getElementById('remove_device_user_name').textContent = userName;
+        new bootstrap.Modal(document.getElementById('removeDeviceConfirmModal')).show();
+    }
+
         // Function to handle delete user
         function deleteUser(userId, userName) {
             document.getElementById('delete_user_id').value = userId;
@@ -550,6 +742,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             // Show the modal
             new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
         }
+
+        function removeDevice(userId, userName) {
+    if(confirm(`Apakah Anda yakin ingin menghapus device untuk user ${userName}?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.style.display = 'none';
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'remove_device';
+        input.value = '1';
+        
+        const userIdInput = document.createElement('input');
+        userIdInput.type = 'hidden';
+        userIdInput.name = 'user_id';
+        userIdInput.value = userId;
+        
+        form.appendChild(input);
+        form.appendChild(userIdInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
 
         // Auto-hide toast after 3 seconds
         document.addEventListener('DOMContentLoaded', function() {
@@ -570,7 +785,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             window.history.replaceState(null, null, window.location.href);
         }
     </script>
-
+    
     <!-- Bootstrap and other scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../../assets/js/scripts.js"></script>

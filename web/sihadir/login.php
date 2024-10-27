@@ -175,7 +175,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         if (hasRegisteredDevice($pdo, $row['id'])) {
                             // If user has registered device, verify it matches
                             if (!isMatchingDevice($pdo, $row['id'], $device_info['hash'])) {
-                                $error_message = "Perangkat tidak dikenal. Mohon gunakan perangkat yang sudah terdaftar atau hubungi admin.";
+                                $error_message = "Perangkat tidak dikenal. Mohon gunakan perangkat yang sudah terdaftar atau hubungi owner.";
                                 // You might want to log this attempt
                                 $random_id = random_int(100000, 999999);
                                 $sql_log = "INSERT INTO log_akses (id, user_id, waktu, ip_address, device_hash, device_details, status) 
@@ -219,7 +219,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 ]);
 
                                 // Redirect based on role
-                                header('Location: ' . ($row['role'] == 'admin' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/absen.php'));
+                                header('Location: ' . ($row['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/absen.php'));
                                 exit;
                             }
                         } else {
@@ -252,7 +252,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             ]);
 
                             // Redirect based on role
-                            header('Location: ' . ($row['role'] == 'admin' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/pengumumanKaryawan.php'));
+                            header('Location: ' . ($row['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/pengumumanKaryawan.php'));
                             exit;
                         }
                     } else {

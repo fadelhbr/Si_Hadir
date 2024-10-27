@@ -8,7 +8,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 }
 
 // Check if the user role is employee
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
+if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     // Unset session variables and destroy session
     session_unset();
     session_destroy();
