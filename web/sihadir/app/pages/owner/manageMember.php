@@ -3,108 +3,185 @@ session_start();
 
 require_once '../../../app/auth/auth.php';
 
-$stmt = $pdo->prepare("SELECT nama_lengkap, username, email, role, no_telp FROM users");
+// Fetch divisions from database
+$stmt = $pdo->prepare("SELECT id, nama_divisi FROM divisi");
+$stmt->execute();
+$divisi_names = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Get users with their division names
+$stmt = $pdo->prepare("
+    SELECT u.*, p.divisi_id, d.nama_divisi 
+    FROM users u 
+    LEFT JOIN pegawai p ON u.id = p.user_id 
+    LEFT JOIN divisi d ON p.divisi_id = d.id
+");
 $stmt->execute();
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
-// Check if user is logged in
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: login.php');
-    exit;
+// Search functionality
+if(isset($_GET['search'])) {
+    $search = '%' . $_GET['search'] . '%';
+    $stmt = $pdo->prepare("
+        SELECT u.*, p.divisi_id, d.nama_divisi 
+        FROM users u 
+        LEFT JOIN pegawai p ON u.id = p.user_id 
+        LEFT JOIN divisi d ON p.divisi_id = d.id 
+        WHERE u.nama_lengkap LIKE :search 
+        OR u.email LIKE :search 
+        OR u.username LIKE :search
+        OR u.no_telp LIKE :search
+    ");
+    $stmt->execute(['search' => $search]);
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Check if the user role is employee
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
-    // Unset session variables and destroy session
-    session_unset();
-    session_destroy();
-    
-    // Set headers to prevent caching
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Cache-Control: post-check=0, pre-check=0', false);
-    header('Pragma: no-cache');
-    
-    header('Location: login.php');
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Ambil data dari form
-    $username = $_POST['username'] ?? ''; // Menggunakan null coalescing operator
-    $password = $_POST['password'] ?? '';
-    $nama_lengkap = $_POST['nama_lengkap'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $role = 'karyawan';
-    $no_telp = $_POST['no_telp'] ?? ''; 
-    $divisi_id = $_POST['divisi_id'];// ID divisi yang dipilih
-    
+// Delete user
+if(isset($_POST['delete_user'])) {
     try {
-        // Koneksi ke database
-        $pdo = new PDO('mysql:host=localhost;dbname=si_hadir', 'root', '');
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        // Hash password
-        $password_hashed = password_hash($password, PASSWORD_DEFAULT);
-
-        // Proses insert ke tabel 'users'
-        $query_user = "INSERT INTO users (username, password, nama_lengkap, email, role, no_telp)
-                       VALUES (:username, :password, :nama_lengkap, :email, :role, :no_telp)";
-        $stmt_user = $pdo->prepare($query_user);
+        $user_id = $_POST['user_id'];
         
-        // Bind parameter
-        $stmt_user->bindParam(':username', $username);
-        $stmt_user->bindParam(':password', $password_hashed);
-        $stmt_user->bindParam(':nama_lengkap', $nama_lengkap);
-        $stmt_user->bindParam(':email', $email);
-        $stmt_user->bindParam(':role', $role);
-        $stmt_user->bindParam(':no_telp', $no_telp);
-        $stmt_user->execute();
-        $user_id = $pdo->lastInsertId();
-
-        // Jika role adalah 'karyawan', insert juga ke tabel 'karyawan'
-        if ($role === 'karyawan') {
-            $query_karyawan = "INSERT INTO pegawai (user_id, divisi_id)
-                               VALUES (:user_id, :divisi_id)";
-            $stmt_karyawan = $pdo->prepare($query_karyawan);
-            // Bind parameter untuk tabel karyawan
-            $stmt_karyawan->bindParam(':user_id', $user_id);
-            $stmt_karyawan->bindParam(':divisi_id', $divisi_id);
-            
-            
-            // Eksekusi query untuk karyawan
-            $stmt_karyawan->execute();
-        }
-
-        $divisi_names = [
-            1 => 'IT',
-            2 => 'HR',
-            3 => 'Finance',
-            4 => 'Marketing',
-            5 => 'Operations'
+        // Begin transaction
+        $pdo->beginTransaction();
+        
+        // Delete from pegawai table first (foreign key)
+        $stmt = $pdo->prepare("DELETE FROM pegawai WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $user_id]);
+        
+        // Then delete from users table
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
+        $stmt->execute(['user_id' => $user_id]);
+        
+        $pdo->commit();
+        
+        $_SESSION['toast'] = [
+            'type' => 'success',
+            'message' => 'User berhasil dihapus!'
         ];
-
-        if (!empty($divisi_names[$divisi_id])) {
-            $nama_divisi = $divisi_names[$divisi_id];
-            $query_divisi = "INSERT INTO divisi (id, nama_divisi) VALUES (:id, :nama_divisi)
-                             ON DUPLICATE KEY UPDATE nama_divisi = :nama_divisi"; // Update jika divisi sudah ada
-            $stmt_divisi = $pdo->prepare($query_divisi);
-            $stmt_divisi->bindParam(':id', $divisi_id);
-            $stmt_divisi->bindParam(':nama_divisi', $nama_divisi);
-            $stmt_divisi->execute();
-        }
-        
-        echo "<script>
-                $(document).ready(function() {
-                    $('#successToast').toast('show');
-                });
-              </script>";
-        
-    } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
+    } catch(PDOException $e) {
+        $pdo->rollBack();
+        $_SESSION['toast'] = [
+            'type' => 'error',
+            'message' => 'Gagal menghapus user: ' . $e->getMessage()
+        ];
     }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
 }
 
+// Update user
+if(isset($_POST['update_user'])) {
+    try {
+        $user_id = $_POST['user_id'];
+        $nama_lengkap = $_POST['nama_lengkap'];
+        $email = $_POST['email'];
+        $username = $_POST['username'];
+        $no_telp = $_POST['no_telp'];
+        $divisi_id = $_POST['divisi_id'];
+        
+        $pdo->beginTransaction();
+        
+        // Update users table
+        $stmt = $pdo->prepare("
+            UPDATE users 
+            SET nama_lengkap = :nama_lengkap, 
+                email = :email, 
+                username = :username, 
+                no_telp = :no_telp 
+            WHERE id = :user_id
+        ");
+        
+        $stmt->execute([
+            'nama_lengkap' => $nama_lengkap,
+            'email' => $email,
+            'username' => $username,
+            'no_telp' => $no_telp,
+            'user_id' => $user_id
+        ]);
+        
+        // Update pegawai table
+        $stmt = $pdo->prepare("
+            UPDATE pegawai 
+            SET divisi_id = :divisi_id 
+            WHERE user_id = :user_id
+        ");
+        
+        $stmt->execute([
+            'divisi_id' => $divisi_id,
+            'user_id' => $user_id
+        ]);
+        
+        $pdo->commit();
+        
+        $_SESSION['toast'] = [
+            'type' => 'success',
+            'message' => 'Data user berhasil diupdate!'
+        ];
+    } catch(PDOException $e) {
+        $pdo->rollBack();
+        $_SESSION['toast'] = [
+            'type' => 'error',
+            'message' => 'Gagal mengupdate user: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Add user
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
+    try {
+        $nama_lengkap = $_POST['nama_lengkap'];
+        $email = $_POST['email'];
+        $username = $_POST['username'];
+        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        $no_telp = $_POST['no_telp'];
+        $divisi_id = $_POST['divisi_id'];
+        
+        $pdo->beginTransaction();
+        
+        // Insert into users table
+        $stmt = $pdo->prepare("
+            INSERT INTO users (nama_lengkap, email, username, password, no_telp, role) 
+            VALUES (:nama_lengkap, :email, :username, :password, :no_telp, 'staff')
+        ");
+        
+        $stmt->execute([
+            'nama_lengkap' => $nama_lengkap,
+            'email' => $email,
+            'username' => $username,
+            'password' => $password,
+            'no_telp' => $no_telp
+        ]);
+        
+        $user_id = $pdo->lastInsertId();
+        
+        // Insert into pegawai table
+        $stmt = $pdo->prepare("
+            INSERT INTO pegawai (user_id, divisi_id) 
+            VALUES (:user_id, :divisi_id)
+        ");
+        
+        $stmt->execute([
+            'user_id' => $user_id,
+            'divisi_id' => $divisi_id
+        ]);
+        
+        $pdo->commit();
+        
+        $_SESSION['toast'] = [
+            'type' => 'success',
+            'message' => 'Member berhasil ditambahkan!'
+        ];
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        $_SESSION['toast'] = [
+            'type' => 'error',
+            'message' => 'Gagal menambahkan member: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
 
 ?>
 
@@ -253,78 +330,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                 </nav>
-                <!-- Page content-->
-                <div class="container-fluid p-4">
-    <h1 class="text-3xl font-semibold mb-4">Manajemen Staff</h1>
-    <div class="flex items-center justify-between mb-4">
-        <div class="flex space-x-2">
-            <!-- Button to open the modal -->
-            <button class="bg-blue-500 text-white px-4 py-2 rounded" data-bs-toggle="modal" data-bs-target="#addMemberModal">
-                Tambah Member
-            </button>
-        </div>
-        <input type="text" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari nama/email/kode staff">
+                <!-- Toast notification -->
+    <?php if(isset($_SESSION['toast'])): ?>
+    <div id="toast" class="fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 <?= $_SESSION['toast']['type'] === 'success' ? 'bg-green-500' : 'bg-red-500' ?> text-white">
+        <?= $_SESSION['toast']['message'] ?>
     </div>
+    <script>
+        setTimeout(() => {
+            document.getElementById('toast').style.display = 'none';
+        }, 3000);
+    </script>
+    <?php unset($_SESSION['toast']); endif; ?>
 
-    <!-- Modal Structure for "Tambah Member" -->
-    <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg"> <!-- Menambah ukuran dialog agar lebih lebar -->
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addMemberModalLabel">Tambah Member</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- Page content -->
+    <div class="container-fluid p-4">
+        <h1 class="text-3xl font-semibold mb-4">Manajemen Staff</h1>
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex space-x-2">
+                <button class="bg-blue-500 text-white px-4 py-2 rounded" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                    Tambah Member
+                </button>
             </div>
-            <div class="modal-body">
-                <form id="memberForm" action="manageMember.php" method="POST">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="namaLengkap" class="form-label">Nama Lengkap</label>
-                            <input type="text" class="form-control" id="namaLengkap" name="nama_lengkap" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="text" class="form-control" id="email" name="email" required>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="username" class="form-control" id="username" name="username" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="noTelepon" class="form-label">No Telepon</label>
-                            <input type="text" class="form-control" id="noTelepon" name="no_telp" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="divisi" class="form-label">Divisi</label>
-                            <select class="form-select" id="divisi" name="divisi_id">
-                                <option value="" disabled selected>--- Pilih Divisi ---</option>
-                                <option value="1">IT</option>
-                                <option value="2">HR</option>
-                                <option value="3">Finance</option>
-                                <option value="4">Marketing</option>
-                                <option value="5">Operations</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button onclick="location.reload()" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                        <button type="submit" class="btn btn-primary">Tambahkan</button>
-                    </div>
-                </form>
-            </div>
+            <form action="" method="GET" class="flex">
+                <input type="text" name="search" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari nama/email/username/telepon" value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
+                <button type="submit" class="bg-blue-500 text-white px-4 py-1 rounded ml-2">Cari</button>
+            </form>
         </div>
-    </div>
-</div>
 
-            
+        <!-- Table content -->
         <div class="bg-white shadow rounded-lg p-4 mb-4">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -332,43 +365,215 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No Telepon</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                <?php foreach ($users as $user) : ?>
+                    <?php foreach ($users as $user) : ?>
                     <tr>
-                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['nama_lengkap'] ?? ''); ?></td>
-                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['username'] ?? ''); ?></td>
-                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['email'] ?? ''); ?></td>
-                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['role'] ?? ''); ?></td>
-                    <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['no_telp'] ?? ''); ?></td>
-
-                    <td class="px-6 py-4 whitespace-nowrap">                            
-                        <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Edit</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Hapus</button>
+                        <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['nama_lengkap']) ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['username']) ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['email']) ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['nama_divisi'] ?? '-') ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['no_telp']) ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap space-x-2">
+                            <button onclick="editUser(<?= htmlspecialchars(json_encode($user)) ?>)" 
+                            class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm edit-btn">
+                                Edit
+                            </button>
+                            <button onclick="deleteUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['nama_lengkap']) ?>')" 
+                            class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm">
+                                Hapus
+                            </button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div class="modal fade" id="addMemberModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addMemberForm" action="" method="POST">
+                        <input type="hidden" name="add_user" value="1">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nama Lengkap</label>
+                                <input type="text" class="form-control" name="nama_lengkap" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control" name="username" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Password</label>
+                                <input type="password" class="form-control" name="password" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">No Telepon</label>
+                                <input type="text" class="form-control" name="no_telp" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Divisi</label>
+                                <select class="form-select" name="divisi_id" required>
+                                    <option value="">Pilih Divisi</option>
+                                    <?php foreach ($divisi_names as $id => $nama): ?>
+                                        <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                            <button type="submit" class="btn btn-primary">Tambah</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-        <!-- Bootstrap core JS-->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- Core theme JS-->
-        <script src="../../../assets/js/scripts.js "></script>
+    </div>
 
-        <!-- Custom JS to handle sidebar toggle -->
-        <script>
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebarWrapper = document.getElementById('sidebar-wrapper');
+    <!-- Edit Member Modal -->
+    <div class="modal fade" id="editMemberModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editMemberForm" action="" method="POST">
+                        <input type="hidden" name="update_user" value="1">
+                        <input type="hidden" name="user_id" id="edit_user_id">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nama Lengkap</label>
+                                <input type="text" class="form-control" name="nama_lengkap" id="edit_nama_lengkap" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" id="edit_email" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control" name="username" id="edit_username" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">No Telepon</label>
+                                <input type="text" class="form-control" name="no_telp" id="edit_no_telp" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Divisi</label>
+                                <select class="form-select" name="divisi_id" id="edit_divisi_id" required>
+                                    <option value="">Pilih Divisi</option>
+                                    <?php foreach ($divisi_names as $id => $nama): ?>
+                                        <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                            <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            sidebarToggle.addEventListener('click', function () {
-                sidebarWrapper.classList.toggle('collapsed');
-            });
-        </script>
-    </body>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Konfirmasi Hapus</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin menghapus user <span id="delete_user_name" class="font-semibold"></span>?</p>
+                </div>
+                <div class="modal-footer">
+                    <form id="deleteForm" action="" method="POST">
+                        <input type="hidden" name="delete_user" value="1">
+                        <input type="hidden" name="user_id" id="delete_user_id">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-danger">Hapus</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Function to handle edit user
+        function editUser(user) {
+            document.getElementById('edit_user_id').value = user.id;
+            document.getElementById('edit_nama_lengkap').value = user.nama_lengkap;
+            document.getElementById('edit_email').value = user.email;
+            document.getElementById('edit_username').value = user.username;
+            document.getElementById('edit_no_telp').value = user.no_telp;
+            document.getElementById('edit_divisi_id').value = user.divisi_id || '';
+            
+            // Show the modal
+            new bootstrap.Modal(document.getElementById('editMemberModal')).show();
+        }
+
+        // Function to handle delete user
+        function deleteUser(userId, userName) {
+            document.getElementById('delete_user_id').value = userId;
+            document.getElementById('delete_user_name').textContent = userName;
+            
+            // Show the modal
+            new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+        }
+
+        // Auto-hide toast after 3 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const toast = document.getElementById('toast');
+            if (toast) {
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 500);
+                }, 3000);
+            }
+        });
+
+        // Prevent form resubmission on page refresh
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
+
+    <!-- Bootstrap and other scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../../assets/js/scripts.js"></script>
+</body>
 </html>
+        
