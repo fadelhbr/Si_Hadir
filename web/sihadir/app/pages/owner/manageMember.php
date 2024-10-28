@@ -67,12 +67,12 @@ if(isset($_GET['search'])) {
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Add user with proper transaction handling
+// Ensure this code runs on POST request to add a user
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     try {
         $pdo->beginTransaction();
 
-        // 1. Insert into users table
+        // Step 1: Insert into users table
         $stmt = $pdo->prepare("
             INSERT INTO users (nama_lengkap, email, username, password, no_telp, role) 
             VALUES (:nama_lengkap, :email, :username, :password, :no_telp, 'karyawan')
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
         
         $userId = $pdo->lastInsertId();
 
-        // 2. Insert into pegawai table
+        // Step 2: Insert into pegawai table
         $stmt = $pdo->prepare("
             INSERT INTO pegawai (user_id, divisi_id, status_aktif) 
             VALUES (:user_id, :divisi_id, 'aktif')
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
 
         $pegawaiId = $pdo->lastInsertId();
 
-        // 3. Insert into jadwal_shift table
+        // Step 3: Insert into jadwal_shift table
         $stmt = $pdo->prepare("
             INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status) 
             VALUES (:pegawai_id, :shift_id, CURRENT_DATE, 'aktif')
@@ -109,14 +109,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
         
         $stmt->execute([
             'pegawai_id' => $pegawaiId,
-            'shift_id' => $_POST['shift_id']
+            'shift_id' => $_POST['shift_id'] // Make sure this shift_id exists in the shift table
+        ]);
+
+        // Get the last inserted jadwal_shift ID
+        $jadwalShiftId = $pdo->lastInsertId();
+
+        // Step 4: Insert into absensi table
+        $stmt = $pdo->prepare("
+            INSERT INTO absensi (pegawai_id, jadwal_shift_id, waktu_masuk, waktu_keluar, kode_unik, status_kehadiran, keterangan, tanggal)
+            VALUES (:pegawai_id, :jadwal_shift_id, '00:00:00', '00:00:00', '000000', 'alpha', NULL, CURRENT_TIMESTAMP)
+        ");
+        
+        $stmt->execute([
+            'pegawai_id' => $pegawaiId,
+            'jadwal_shift_id' => $jadwalShiftId // Use the valid jadwal_shift ID
         ]);
 
         $pdo->commit();
         
         $_SESSION['toast'] = [
             'type' => 'success',
-            'message' => 'Member berhasil ditambahkan!'
+            'message' => 'Member berhasil ditambahkan dan absensi sudah dicatat!'
         ];
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -384,7 +398,7 @@ if(isset($_POST['remove_device'])) {
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="sidebar-icon" fill="#6c757d">
                                 <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
                             </svg>
-                            Jadwal
+                            Jadwal Shift
                         </a>
                         <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="manageMember.php">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="sidebar-icon" fill="#6c757d" width="24" height="24">
@@ -550,14 +564,14 @@ if(isset($_POST['remove_device'])) {
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Divisi</label>
-                                <select class="form-select" name="divisi_id" required>
+                                <select class="form-select mb-3" name="divisi_id" required>
                                     <option value="">Pilih Divisi</option>
                                     <?php foreach ($divisi_names as $id => $nama): ?>
                                         <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-mb-3">
                             <label class="form-label">Shift</label>
                             <select class="form-select" name="shift_id" required>
                                 <option value="">Pilih Shift</option>

@@ -161,7 +161,7 @@ try {
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="sidebar-icon" fill="#6c757d">
                                 <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
                             </svg>
-                            Jadwal
+                            Jadwal Shift
                         </a>
                         <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="manageMember.php">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="sidebar-icon" fill="#6c757d" width="24" height="24">
@@ -202,7 +202,7 @@ try {
                 </nav>
                  <!-- Page content-->
             <div class="container-fluid p-4">
-                <h1 class="text-3xl font-semibold mb-4">Jadwal</h1>
+                <h1 class="text-3xl font-semibold mb-4">Jadwal Shift</h1>
                 
                 <!-- Add Shift Modal -->
                 <div id="addShiftModal" class="modal fade" tabindex="-1">

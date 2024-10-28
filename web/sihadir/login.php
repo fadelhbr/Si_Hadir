@@ -177,17 +177,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             if (!isMatchingDevice($pdo, $row['id'], $device_info['hash'])) {
                                 $error_message = "Perangkat tidak dikenal. Mohon gunakan perangkat yang sudah terdaftar atau hubungi owner.";
                                 // You might want to log this attempt
-                                $random_id = random_int(100000, 999999);
-                                $sql_log = "INSERT INTO log_akses (id, user_id, waktu, ip_address, device_hash, device_details, status) 
-                                          VALUES (:random_id, :user_id, NOW(), :ip_address, :device_hash, :device_details, 'rejected')";
-                                $stmt_log = $pdo->prepare($sql_log);
-                                $stmt_log->execute([
-                                    ':random_id' => $random_id,
-                                    ':user_id' => $row['id'],
-                                    ':ip_address' => $_SERVER['REMOTE_ADDR'],
-                                    ':device_hash' => $device_info['hash'],
-                                    ':device_details' => $device_info['details']
-                                ]);
                                 
                             } else {
                                 // Device matches, proceed with login
