@@ -1,14 +1,11 @@
 <?php
 // auth.php
 
-// Start the session
-session_start();
-
 // Database configuration
 $host = 'localhost'; // Your database host
 $db   = 'si_hadir';       // Your database name
 $user = 'root';      // Your database username
-$pass = '';          // Your database password
+$pass = 'abc54321';          // Your database password
 
 // Create a new PDO instance
 try {
