@@ -2,7 +2,7 @@
 session_start();
 
 // Pastikan file koneksi database di-include
-require_once 'auth/auth.php';
+require_once '../../../app/auth/auth.php';
 
 // Function untuk mencatat error ke file log
 function logError($message) {
@@ -14,7 +14,7 @@ function logError($message) {
 
 // Check if user is logged in, if not redirect to login page
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: index.php');
+    header('Location: ../../../login.php');
     exit;
 }
 
@@ -187,7 +187,7 @@ if (isset($_POST['logout']) && $_POST['logout'] == 'yes') {
         }
 
         // Redirect to login page
-        header("Location: index.php");
+        header("Location: ../../../login.php");
         exit;
         
     } catch (PDOException $e) {

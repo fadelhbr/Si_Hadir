@@ -1,5 +1,5 @@
 <?php
-include '../../../app/auth/auth.php';
+include '../../app/auth/auth.php';
 
 // Function to check if code exists in database
 function isCodeExists($pdo, $code) {

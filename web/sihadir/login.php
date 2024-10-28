@@ -208,7 +208,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 ]);
 
                                 // Redirect based on role
-                                header('Location: ' . ($row['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/absen.php'));
+                                header('Location: ' . ($row['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/attendance.php'));
                                 exit;
                             }
                         } else {
@@ -241,7 +241,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             ]);
 
                             // Redirect based on role
-                            header('Location: ' . ($row['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/pengumumanKaryawan.php'));
+                            header('Location: ' . ($row['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/attendance.php'));
                             exit;
                         }
                     } else {
