@@ -1,27 +1,44 @@
 <?php
 session_start();
 
-// Check if user is logged in
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+include '../../../app/auth/auth.php';
+
+// Pastikan pengguna sudah login dan memiliki id
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || !isset($_SESSION['id'])) {
     header('Location: ../../../login.php');
     exit;
 }
 
-// Check if the user role is employee
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
-    // Unset session variables and destroy session
-    session_unset();
-    session_destroy();
-    
-    // Set headers to prevent caching
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Cache-Control: post-check=0, pre-check=0', false);
-    header('Pragma: no-cache');
-    
-    header('Location: ../../../login.php');
-    exit;
+// Query untuk mengambil data absensi user yang sedang login
+$query = "
+    SELECT 
+        u.nama_lengkap,  -- Mengambil nama dari tabel users
+        s.nama_shift,
+        CONCAT(s.jam_masuk, ' - ', s.jam_keluar) as jadwal_shift,
+        a.waktu_masuk,
+        a.waktu_keluar,
+        a.status_kehadiran,
+        a.keterangan,
+        DATE(a.tanggal) as tanggal
+    FROM absensi a
+    JOIN pegawai p ON a.pegawai_id = p.id
+    JOIN users u ON p.user_id = u.id  -- Join dengan tabel users
+    JOIN jadwal_shift js ON a.jadwal_shift_id = js.id
+    JOIN shift s ON js.shift_id = s.id
+    WHERE p.user_id = :user_id
+    ORDER BY a.tanggal DESC
+";
+
+try {
+    $stmt = $pdo->prepare($query);
+    $stmt->execute(['user_id' => $_SESSION['id']]);
+    $attendances = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Database Error: " . $e->getMessage());
+    echo "Terjadi kesalahan saat mengambil data: " . $e->getMessage();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -113,143 +130,59 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
             </div>
             <!-- Page content wrapper-->
             <div id="page-content-wrapper">
-                <!-- Top navigation-->
-                <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
-                    <div class="container-fluid">
-                        <button class="btn btn-primary" id="sidebarToggle">☰</button>
-                        <div id="navbarSupportedContent">
-                        </div>
-                    </div>
-                </nav>
-                <!-- Page content-->
-                <div class="container-fluid">
-                <h1 class="mt-4">Absen</h1>
-                <div class="attendance-options">
-                    <button id="qr-option" class="btn btn-primary">Absen dengan QR Code</button>
-                    <button id="manual-option" class="btn btn-secondary">Absen Manual / Ijin / Sakit</button>
-                </div>
-                <div id="qr-reader" style="display: none;">
-                    <video id="qr-video"></video>
-                    <canvas id="qr-canvas"></canvas>
-                    <div id="qr-result"></div>
-                    <button id="start-scan" class="btn btn-primary mt-3">Mulai Scan</button>
-                </div>
-                <div id="manual-form" style="display: none;">
-                    <form action="process_attendance.php" method="POST">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attendance" id="hadir" value="hadir" required>
-                            <label class="form-check-label" for="hadir">Hadir</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attendance" id="ijin" value="ijin">
-                            <label class="form-check-label" for="ijin">Ijin</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attendance" id="sakit" value="sakit">
-                            <label class="form-check-label" for="sakit">Sakit</label>
-                        </div>
-                        <button type="submit" class="btn btn-primary mt-3">Submit</button>
-                    </form>
-                </div>
+    <!-- Top navigation-->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
+        <div class="container-fluid">
+            <button class="btn btn-primary" id="sidebarToggle">☰</button>
+            <div id="navbarSupportedContent">
             </div>
         </div>
+    </nav>
+    <!-- Page content-->
+    <div class="container-fluid">
+    <h1 class="mt-4">Riwayat Kehadiran</h1>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Jadwal Shift</th>
+                    <th>Waktu Masuk</th>
+                    <th>Waktu Keluar</th>
+                    <th>Status Kehadiran</th>
+                    <th>Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($attendances)): ?>
+                    <tr>
+                        <td colspan="6" class="text-center">Tidak ada data kehadiran</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($attendances as $attendance): ?>
+                        <tr>
+                            <td><?= htmlspecialchars(date('d-m-Y', strtotime($attendance['tanggal']))) ?></td>
+                            <td><?= htmlspecialchars($attendance['jadwal_shift']) ?></td>
+                            <td><?= $attendance['waktu_masuk'] ? htmlspecialchars(date('H:i', strtotime($attendance['waktu_masuk']))) : '-' ?></td>
+                            <td><?= $attendance['waktu_keluar'] ? htmlspecialchars(date('H:i', strtotime($attendance['waktu_keluar']))) : '-' ?></td>
+                            <td>
+                                <span class="badge <?= getBadgeClass($attendance['status_kehadiran']) ?>">
+                                    <?= htmlspecialchars(ucfirst($attendance['status_kehadiran'])) ?>
+                                </span>
+                            </td>
+                            <td><?= htmlspecialchars($attendance['keterangan'] ?: '-') ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../../assets/js/scripts.js"></script>
     
-    <script>
-        const qrOption = document.getElementById('qr-option');
-        const manualOption = document.getElementById('manual-option');
-        const qrReader = document.getElementById('qr-reader');
-        const manualForm = document.getElementById('manual-form');
-        const video = document.getElementById('qr-video');
-        const canvas = document.getElementById('qr-canvas');
-        const result = document.getElementById('qr-result');
-        const startScanButton = document.getElementById('start-scan');
-
-        let scanning = false;
-
-        qrOption.onclick = () => {
-            qrReader.style.display = 'block';
-            manualForm.style.display = 'none';
-        };
-
-        manualOption.onclick = () => {
-            qrReader.style.display = 'none';
-            manualForm.style.display = 'block';
-        };
-
-        startScanButton.onclick = () => {
-            if (scanning) {
-                scanning = false;
-                startScanButton.textContent = 'Mulai Scan';
-                video.srcObject.getTracks().forEach(track => track.stop());
-            } else {
-                startScanning();
-            }
-        };
-
-        function startScanning() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function(stream) {
-                    scanning = true;
-                    startScanButton.textContent = 'Stop Scan';
-                    video.srcObject = stream;
-                    video.setAttribute("playsinline", true);
-                    video.play();
-                    requestAnimationFrame(tick);
-                })
-                .catch(function(err) {
-                    console.error("Error accessing the camera", err);
-                    result.textContent = "Error: " + err.message;
-                });
-        }
-
-        function tick() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
-                canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-                var imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
-                var code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                if (code) {
-                    console.log("QR Code detected", code.data);
-                    result.textContent = "QR Code terdeteksi: " + code.data;
-                    submitAttendance(code.data);
-                    scanning = false;
-                    startScanButton.textContent = 'Mulai Scan';
-                    video.srcObject.getTracks().forEach(track => track.stop());
-                }
-            }
-            if (scanning) {
-                requestAnimationFrame(tick);
-            }
-        }
-
-        function submitAttendance(qrData) {
-            fetch('process_attendance.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'qr_data=' + encodeURIComponent(qrData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    result.textContent = "Absensi berhasil dicatat!";
-                } else {
-                    result.textContent = "Error: " + data.message;
-                }
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                result.textContent = "Terjadi kesalahan saat mengirim data.";
-            });
-        }
+<script>
 
         // Sidebar toggle functionality
         const sidebarToggle = document.getElementById('sidebarToggle');
@@ -258,6 +191,53 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
         sidebarToggle.addEventListener('click', function () {
             sidebarWrapper.classList.toggle('collapsed');
         });
+
+        <?php
+// Fungsi untuk menentukan class badge berdasarkan status kehadiran
+function getBadgeClass($status) {
+    switch ($status) {
+        case 'hadir':
+            return 'bg-success';
+        case 'terlambat':
+            return 'bg-warning';
+        case 'sakit':
+            return 'bg-info';
+        case 'izin':
+            return 'bg-primary';
+        case 'alpha':
+            return 'bg-danger';
+        case 'cuti':
+            return 'bg-secondary';
+        default:
+            return 'bg-secondary';
+    }
+}
+?>
+
+// Di bagian script
+function refreshTable() {
+    location.reload();
+}
+
+// Refresh setiap 5 menit
+setInterval(refreshTable, 300000);
     </script>
+    <style>
+.badge {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    text-transform: capitalize;
+}
+
+.table th {
+    background-color: #343a40;
+    color: white;
+}
+
+.table-responsive {
+    margin-top: 20px;
+}
+</style>
 </body>
 </html>

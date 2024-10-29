@@ -22,21 +22,76 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
 
 require_once '../../../app/auth/auth.php';
 
-// Handle form submission
+function getEmployeeShiftSchedule($pdo, $employeeId, $date) {
+    $query = "SELECT 
+                js.id as jadwal_shift_id,
+                js.maksimal_keterlambatan,
+                js.status as jadwal_status,
+                s.id as shift_id,
+                s.nama_shift,
+                s.jam_masuk,
+                s.jam_keluar
+              FROM jadwal_shift js
+              JOIN shift s ON js.shift_id = s.id
+              WHERE js.pegawai_id = ? 
+              AND js.tanggal = ? 
+              AND js.status = 'aktif'";
+    
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$employeeId, $date]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+function getAttendanceStatus($pdo, $employeeId, $date) {
+    $query = "SELECT id, waktu_masuk, waktu_keluar, status_kehadiran, jadwal_shift_id, keterangan, kode_unik 
+              FROM absensi 
+              WHERE pegawai_id = ? AND DATE(tanggal) = ?
+              ORDER BY id DESC
+              LIMIT 1";
+    
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$employeeId, $date]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Get the unique code from POST data
         $uniqueCode = $_POST['unique_code'];
+        $userId = $_SESSION['id'];
+        $currentDate = date('Y-m-d');
+        $currentTime = new DateTime();
         
-        // Validate unique code format (6 characters alphanumeric)
-        if (!preg_match('/^[a-zA-Z0-9]{6}$/', $uniqueCode)) {
-            throw new Exception('Kode unik harus 6 karakter alfanumerik.');
+        $pdo->beginTransaction();
+        
+        // Get employee ID
+        $stmt = $pdo->prepare("SELECT id, status_aktif FROM pegawai WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$employee) {
+            throw new Exception('Data pegawai tidak ditemukan.');
         }
 
-        // Verify that the submitted code matches the generated QR code
-        if (!isset($_SESSION['current_code']) || $uniqueCode !== $_SESSION['current_code']) {
-            throw new Exception('Kode QR tidak valid atau sudah kadaluarsa.');
+        if ($employee['status_aktif'] !== 'aktif') {
+            throw new Exception('Status pegawai tidak aktif.');
         }
+
+        $employeeId = $employee['id'];
+
+        // Get shift schedule
+        $shiftSchedule = getEmployeeShiftSchedule($pdo, $employeeId, $currentDate);
+        
+        if (!$shiftSchedule) {
+            throw new Exception('Anda tidak memiliki jadwal shift aktif hari ini. Jadwal shift diperlukan untuk melakukan absensi.');
+        }
+
+        // Get current attendance status
+        $attendance = getAttendanceStatus($pdo, $employeeId, $currentDate);
+
+        // Calculate shift times
+        $shiftStart = new DateTime($currentDate . ' ' . $shiftSchedule['jam_masuk']);
+        $shiftEnd = new DateTime($currentDate . ' ' . $shiftSchedule['jam_keluar']);
+        $maxLateTime = (clone $shiftStart)->modify('+' . (int)$shiftSchedule['maksimal_keterlambatan'] . ' minutes');
 
         // Check if the code has already been used
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM absensi WHERE kode_unik = ?");
@@ -45,90 +100,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Kode QR ini sudah digunakan.');
         }
 
-        // Get current user ID from session
-        $userId = $_SESSION['id'];
-        $currentDate = date('Y-m-d');
-        
-        // Begin transaction
-        $pdo->beginTransaction();
-        
-        // First, get the pegawai_id for the current user
-        $query = "SELECT p.id as pegawai_id, js.id as jadwal_shift_id, s.jam_masuk 
-                 FROM pegawai p 
-                 LEFT JOIN jadwal_shift js ON p.id = js.pegawai_id AND js.tanggal = ?
-                 LEFT JOIN shift s ON js.shift_id = s.id
-                 WHERE p.user_id = ?";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([$currentDate, $userId]);
-        $employeeData = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$employeeData) {
-            throw new Exception('Data pegawai tidak ditemukan.');
-        }
-
-        // Check if attendance record exists for today
-        $query = "SELECT id, waktu_masuk, status_kehadiran FROM absensi 
-                 WHERE pegawai_id = ? AND DATE(tanggal) = ?";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([$employeeData['pegawai_id'], $currentDate]);
-        $attendance = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$attendance) {
-            throw new Exception('Data absensi tidak ditemukan untuk hari ini.');
-        }
-        
-        // Allow update if status is 'alpha' regardless of waktu_masuk
-        if ($attendance['status_kehadiran'] !== 'alpha') {
-            throw new Exception('Anda sudah melakukan absensi hari ini.');
-        }
-
-        // Determine attendance status
-        $status = 'hadir';
-        if ($employeeData['jam_masuk']) {
-            $shift_start = new DateTime($currentDate . ' ' . $employeeData['jam_masuk']);
-            $current_time = new DateTime();
+        // Update attendance status
+        if (!$attendance || ($attendance['waktu_masuk'] == '00:00:00' && $attendance['waktu_keluar'] == '00:00:00' && $attendance['kode_unik'] == '000000')) {
+            $status = $currentTime > $maxLateTime ? 'terlambat' : 'dalam_shift';
             
-            if ($current_time > $shift_start->modify('+15 minutes')) {
-                $status = 'terlambat';
+            $query = "UPDATE absensi 
+                    SET waktu_masuk = CURRENT_TIME(),
+                        kode_unik = ?,
+                        status_kehadiran = ?
+                    WHERE id = ?";
+            $stmt = $pdo->prepare($query);
+            if (!$stmt->execute([
+                $uniqueCode,
+                $status,
+                $attendance ? $attendance['id'] : null
+            ])) {
+                throw new Exception('Gagal mengupdate absensi masuk.');
             }
-        }
+            
+            $message = [
+                'status' => 'success',
+                'text' => 'Absensi masuk berhasil dicatat.'
+            ];
+        } elseif ($attendance && $attendance['waktu_masuk'] != '00:00:00' && $attendance['waktu_keluar'] == '00:00:00') {
+            if ($attendance && $attendance['waktu_masuk'] != '00:00:00' && $attendance['waktu_keluar'] == '00:00:00') {
+                if ($currentTime < $shiftEnd) {
+                    // Automatically update attendance status to 'pulang_dahulu'
+                    $status = 'pulang_dahulu';
+                    
+                    $query = "UPDATE absensi 
+                            SET waktu_keluar = CURRENT_TIME(),
+                                status_kehadiran = ?
+                            WHERE id = ?";
+                    $stmt = $pdo->prepare($query);
+                    if (!$stmt->execute([
+                        $status,
+                        $attendance['id']
+                    ])) {
+                        throw new Exception('Gagal mengupdate absensi keluar.');
+                    }
+                    
+                    $message = [
+                        'status' => 'success',
+                        'text' => 'Anda telah pulang lebih dahulu.',
+                        'color' => 'green' // Add a color indicator
+                    ];
+                } elseif ($currentTime >= $shiftEnd) {
+                    $status = 'hadir';
+                    
+                    $query = "UPDATE absensi 
+                            SET waktu_keluar = CURRENT_TIME(),
+                                status_kehadiran = ?,
+                                keterangan = null
+                            WHERE id = ?";
+                    $stmt = $pdo->prepare($query);
+                    if (!$stmt->execute([
+                        $status,
+                        $attendance['id']
+                    ])) {
+                        throw new Exception('Gagal mengupdate absensi keluar.');
+                    }
+                    
+                    $message = [
+                        'status' => 'success',
+                        'text' => 'Absensi keluar berhasil dicatat.'
+                    ];
+                } else {
+                    throw new Exception('Anda sudah melakukan absen masuk dan keluar hari ini.');
+                }
+            } else {
+                // Check for the 'pulang_dahulu' status before allowing further submissions
+                if ($attendance && $attendance['status_kehadiran'] === 'pulang_dahulu') {
+                    throw new Exception('Anda sudah absen hari ini.');
+                }
+                throw new Exception('Anda sudah melakukan absen masuk dan keluar hari ini.');
+            }
+        }            
 
-        // Update the existing attendance record
-        $query = "UPDATE absensi 
-                 SET waktu_masuk = CURRENT_TIMESTAMP, 
-                     kode_unik = ?, 
-                     status_kehadiran = ? 
-                 WHERE id = ?";
-        $stmt = $pdo->prepare($query);
-        if (!$stmt->execute([
-            $uniqueCode,
-            $status,
-            $attendance['id']
-        ])) {
-            throw new Exception('Gagal mengupdate absensi.');
-        }
-
-        // After successful update, clear the current code from session
-        unset($_SESSION['current_code']);
-        unset($_SESSION['code_timestamp']);
-
-        // Commit transaction
         $pdo->commit();
-        
-        // Set success message
-        $message = ['status' => 'success', 'text' => 'Absensi berhasil dicatat.'];
-
     } catch (Exception $e) {
-        // Rollback transaction on error
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
         
-        // Set error message
         $message = ['status' => 'error', 'text' => $e->getMessage()];
     }
     
-    // Send JSON response for AJAX requests
     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
         strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
         echo json_encode($message);
@@ -458,7 +515,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                     </div>
                                 <?php endif; ?>
-
+                                    
                                 <!-- Header Section -->
                                 <div class="text-center position-relative mb-5">
                                     <div class="header-gradient"></div>
@@ -618,7 +675,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     submitButton.disabled = false;
                 }
             });
-
+            
             // Add input animation
             const input = document.querySelector('.modern-input');
             input.addEventListener('focus', () => {

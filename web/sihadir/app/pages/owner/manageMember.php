@@ -101,15 +101,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
 
         $pegawaiId = $pdo->lastInsertId();
 
-        // Step 3: Insert into jadwal_shift table
+        // Step 3: Insert into jadwal_shift table with maksimal keterlambatan
+        $maksimalKeterlambatanJam = $_POST['maksimal_keterlambatan_jam'];
+        $maksimalKeterlambatanMenit = $_POST['maksimal_keterlambatan_menit'];
+        $maksimalKeterlambatan = sprintf('%02d:%02d:00', $maksimalKeterlambatanJam, $maksimalKeterlambatanMenit);
+
         $stmt = $pdo->prepare("
-            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status) 
-            VALUES (:pegawai_id, :shift_id, CURRENT_DATE, 'aktif')
+            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status, maksimal_keterlambatan) 
+            VALUES (:pegawai_id, :shift_id, CURRENT_DATE, 'aktif', :maksimal_keterlambatan)
         ");
         
         $stmt->execute([
             'pegawai_id' => $pegawaiId,
-            'shift_id' => $_POST['shift_id'] // Make sure this shift_id exists in the shift table
+            'shift_id' => $_POST['shift_id'],
+            'maksimal_keterlambatan' => $maksimalKeterlambatan
         ]);
 
         // Get the last inserted jadwal_shift ID
@@ -123,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
         
         $stmt->execute([
             'pegawai_id' => $pegawaiId,
-            'jadwal_shift_id' => $jadwalShiftId // Use the valid jadwal_shift ID
+            'jadwal_shift_id' => $jadwalShiftId
         ]);
 
         $pdo->commit();
@@ -223,6 +228,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
         $stmt->execute([
             'divisi_id' => $_POST['divisi_id'],
             'user_id' => $_POST['user_id']
+        ]);
+
+        // Update maksimal keterlambatan in jadwal_shift
+        $maksimalKeterlambatanJam = $_POST['maksimal_keterlambatan_jam'];
+        $maksimalKeterlambatanMenit = $_POST['maksimal_keterlambatan_menit'];
+        $maksimalKeterlambatan = sprintf('%02d:%02d:00', $maksimalKeterlambatanJam, $maksimalKeterlambatanMenit);
+
+        $stmt = $pdo->prepare("
+            UPDATE jadwal_shift 
+            SET maksimal_keterlambatan = :maksimal_keterlambatan
+            WHERE pegawai_id = :pegawai_id AND tanggal = CURRENT_DATE
+        ");
+        $stmt->execute([
+            'maksimal_keterlambatan' => $maksimalKeterlambatan,
+            'pegawai_id' => $_POST['user_id']
         ]);
 
         $pdo->commit();
@@ -532,129 +552,158 @@ if(isset($_POST['remove_device'])) {
         </div>
     </div>
 
-    <!-- Add Member Modal -->
-    <div class="modal fade" id="addMemberModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Tambah Member</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addMemberForm" action="" method="POST">
-                        <input type="hidden" name="add_user" value="1">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Nama Lengkap</label>
-                                <input type="text" class="form-control" name="nama_lengkap" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" name="email" required>
-                            </div>
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Tambah Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMemberForm" action="" method="POST">
+                    <input type="hidden" name="add_user" value="1">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nama Lengkap</label>
+                            <input type="text" class="form-control" name="nama_lengkap" required>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Username</label>
-                                <input type="text" class="form-control" name="username" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Password</label>
-                                <input type="password" class="form-control" name="password" required>
-                            </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" required>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">No Telepon</label>
-                                <input type="text" class="form-control" name="no_telp" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Divisi</label>
-                                <select class="form-select mb-3" name="divisi_id" required>
-                                    <option value="">Pilih Divisi</option>
-                                    <?php foreach ($divisi_names as $id => $nama): ?>
-                                        <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-mb-3">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" name="username" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">No Telepon</label>
+                            <input type="text" class="form-control" name="no_telp" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Divisi</label>
+                            <select class="form-select mb-3" name="divisi_id" required>
+                                <option value="">Pilih Divisi</option>
+                                <?php foreach ($divisi_names as $id => $nama): ?>
+                                    <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
                             <label class="form-label">Shift</label>
-                            <select class="form-select" name="shift_id" required>
+                            <select class="form-select mb-3" name="shift_id" required>
                                 <option value="">Pilih Shift</option>
                                 <?php foreach ($shifts as $id => $nama): ?>
                                     <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                            <button type="submit" class="btn btn-primary">Tambah</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Member Modal -->
-    <div class="modal fade" id="editMemberModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Member</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editMemberForm" action="" method="POST">
-                        <input type="hidden" name="update_user" value="1">
-                        <input type="hidden" name="user_id" id="edit_user_id">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Nama Lengkap</label>
-                                <input type="text" class="form-control" name="nama_lengkap" id="edit_nama_lengkap" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" name="email" id="edit_email" required>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Username</label>
-                                <input type="text" class="form-control" name="username" id="edit_username" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Password Baru</label>
-                                <input type="password" class="form-control" name="password">
-                            </div>
-                            
-                        </div>
-                        <div class="row mb-3">
                         <div class="col-md-6">
-                                <label class="form-label">No Telepon</label>
-                                <input type="text" class="form-control" name="no_telp" id="edit_no_telp" required>
+                            <label class="form-label">Maksimal Keterlambatan</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="maksimal_keterlambatan_jam" placeholder="Jam" min="0">
+                                <span class="input-group-text">Jam</span>
+                                <input type="number" class="form-control" name="maksimal_keterlambatan_menit" placeholder="Menit" min="0">
+                                <span class="input-group-text">Menit</span>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Divisi</label>
-                                <select class="form-select" name="divisi_id" id="edit_divisi_id" required>
-                                    <option value="">Pilih Divisi</option>
-                                    <?php foreach ($divisi_names as $id => $nama): ?>
-                                        <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                            <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Tambah</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Edit Member Modal -->
+<div class="modal fade" id="editMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMemberForm" action="" method="POST">
+                    <input type="hidden" name="update_user" value="1">
+                    <input type="hidden" name="user_id" id="edit_user_id">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nama Lengkap</label>
+                            <input type="text" class="form-control" name="nama_lengkap" id="edit_nama_lengkap" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" id="edit_email" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" name="username" id="edit_username" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Password Baru</label>
+                            <input type="password" class="form-control" name="password">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">No Telepon</label>
+                            <input type="text" class="form-control" name="no_telp" id="edit_no_telp" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Divisi</label>
+                            <select class="form-select" name="divisi_id" id="edit_divisi_id" required>
+                                <option value="">Pilih Divisi</option>
+                                <?php foreach ($divisi_names as $id => $nama): ?>
+                                    <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Shift</label>
+                            <select class="form-select" name="shift_id" id="edit_shift_id" required>
+                                <option value="">Pilih Shift</option>
+                                <?php foreach ($shifts as $id => $nama): ?>
+                                    <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Maksimal Keterlambatan</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="maksimal_keterlambatan_jam" id="edit_maksimal_keterlambatan_jam" placeholder="Jam" min="0">
+                                <span class="input-group-text">Jam</span>
+                                <input type="number" class="form-control" name="maksimal_keterlambatan_menit" id="edit_maksimal_keterlambatan_menit" placeholder="Menit" min="0">
+                                <span class="input-group-text">Menit</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
