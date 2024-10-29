@@ -142,9 +142,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     <div class="flex flex-col md:flex-row items-center justify-between mb-4 space-y-2 md:space-y-0 md:space-x-2">
         <div class="flex space-x-2">
             <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded" id="historyToggle" data-bs-toggle="modal" data-bs-target="#approvalModal">Riwayat Persetujuan</button>
-            <input type="date" class="border border-gray-300 rounded px-2 py-1 w-full md:w-auto" value="2023-11-23">
-
-            <button class="bg-blue-500 text-white px-4 py-2 rounded">Edit Excel Absensi</button>
         </div>
         <input type="text" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari nama/email/kode staff">
     </div>
@@ -166,36 +163,33 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     </div>
     
     <div class="bg-white shadow rounded-lg p-4 mb-4">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perizinan</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Mulai</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Selesai</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">aksi</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
-                    <td class="px-6 py-4 whitespace-nowrap">Cuti</td>
-                    <td class="px-6 py-4">
-                        <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">sedang dalam permohonan</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-black-500">17/09/2024</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-black-500">20/09/2024</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm">Disetujui</button>
-                        <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</button>
-                    </td>
-                </tr>
-
-            </tbody>
-        </table>
-    </div>
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Perizinan</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Mulai</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Selesai</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Aksi</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            <tr>
+                <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Dina Darius</td>
+                <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Cuti</td>
+                <td class="px-4 py-4 text-sm text-yellow-500 text-center border-r border-gray-200 whitespace-nowrap">sedang dalam permohonan</td>
+                <td class="px-4 py-4 text-sm text-gray-500 text-center border-r border-gray-200 whitespace-nowrap">17/09/2024</td>
+                <td class="px-4 py-4 text-sm text-gray-500 text-center border-r border-gray-200 whitespace-nowrap">20/09/2024</td>
+                <td class="px-4 py-4 text-center whitespace-nowrap">
+                    <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm mr-2">Disetujui</button>
+                    <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </div>
+
 
 <!-- Modal for Approval History -->
 <div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
@@ -222,28 +216,30 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                     <button class="btn btn-danger" onclick="deleteSelected()">Delete Selected</button>
                 </div>
 
-                <table class="min-w-full divide-y divide-gray-200" id="approvalTable">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perizinan</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Mulai</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Selesai</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                <!-- Wrapper for horizontal scroll -->
+                <div class="table-responsive" style="overflow-x: auto; max-width: 100%;">
+                    <table class="min-w-full divide-y divide-gray-200" id="approvalTable">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Perizinan</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Mulai</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Selesai</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
     <!-- Approved Row -->
     <tr class="approved">
-        <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
-        <td class="px-6 py-4 whitespace-nowrap">Cuti</td>
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Dina Darius</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Cuti</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
             <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Disetujui</span>
         </td>
-        <td class="px-6 py-4 whitespace-nowrap">17/09/2024</td>
-        <td class="px-6 py-4 whitespace-nowrap">20/09/2024</td>
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">17/09/2024</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">20/09/2024</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
             <input type="checkbox" class="row-checkbox me-2">
             <button onclick="confirmDelete(this)" class="text-red-600">
                 <i class="bi bi-trash"></i>
@@ -253,14 +249,14 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     
     <!-- Rejected Row -->
     <tr class="rejected">
-        <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
-        <td class="px-6 py-4 whitespace-nowrap">Izin</td>
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Alfina Amalia</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Izin</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
             <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</span>
         </td>
-        <td class="px-6 py-4 whitespace-nowrap">24/11/2024</td>
-        <td class="px-6 py-4 whitespace-nowrap">27/11/2024</td>
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">24/11/2024</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">27/11/2024</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
             <input type="checkbox" class="row-checkbox me-2">
             <button onclick="confirmDelete(this)" class="text-red-600">
                 <i class="bi bi-trash"></i>
@@ -270,14 +266,14 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     
     <!-- Approved Row -->
     <tr class="approved">
-        <td class="px-6 py-4 whitespace-nowrap">Rudi Hartono</td>
-        <td class="px-6 py-4 whitespace-nowrap">Cuti Tahunan</td>
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Rudi Hartono</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Cuti Tahunan</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
             <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Disetujui</span>
         </td>
-        <td class="px-6 py-4 whitespace-nowrap">01/12/2024</td>
-        <td class="px-6 py-4 whitespace-nowrap">10/12/2024</td>
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">01/12/2024</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">10/12/2024</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
             <input type="checkbox" class="row-checkbox me-2">
             <button onclick="confirmDelete(this)" class="text-red-600">
                 <i class="bi bi-trash"></i>
@@ -287,14 +283,14 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     
     <!-- Rejected Row -->
     <tr class="rejected">
-        <td class="px-6 py-4 whitespace-nowrap">Siti Nurhaliza</td>
-        <td class="px-6 py-4 whitespace-nowrap">Izin Mendadak</td>
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Siti Nurhaliza</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Izin Mendadak</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
             <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</span>
         </td>
-        <td class="px-6 py-4 whitespace-nowrap">05/12/2024</td>
-        <td class="px-6 py-4 whitespace-nowrap">06/12/2024</td>
-        <td class="px-6 py-4 whitespace-nowrap">
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">05/12/2024</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">06/12/2024</td>
+        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
             <input type="checkbox" class="row-checkbox me-2">
             <button onclick="confirmDelete(this)" class="text-red-600">
                 <i class="bi bi-trash"></i>
@@ -303,9 +299,10 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     </tr>
 </tbody>
 
-                        <!-- Repeat other rows as needed -->
-                    </tbody>
-                </table>
+  <!-- Additional rows omitted for brevity -->
+  </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -322,7 +319,7 @@ function filterTable() {
         } else if (filter === 'approved' && row.classList.contains('approved')) {
             row.style.display = '';
         } else if (filter === 'rejected' && row.classList.contains('rejected')) {
-            row.style.display = 'none';
+            row.style.display = '';
         } else {
             row.style.display = 'none';
         }
