@@ -1,25 +1,217 @@
 <?php
-session_start();
 
-// Check if user is logged in
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: ../../../login.php');
-    exit;
+require '../../../vendor/autoload.php'; // Pastikan path ini sesuai
+require_once '../../../app/auth/auth.php';
+
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Font;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+
+
+$start_date = isset($_POST['start_date']) ? $_POST['start_date'] : '';
+$end_date = isset($_POST['end_date']) ? $_POST['end_date'] : '';
+
+if (!empty($start_date) && !empty($end_date)) {
+        $stmt = $pdo->prepare("
+        SELECT 
+            u.nama_lengkap AS nama_staff,
+            SUM(CASE WHEN a.status_kehadiran = 'hadir' THEN 1 ELSE 0 END) AS hadir,
+            SUM(CASE WHEN a.status_kehadiran = 'terlambat' THEN 1 ELSE 0 END) AS terlambat,
+            SUM(CASE WHEN a.status_kehadiran = 'sakit' THEN 1 ELSE 0 END) AS sakit,
+            SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
+        FROM 
+            absensi a
+        JOIN 
+            pegawai p ON a.pegawai_id = p.id
+        JOIN 
+            users u ON p.user_id = u.id
+        WHERE 
+            a.waktu_masuk BETWEEN :start_date AND :end_date
+        GROUP BY 
+            u.id
+        ORDER BY 
+            u.nama_lengkap ASC;
+    ");
+    $stmt->bindParam(':start_date', $start_date);
+    $stmt->bindParam(':end_date', $end_date);
+    $stmt->execute();
+    $attendanceDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    // Query default jika belum ada filter
+    $stmt = $pdo->prepare("
+        SELECT 
+            u.nama_lengkap AS nama_staff,
+            SUM(CASE WHEN a.status_kehadiran = 'hadir' THEN 1 ELSE 0 END) AS hadir,
+            SUM(CASE WHEN a.status_kehadiran = 'terlambat' THEN 1 ELSE 0 END) AS terlambat,
+            SUM(CASE WHEN a.status_kehadiran = 'sakit' THEN 1 ELSE 0 END) AS sakit,
+            SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
+        FROM 
+            absensi a
+        JOIN 
+            pegawai p ON a.pegawai_id = p.id
+        JOIN 
+            users u ON p.user_id = u.id
+        GROUP BY 
+            u.id
+        ORDER BY 
+            u.nama_lengkap ASC;
+    ");
+    $stmt->execute();
+    $attendanceDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Check if the user role is employee
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
-    // Unset session variables and destroy session
-    session_unset();
-    session_destroy();
-    
-    // Set headers to prevent caching
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Cache-Control: post-check=0, pre-check=0', false);
-    header('Pragma: no-cache');
-    
-    header('Location: ../../../login.php');
-    exit;
+//PDF
+if (isset($_GET['action'])) {
+    $action = $_GET['action'];
+
+    if ($action === 'print') {
+        // Konfigurasi Dompdf
+        $options = new Options();
+        $options->set('defaultFont', 'Courier');
+        $dompdf = new Dompdf($options);
+
+        $tanggal_mulai = isset($_GET['tanggal_mulai']) ? $_GET['tanggal_mulai'] : 'Tanggal Mulai';
+        $tanggal_akhir = isset($_GET['tanggal_akhir']) ? $_GET['tanggal_akhir'] : 'Tanggal Akhir';
+
+        // Konten HTML yang ingin Anda masukkan ke dalam PDF
+        $html = '
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+            <meta charset="UTF-8">
+            <title>Laporan</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                }
+                h1 {
+                    text-align: center;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                }
+                th, td {
+                    border: 1px solid #000;
+                    padding: 8px;
+                    text-align: left;
+                }
+                th {
+                    background-color: #f2f2f2;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Laporan Bulanan</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Karyawan</th>
+                        <th>Hadir</th>
+                        <th>Terlambat</th>
+                        <th>Sakit</th>
+                        <th>Izin</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+        // Assuming $attendanceDetails is an array containing your data
+        if (!empty($attendanceDetails)) {
+            foreach ($attendanceDetails as $detail) {
+                $html .= '<tr>';
+                $html .= '<td>' . htmlspecialchars($detail['nama_staff']) . '</td>';
+                $html .= '<td>' . htmlspecialchars($detail['hadir']) . '</td>';
+                $html .= '<td>' . htmlspecialchars($detail['terlambat']) . '</td>';
+                $html .= '<td>' . htmlspecialchars($detail['sakit']) . '</td>';
+                $html .= '<td>' . htmlspecialchars($detail['izin']) . '</td>';
+                $html .= '</tr>';
+            }
+        } else {
+            $html .= '<tr><td colspan="5" style="text-align: center;">Tidak ada data absensi karyawan</td></tr>';
+        }
+
+        $html .= '
+                </tbody>
+            </table>
+        </body>
+        </html>';
+
+        // Memuat HTML ke Dompdf
+        $dompdf->loadHtml($html);
+
+        // (opsional) Atur ukuran kertas dan orientasi
+        $dompdf->setPaper('A4', 'portrait');
+
+        // Render PDF
+        $dompdf->render();
+
+        // Output PDF ke browser
+        $dompdf->stream('laporan.pdf', array('Attachment' => true));
+        exit; // Hentikan eksekusi script setelah mengunduh PDF
+        //EXCEL
+    } elseif ($action === 'excel') {
+        // Buat spreadsheet baru
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Menambahkan header
+        $headers = ['Karyawan', 'Hadir', 'Terlambat', 'Sakit', 'Izin'];
+        $sheet->fromArray($headers, NULL, 'A1');
+
+        // Menambahkan data
+        if (!empty($attendanceDetails)) {
+            $row = 2; // Mulai dari baris kedua
+            foreach ($attendanceDetails as $detail) {
+                $sheet->fromArray([
+                    htmlspecialchars($detail['nama_staff']),
+                    htmlspecialchars($detail['hadir']),
+                    htmlspecialchars($detail['terlambat']),
+                    htmlspecialchars($detail['sakit']),
+                    htmlspecialchars($detail['izin']),
+                ], NULL, 'A' . $row++);
+            }
+        } else {
+            // Jika tidak ada data, masukkan pesan ke dalam file
+            $sheet->setCellValue('A2', 'Tidak ada data absensi karyawan');
+        }
+
+        // Mengatur format header
+        $headerRange = 'A1:E1'; // Ubah ke E1 untuk lima kolom
+        $sheet->getStyle($headerRange)->getFont()->setBold(true);
+        $sheet->getStyle($headerRange)->getFont()->getColor()->setRGB(Color::COLOR_WHITE);
+        $sheet->getStyle($headerRange)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+        $sheet->getStyle($headerRange)->getFill()->getStartColor()->setRGB('4F81BD');
+
+        // Mengatur lebar kolom
+        foreach (range('A', 'E') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Mengatur perataan teks
+        $sheet->getStyle('A1:E' . ($row - 1))
+            ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Menambahkan border
+        $sheet->getStyle('A1:E' . ($row - 1))
+            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)
+            ->getColor()->setARGB(Color::COLOR_BLACK);
+
+        // Mengatur header untuk unduhan Excel
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="laporan_bulanan.xlsx"');
+        header('Cache-Control: max-age=0');
+
+        // Tulis file ke output
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit; // Hentikan eksekusi script setelah mengunduh Excel
+    }
 }
 ?>
 
@@ -41,6 +233,10 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.7.0/css/buttons.dataTables.min.css">
+        </head>
+        <body class="bg-blue-50">
         
         <style>
             /* Mengatur font Poppins hanya untuk <strong> di dalam sidebar-heading */
@@ -185,17 +381,16 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                     </div>
                 </nav>
                 <!-- Page content-->
-                <div class="bg-white shadow-sm">
+                <div class="">
         <div class="page-container">
             <div class="flex justify-between items-center py-4">
-                <h1 class="text-2xl font-bold text-gray-800">Rekap Absensi Karyawan</h1>
+                <h1 class="text-3xl font-semibold mb-4">Rekap Absensi Karyawan</h1>
                 <div class="flex gap-4">
-                    <button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
-                        Download PDF
-                    </button>
-                    <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                <a href="?action=print"><button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Download PDF</button>
+                    </a>
+                <a href="?action=excel"><button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
                         Download Excel
-                    </button>
+                    </button></a>
                 </div>
             </div>
         </div>
@@ -204,190 +399,87 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     <div class="page-container">
         <!-- Filter Section -->
         <div class="filter-section">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai</label>
-                    <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir</label>
-                    <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="flex items-end">
-                    <button class="w-full bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
-                        Filter Data
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div class="stats-card">
-                <div class="stats-icon bg-blue-100 text-blue-500">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-600">Total Karyawan</p>
-                    <p class="text-2xl font-bold text-gray-800">150</p>
-                </div>
-            </div>
-            
-            <!-- Repeat for other stats cards with different colors -->
-        </div>
-
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="chart-section">
-                <h3 class="text-lg font-semibold text-gray-800">Tren Kehadiran</h3>
-                <div class="chart-container">
-                    <canvas id="attendanceChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-section">
-                <h3 class="text-lg font-semibold text-gray-800">Distribusi Status Kehadiran</h3>
-                <div class="chart-container">
-                    <canvas id="statusChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Table Section -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-800">Detail Absensi Karyawan</h3>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Karyawan</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hadir</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terlambat</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sakit</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Izin</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Jam Kerja</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <img src="/api/placeholder/40/40" alt="Employee" class="h-10 w-10 rounded-full">
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">John Doe</div>
-                                        <div class="text-sm text-gray-500">IT Department</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">20</td>
-                            <td class="px-6 py-4 whitespace-nowrap">2</td>
-                            <td class="px-6 py-4 whitespace-nowrap">1</td>
-                            <td class="px-6 py-4 whitespace-nowrap">0</td>
-                            <td class="px-6 py-4 whitespace-nowrap">160</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="status-badge status-hadir">Hadir</span>
-                            </td>
-                        </tr>
-                        <!-- Add more rows as needed -->
-                    </tbody>
-                </table>
-            </div>
-            <div class="px-6 py-4 border-t border-gray-200">
-                <div class="flex justify-between items-center">
-                    <div class="text-sm text-gray-500">
-                        Showing 1 to 10 of 50 entries
+        <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai:</label>
+                        <input type="date" name="start_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value="<?php echo isset($start_date) ? $start_date : ''; ?>">
                     </div>
-                    <div class="flex space-x-2">
-                        <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Previous</button>
-                        <button class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600">1</button>
-                        <button class="px-3 py-1 border rounded-md hover:bg-gray-50">2</button>
-                        <button class="px-3 py-1 border rounded-md hover:bg-gray-50">3</button>
-                        <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Next</button>
+                    <div>
+                        <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir:</label>
+                        <input type="date" name="end_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value="<?php echo isset($end_date) ? $end_date : ''; ?>">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+                            Filter Data
+                        </button>
                     </div>
                 </div>
+            </form>        
+        </div>
+
+       <!-- Table Section -->
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800">Detail Absensi Karyawan</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table id="reportTable" class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Karyawan</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hadir</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terlambat</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sakit</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Izin</th>
+                </tr>
+            </thead>
+            <tbody id="reportTableBody" class="bg-white divide-y divide-gray-200">
+                <?php
+                if (!empty($attendanceDetails)) {
+                    foreach ($attendanceDetails as $detail) {
+                        echo "<tr>";
+                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['nama_staff']) . "</td>";
+                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['hadir']) . "</td>";
+                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['terlambat']) . "</td>";
+                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['sakit']) . "</td>";
+                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['izin']) . "</td>";
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='5' class='px-6 py-4 text-center'>Tidak ada data absensi karyawan</td></tr>";
+                }
+                    ?>
+            </tbody>
+        </table>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-200">
+        <div class="flex justify-between items-center">
+            <div class="text-sm text-gray-500">
+                Showing 1 to 3 of 50 entries
+            </div>
+            <div class="flex space-x-2">
+                <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Previous</button>
+                <button class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600">1</button>
+                <button class="px-3 py-1 border rounded-md hover:bg-gray-50">2</button>
+                <button class="px-3 py-1 border rounded-md hover:bg-gray-50">3</button>
+                <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Next</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        // Initialize charts
-        const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
-        new Chart(attendanceCtx, {
-            type: 'line',
-            data: {
-                labels: ['1 Jan', '2 Jan', '3 Jan', '4 Jan', '5 Jan', '6 Jan', '7 Jan'],
-                datasets: [{
-                    label: 'Tingkat Kehadiran',
-                    data: [95, 93, 97, 94, 96, 98, 95],
-                    borderColor: 'rgb(59, 130, 246)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        min: 80,
-                        max: 100,
-                        ticks: {
-                            callback: function(value) {
-                                return value + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
+<script>
+    // Export functions
+    function exportData(type) {
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = rekap_absensi_${timestamp}.${type};
+        
+        // Simulasi download
+        alert(Downloading ${filename}...\nNote: This is just a UI demonstration.);
+    }
 
-        const statusCtx = document.getElementById('statusChart').getContext('2d');
-        new Chart(statusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Hadir', 'Terlambat', 'Sakit', 'Izin'],
-                datasets: [{
-                    data: [75, 12, 8, 5],
-                    backgroundColor: [
-                        'rgb(16, 185, 129)',  // Hijau untuk Hadir
-                        'rgb(251, 191, 36)',  // Kuning untuk Terlambat
-                        'rgb(239, 68, 68)',   // Merah untuk Sakit
-                        'rgb(99, 102, 241)'   // Biru untuk Izin
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-
-        // Export functions
-        function exportData(type) {
-            const timestamp = new Date().toISOString().split('T')[0];
-            const filename = rekap_absensi_${timestamp}.${type};
-            
-            // Simulasi download
-            alert(Downloading ${filename}...\nNote: This is just a UI demonstration.);
-        }
-
-        // Add table row hover effect
+    // Add table row hover effect
         document.querySelectorAll('tbody tr').forEach(row => {
             row.addEventListener('mouseover', () => {
                 row.classList.add('bg-gray-50');
@@ -396,23 +488,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                 row.classList.remove('bg-gray-50');
             });
         });
+</script>
 
-        // Handle date filter changes
-        const dateInputs = document.querySelectorAll('input[type="date"]');
-        dateInputs.forEach(input => {
-            input.addEventListener('change', () => {
-                // In a real application, this would trigger data refresh
-                console.log('Date filter changed:', input.value);
-            });
-        });
-
-        // Initialize default dates
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        
-        dateInputs[0].value = firstDayOfMonth.toISOString().split('T')[0];
-        dateInputs[1].value = today.toISOString().split('T')[0];
-    </script>
             <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->

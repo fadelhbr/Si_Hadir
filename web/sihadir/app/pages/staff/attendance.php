@@ -33,6 +33,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Kode unik harus 6 karakter alfanumerik.');
         }
 
+        // Verify that the submitted code matches the generated QR code
+        if (!isset($_SESSION['current_code']) || $uniqueCode !== $_SESSION['current_code']) {
+            throw new Exception('Kode QR tidak valid atau sudah kadaluarsa.');
+        }
+
+        // Check if the code has already been used
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM absensi WHERE kode_unik = ?");
+        $stmt->execute([$uniqueCode]);
+        if ($stmt->fetchColumn() > 0) {
+            throw new Exception('Kode QR ini sudah digunakan.');
+        }
+
         // Get current user ID from session
         $userId = $_SESSION['id'];
         $currentDate = date('Y-m-d');
@@ -95,6 +107,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ])) {
             throw new Exception('Gagal mengupdate absensi.');
         }
+
+        // After successful update, clear the current code from session
+        unset($_SESSION['current_code']);
+        unset($_SESSION['code_timestamp']);
 
         // Commit transaction
         $pdo->commit();

@@ -1,9 +1,63 @@
 <?php
 session_start();
+require_once '../../../app/auth/auth.php';
+    
+// BULANAN
+$queryBulanan = $pdo->query("SELECT MONTH(waktu_masuk) AS bulan, COUNT(*) AS total_kehadiran
+                                     FROM absensi
+                                     WHERE YEAR(waktu_masuk) = YEAR(NOW()) AND status_kehadiran = 'hadir'
+                                     GROUP BY bulan
+                                     ORDER BY bulan");
+$dataBulanan = $queryBulanan->fetchAll(PDO::FETCH_ASSOC);
+
+$monthlyAttendance = array_fill(0, 12, 0); // Inisialisasi array dengan 12 elemen (0 untuk semua bulan)
+$bulanLabel = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+foreach ($dataBulanan as $row) {
+    // Set nilai kehadiran untuk bulan yang sesuai (kurangi 1 untuk indeks)
+    $monthlyAttendance[$row['bulan'] - 1] = (int)$row['total_kehadiran'];
+}
+
+
+// MINGGUAN
+// Mendapatkan hari ini dan tanggal awal minggu (Senin)
+$today = new DateTime();
+$startOfWeek = clone $today;
+$startOfWeek->modify('monday this week'); // Mendapatkan tanggal Senin minggu ini
+
+// Menghitung tanggal akhir minggu (Minggu)
+$endOfWeek = clone $startOfWeek;
+$endOfWeek->modify('+1 week');
+
+// Siapkan array untuk kehadiran mingguan
+$weeklyAttendance = array_fill(0, 7, 0); // Inisialisasi array dengan 7 elemen (0 untuk setiap hari)
+
+// Query untuk mendapatkan kehadiran mingguan
+$queryMingguan = $pdo->prepare("
+    SELECT DAYOFWEEK(waktu_masuk) AS hari, COUNT(*) AS total_kehadiran
+    FROM absensi
+    WHERE waktu_masuk >= :startOfWeek
+    AND waktu_masuk < :endOfWeek
+    GROUP BY hari
+");
+
+// Bind parameter dan execute
+$queryMingguan->bindValue(':startOfWeek', $startOfWeek->format('Y-m-d H:i:s'));
+$queryMingguan->bindValue(':endOfWeek', $endOfWeek->format('Y-m-d H:i:s'));
+$queryMingguan->execute();
+
+// Mengisi data kehadiran mingguan
+$dataMingguan = $queryMingguan->fetchAll(PDO::FETCH_ASSOC);
+foreach ($dataMingguan as $row) {
+    $hariIndex = ($row['hari'] + 5) % 7; // Mengubah DAYOFWEEK ke indeks array (0 untuk Senin, 1 untuk Selasa, dst.)
+    $weeklyAttendance[$hariIndex] = (int)$row['total_kehadiran'];
+}
+
+
 
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: ../../../login.php');
+    header('Location: login.php');
     exit;
 }
 
@@ -18,9 +72,11 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     header('Cache-Control: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
     
-    header('Location: ../../../login.php');
+    header('Location: login.php');
     exit;
+    
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -115,7 +171,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="sidebar-icon" fill="#6c757d">
                                 <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
                             </svg>
-                            Jadwal Shift
+                            Jadwal
                         </a>
                         <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="manageMember.php">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="sidebar-icon" fill="#6c757d" width="24" height="24">
@@ -177,145 +233,175 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                     </div>
 
                         <!-- tabel kehadiran -->
-                    <div class="bg-white shadow rounded-lg p-4 mb-4">
-                    <h2 class="text-lg font-semibold mb-4">Aktivitas</h2>
-                    <table class="min-w-full divide-y divide-gray-200">
+                        <div class="bg-white shadow rounded-lg p-4 mb-4">
+                        <div class="bg-white shadow rounded-lg p-4 mb-4">
+                        <h2 class="text-lg font-semibold mb-4">Aktivitas</h2>
+                        <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jabatan</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jadwal</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Belum Ditentukan</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Masih Berjalan</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Pagi</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:00</td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Pagi</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">Suhada Akbra</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Siang</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Siang</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Absen Pulang</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Petang</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Masuk</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Petang</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                                <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-orange-500">Cuti</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+    <tr>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jabatan</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Kehadiran</th>
+    </tr>
+</thead>
+<tbody class="bg-white divide-y divide-gray-200">
+    <?php
+    // Query untuk mengambil data absensi termasuk nama shift dan jam masuk shift
+    $stmt = $pdo->prepare("
+        SELECT 
+            u.nama_lengkap AS nama_staff,
+            d.nama_divisi AS divisi,
+            u.role AS jabatan,
+            js.tanggal AS tanggal_shift,
+            s.jam_masuk AS jam_mulai_shift,
+            s.jam_keluar AS jam_keluar_shift,
+            s.nama_shift AS nama_shift,
+            DATE_FORMAT(a.waktu_masuk, '%H:%i:%s') AS waktu_masuk
+        FROM 
+            absensi a
+        JOIN 
+            pegawai p ON a.pegawai_id = p.id
+        JOIN 
+            users u ON p.user_id = u.id
+        LEFT JOIN 
+            divisi d ON p.divisi_id = d.id
+        JOIN 
+            jadwal_shift js ON a.jadwal_shift_id = js.id
+        JOIN 
+            shift s ON js.shift_id = s.id
+        ORDER BY 
+            a.waktu_masuk DESC
+    ");
+    $stmt->execute();
+    $recentAbsences = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Menampilkan hasil query dalam tabel
+    if (!empty($recentAbsences)) {
+        foreach ($recentAbsences as $absen) {
+            // Hitung keterlambatan dengan batas toleransi 10 menit dari jam masuk shift
+            $jamMulaiShift = new DateTime($absen['tanggal_shift'] . ' ' . $absen['jam_mulai_shift']);
+            $waktuMasuk = new DateTime($absen['tanggal_shift'] . ' ' . $absen['waktu_masuk']);
+            $statusKehadiran = '';
+
+            // Tambahkan 10 menit untuk batas keterlambatan
+            $batasToleransi = clone $jamMulaiShift;
+            $batasToleransi->modify('+10 minutes');
+
+            if ($waktuMasuk > $batasToleransi) {
+                // Hitung keterlambatan
+                $selisih = $jamMulaiShift->diff($waktuMasuk);
+                $totalMenitTerlambat = ($selisih->h * 60) + $selisih->i;
+
+                // Format keterlambatan dalam jam dan menit
+                $jamTerlambat = floor($totalMenitTerlambat / 60);
+                $menitTerlambat = $totalMenitTerlambat % 60;
+
+                // Ubah format sesuai kebutuhan
+                if ($jamTerlambat > 0) {
+                    $statusKehadiran = "{$jamTerlambat} Jam " . ($menitTerlambat > 0 ? "{$menitTerlambat} Menit" : "");
+                } else {
+                    $statusKehadiran = "{$menitTerlambat} Menit";
+                }
+
+                $statusClass = "px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm"; // Kelas untuk keterlambatan
+            } else {
+                $statusKehadiran = "Hadir Tepat Waktu";
+                $statusClass = "px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm"; // Kelas untuk kehadiran tepat waktu
+            }
+
+            echo "<tr>";
+            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['nama_staff']) . "</td>";
+            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['divisi']) . "</td>";
+            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['jabatan']) . "</td>";
+            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['nama_shift']) . "</td>"; // Menampilkan nama shift
+            echo "<td class='px-6 py-4 whitespace-nowrap text-blue-500'>Absen Masuk (" . htmlspecialchars($absen['waktu_masuk']) . ")</td>";
+            echo "<td class='px-6 py-4 whitespace-nowrap'>" . "<span class='$statusClass'>" . htmlspecialchars($statusKehadiran) . "</span>" . "</td>"; 
+            echo "</tr>";
+        }
+    } else {
+        echo "<tr><td colspan='6' class='px-6 py-4 text-center'>Tidak ada aktivitas absen</td></tr>";
+    }
+    ?>
+</tbody>
+
+                        </table>
+                    </div>
             </div>
         </div>
+
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
         <script src="../../../assets/js/scripts.js"></script>
 
         <!-- Custom JS to handle sidebar toggle -->
+
+
         <script>
-            // Monthly Attendance Trend Chart
-            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-            new Chart(monthlyCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
-                    datasets: [
-                        {
-                            label: 'Tepat Waktu',
-                            data: [85, 82, 88, 85, 90, 87],
-                            borderColor: 'rgb(59, 130, 246)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Terlambat',
-                            data: [10, 12, 8, 11, 7, 9],
-                            borderColor: 'rgb(234, 179, 8)',
-                            tension: 0.1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100
-                        }
-                    }
-                }
-            });
+    // Data untuk grafik bulanan
+    const monthlyData = <?php echo json_encode($monthlyAttendance); ?>;
 
-            // Weekly Attendance Chart
-            const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
-            new Chart(weeklyCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'],
-                    datasets: [
-                        {
-                            label: 'Hadir',
-                            data: [45, 43, 44, 42, 41],
-                            backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                            borderColor: 'rgb(59, 130, 246)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Lembur',
-                            data: [5, 3, 4, 6, 2],
-                            backgroundColor: 'rgba(34, 197, 94, 0.5)',
-                            borderColor: 'rgb(34, 197, 94)',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
+    // Mengubah data bulanan menjadi format yang sesuai
+    const monthlyLabels = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+    // Grafik kehadiran bulanan
+    const monthlyChartCtx = document.getElementById('monthlyChart').getContext('2d');
+    const monthlyChart = new Chart(monthlyChartCtx, {
+        type: 'bar',
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: 'Kehadiran Bulanan',
+                data: monthlyData, // Pastikan monthlyData berisi 12 angka, satu untuk setiap bulan
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Data untuk grafik mingguan
+const weeklyData = <?php echo json_encode($weeklyAttendance); ?>;
+
+// Grafik kehadiran mingguan
+const weeklyChartCtx = document.getElementById('weeklyChart').getContext('2d');
+const weeklyChart = new Chart(weeklyChartCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
+        datasets: [{
+            label: 'Kehadiran Minggu Ini',
+            data: weeklyData,
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+</script>
+
+
+        <script>
             // Sidebar toggle
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebarWrapper = document.getElementById('sidebar-wrapper');

@@ -4,15 +4,15 @@ session_start();
 
 // Cek apakah session 'setup' telah diset, dan jika tidak, redirect ke halaman login atau dashboard
 if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
-    header('Location: login.php'); // Atau redirect ke halaman lain, misalnya dashboard jika login berhasil
+    header('Location: login.php');
     exit;
 }
 
-include 'app/auth/auth.php'; // Pastikan file ini terkoneksi dengan database
+include 'app/auth/auth.php';
 
 // Define variables and initialize with empty values
 $username = $email = $password = $confirm_password = $nama_lengkap = $no_telp = $role = "";
-$username_err = $email_err = $password_err = $confirm_password_err = $role_err = "";
+$username_err = $email_err = $password_err = $confirm_password_err = $nama_lengkap_err = $no_telp_err = $role_err = ""; // Added error variables
 
 // Process form data when submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -20,17 +20,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty(trim($_POST["username"]))) {
         $username_err = "Mohon masukkan username.";
     } else {
-        // Prepare a select statement
         $sql = "SELECT id FROM users WHERE username = :username";
         if ($stmt = $pdo->prepare($sql)) {
-            $username_post = trim($_POST["username"]); // Temporary variable
-            // Bind variables to the prepared statement
+            $username_post = trim($_POST["username"]);
             $stmt->bindParam(":username", $username_post, PDO::PARAM_STR);
             $stmt->execute();
             if ($stmt->rowCount() > 0) {
                 $username_err = "Username sudah digunakan.";
             } else {
-                $username = $username_post; // Retain valid username
+                $username = $username_post;
             }
         }
     }
@@ -41,13 +39,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         $sql = "SELECT id FROM users WHERE email = :email";
         if ($stmt = $pdo->prepare($sql)) {
-            $email_post = trim($_POST["email"]); // Temporary variable
+            $email_post = trim($_POST["email"]);
             $stmt->bindParam(":email", $email_post, PDO::PARAM_STR);
             $stmt->execute();
             if ($stmt->rowCount() > 0) {
                 $email_err = "Email sudah digunakan.";
             } else {
-                $email = $email_post; // Retain valid email
+                $email = $email_post;
             }
         }
     }
@@ -58,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif (strlen(trim($_POST["password"])) < 6) {
         $password_err = "Password harus memiliki minimal 6 karakter.";
     } else {
-        $password = trim($_POST["password"]); // Retain valid password
+        $password = trim($_POST["password"]);
     }
 
     // Validate confirm password
@@ -75,18 +73,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty(trim($_POST["nama_lengkap"]))) {
         $nama_lengkap_err = "Mohon masukkan nama lengkap.";
     } else {
-        $nama_lengkap = trim($_POST["nama_lengkap"]); // Retain valid nama lengkap
+        $nama_lengkap = trim($_POST["nama_lengkap"]);
     }
 
     // Validate no telepon
     if (empty(trim($_POST["no_telp"]))) {
         $no_telp_err = "Mohon masukkan nomor telepon.";
     } else {
-        $no_telp = trim($_POST["no_telp"]); // Retain valid no telepon
+        $no_telp = trim($_POST["no_telp"]);
     }
 
     // Validate role
-    $role = "admin"; // Role is always 'admin'
+    $role = "owner";
 
     // Check for errors before inserting into database
     if (empty($username_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err) && empty($nama_lengkap_err) && empty($no_telp_err)) {
@@ -106,7 +104,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bindParam(":password", $hashed_password, PDO::PARAM_STR);
             $stmt->bindParam(":nama_lengkap", $nama_lengkap, PDO::PARAM_STR);
             $stmt->bindParam(":email", $email, PDO::PARAM_STR);
-            $stmt->bindParam(":role", $role, PDO::PARAM_STR); // Role is now always 'admin'
+            $stmt->bindParam(":role", $role, PDO::PARAM_STR);
             $stmt->bindParam(":no_telp", $no_telp, PDO::PARAM_STR);
         
             // Execute the statement
@@ -228,7 +226,6 @@ unset($pdo);
             margin-bottom: 15px;
         }
 
-        /* Highlight fields with errors */
         .input-group input.error {
             border-color: red;
         }
@@ -260,13 +257,13 @@ unset($pdo);
             </div>
             <div class="input-group">
                 <label for="nama_lengkap">Nama Lengkap</label>
-                <input type="text" id="nama_lengkap" name="nama_lengkap" value="<?php echo htmlspecialchars($nama_lengkap); ?>" class="<?php echo !empty($nama_lengkap_err) ? 'error' : ''; ?>" required>
-                <span class="error"><?php echo $nama_lengkap_err; ?></span>
+                <input type="text" id="nama_lengkap" name="nama_lengkap" value="<?php echo isset($nama_lengkap) ? htmlspecialchars($nama_lengkap) : ''; ?>" class="<?php echo !empty($nama_lengkap_err) ? 'error' : ''; ?>" required>
+                <span class="error"><?php echo isset($nama_lengkap_err) ? $nama_lengkap_err : ''; ?></span>
             </div>
             <div class="input-group">
                 <label for="no_telp">Nomor Telepon</label>
-                <input type="text" id="no_telp" name="no_telp" value="<?php echo htmlspecialchars($no_telp); ?>" class="<?php echo !empty($no_telp_err) ? 'error' : ''; ?>" required>
-                <span class="error"><?php echo $no_telp_err; ?></span>
+                <input type="text" id="no_telp" name="no_telp" value="<?php echo isset($no_telp) ? htmlspecialchars($no_telp) : ''; ?>" class="<?php echo !empty($no_telp_err) ? 'error' : ''; ?>" required>
+                <span class="error"><?php echo isset($no_telp_err) ? $no_telp_err : ''; ?></span>
             </div>
             <button type="submit" class="register-button">Daftar</button>
         </form>

@@ -241,37 +241,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
     exit;
 }
 
-// Delete user
-if(isset($_POST['delete_user'])) {
+if (isset($_POST['delete_user'])) {
     try {
         $pdo->beginTransaction();
-        
-        // Delete from jadwal_shift
-        $stmt = $pdo->prepare("
-            DELETE js FROM jadwal_shift js 
-            INNER JOIN pegawai p ON js.pegawai_id = p.id 
-            WHERE p.user_id = :user_id
-        ");
+
+        // Get pegawai_id first since we'll need it for other deletions
+        $stmt = $pdo->prepare("SELECT id FROM pegawai WHERE user_id = :user_id");
         $stmt->execute(['user_id' => $_POST['user_id']]);
-        
-        // Delete from log_akses
+        $pegawai = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($pegawai) {
+            // Delete from absensi first (references pegawai)
+            $stmt = $pdo->prepare("DELETE FROM absensi WHERE pegawai_id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+
+            // Delete from jadwal_shift (references pegawai)
+            $stmt = $pdo->prepare("DELETE FROM jadwal_shift WHERE pegawai_id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+
+            // Delete from pegawai (references user)
+            $stmt = $pdo->prepare("DELETE FROM pegawai WHERE id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+        }
+
+        // Delete from log_akses (references user)
         $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
         $stmt->execute(['user_id' => $_POST['user_id']]);
-        
-        // Delete from pegawai
-        $stmt = $pdo->prepare("DELETE FROM pegawai WHERE user_id = :user_id");
-        $stmt->execute(['user_id' => $_POST['user_id']]);
-        
-        // Delete from users
+
+        // Finally delete from users
         $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
         $stmt->execute(['user_id' => $_POST['user_id']]);
-        
+
         $pdo->commit();
         $_SESSION['toast'] = [
             'type' => 'success',
-            'message' => 'User berhasil dihapus!'
+            'message' => 'User dan semua data terkait berhasil dihapus!'
         ];
-    } catch(PDOException $e) {
+    } catch (PDOException $e) {
         $pdo->rollBack();
         $_SESSION['toast'] = [
             'type' => 'error',

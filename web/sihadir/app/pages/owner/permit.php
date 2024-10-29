@@ -64,29 +64,15 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                 transform: translateY(-5px);
                 box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
             }
-
+            
             .sidebar-icon {
             width: 24px;
             height: 24px;
             margin-right: 10px;
             vertical-align: middle;
             }
-
-            /* Menyesuaikan tampilan navbar untuk layar kecil */
-            @media (max-width: 991.98px) {
-                .navbar-nav {
-                    flex-direction: row;
-                }
-                
-                .navbar-nav .nav-item {
-                    padding-right: 10px;
-                }
-                
-                .navbar-nav .dropdown-menu {
-                    position: absolute;
-                }
-            }
-        </style>
+            
+            </style>
         
     </head>
     <body class="bg-blue-50">
@@ -144,152 +130,236 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
             <div id="page-content-wrapper">
                 <!-- Top navigation-->
                 <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
-                    <div class="container-fluid">
-                        <button class="btn btn-primary" id="sidebarToggle">☰</button>
-                        <div id="navbarSupportedContent">
-                        </div>
-                    </div>
-                </nav>
-                <!-- Page content-->    
-                <div class="container-fluid p-4">
-                <h1 class="text-3xl font-semibold mb-4">Cuti & Perizinan</h1>
-                <div class="flex items-center justify-between mb-4">
-                <div class="flex space-x-2">
-                    <input type="date" class="border border-gray-300 rounded px-2 py-1" value="2023-11-23">
-                    <select class="border border-gray-300 rounded px-2 py-1">
-                        <option>Semua Jadwal</option>
+    <div class="container-fluid">
+        <button class="btn btn-primary" id="sidebarToggle">☰</button>
+        <div id="navbarSupportedContent">
+        </div>
+    </div>
+</nav>
+<!-- Page content-->    
+<div class="container-fluid p-4">
+    <h1 class="text-3xl font-semibold mb-4">Cuti & Perizinan</h1>
+    <div class="flex flex-col md:flex-row items-center justify-between mb-4 space-y-2 md:space-y-0 md:space-x-2">
+        <div class="flex space-x-2">
+            <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded" id="historyToggle" data-bs-toggle="modal" data-bs-target="#approvalModal">Riwayat Persetujuan</button>
+            <input type="date" class="border border-gray-300 rounded px-2 py-1 w-full md:w-auto" value="2023-11-23">
+
+            <button class="bg-blue-500 text-white px-4 py-2 rounded">Edit Excel Absensi</button>
+        </div>
+        <input type="text" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari nama/email/kode staff">
+    </div>
+    <div class="flex flex-col md:flex-row gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow flex-1 min-w-[300px]">
+            <div class="flex items-center justify-between">
+                <h3 class="text-gray-600">sedang dalam permohonan</h3>
+            </div>
+            <p class="text-3xl font-bold text-gray-800 mt-2">1</p>
+            <canvas id="pendingChart" class="mt-4 h-20"></canvas>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow flex-1 min-w-[300px]">
+            <div class="flex items-center justify-between">
+                <h3 class="text-gray-600">telah di jawab</h3>
+            </div>
+            <p class="text-3xl font-bold text-gray-800 mt-2">4</p>
+            <canvas id="approvedChart" class="mt-4 h-20"></canvas>
+        </div>
+    </div>
+    
+    <div class="bg-white shadow rounded-lg p-4 mb-4">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perizinan</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Mulai</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Selesai</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">aksi</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
+                    <td class="px-6 py-4 whitespace-nowrap">Cuti</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">sedang dalam permohonan</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-black-500">17/09/2024</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-black-500">20/09/2024</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm">Disetujui</button>
+                        <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</button>
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for Approval History -->
+<div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="approvalModalLabel">Riwayat Persetujuan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="approvalFilter" class="form-label">Tampilkan:</label>
+                    <select id="approvalFilter" class="form-select" onchange="filterTable()">
+                        <option value="all">Semua</option>
+                        <option value="approved">Disetujui</option>
+                        <option value="rejected">Ditolak</option>
                     </select>
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded">Edit Excel Absensi</button>
                 </div>
-                <input type="text" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari nama/email/kode staff">
-            </div>
-                <div class="bg-blue-100 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
-                <p>Jika kamu ingin mendownload data absen, silakan buka sub menu laporan absensi di menu <a href="report.php" class="text-blue-500 underline">Laporan</a>.</p>
-            </div>
-            <div class="grid grid-cols-3 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-gray-600">Pending Requests</h3>
-                    <span class="text-yellow-500 bg-yellow-100 rounded-full px-3 py-1 text-sm">3 New</span>
+
+                <!-- Tombol Select All dan Deselect All -->
+                <div class="mb-3">
+                    <button class="btn btn-primary" onclick="selectAll()">Select All</button>
+                    <button class="btn btn-secondary" onclick="deselectAll()">Deselect All</button>
+                    <button class="btn btn-danger" onclick="deleteSelected()">Delete Selected</button>
                 </div>
-                <p class="text-3xl font-bold text-gray-800 mt-2">5</p>
-                <canvas id="pendingChart" class="mt-4 h-20"></canvas>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-gray-600">Approved Today</h3>
-                    <span class="text-green-500 bg-green-100 rounded-full px-3 py-1 text-sm">+2</span>
-                </div>
-                <p class="text-3xl font-bold text-gray-800 mt-2">7</p>
-                <canvas id="approvedChart" class="mt-4 h-20"></canvas>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-gray-600">Team Available</h3>
-                    <span class="text-blue-500 bg-blue-100 rounded-full px-3 py-1 text-sm">85%</span>
-                </div>
-                <p class="text-3xl font-bold text-gray-800 mt-2">17/20</p>
-                <canvas id="availableChart" class="mt-4 h-20"></canvas>
+
+                <table class="min-w-full divide-y divide-gray-200" id="approvalTable">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Perizinan</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Mulai</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Selesai</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+    <!-- Approved Row -->
+    <tr class="approved">
+        <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
+        <td class="px-6 py-4 whitespace-nowrap">Cuti</td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Disetujui</span>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">17/09/2024</td>
+        <td class="px-6 py-4 whitespace-nowrap">20/09/2024</td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <input type="checkbox" class="row-checkbox me-2">
+            <button onclick="confirmDelete(this)" class="text-red-600">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+    
+    <!-- Rejected Row -->
+    <tr class="rejected">
+        <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
+        <td class="px-6 py-4 whitespace-nowrap">Izin</td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</span>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">24/11/2024</td>
+        <td class="px-6 py-4 whitespace-nowrap">27/11/2024</td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <input type="checkbox" class="row-checkbox me-2">
+            <button onclick="confirmDelete(this)" class="text-red-600">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+    
+    <!-- Approved Row -->
+    <tr class="approved">
+        <td class="px-6 py-4 whitespace-nowrap">Rudi Hartono</td>
+        <td class="px-6 py-4 whitespace-nowrap">Cuti Tahunan</td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Disetujui</span>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">01/12/2024</td>
+        <td class="px-6 py-4 whitespace-nowrap">10/12/2024</td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <input type="checkbox" class="row-checkbox me-2">
+            <button onclick="confirmDelete(this)" class="text-red-600">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+    
+    <!-- Rejected Row -->
+    <tr class="rejected">
+        <td class="px-6 py-4 whitespace-nowrap">Siti Nurhaliza</td>
+        <td class="px-6 py-4 whitespace-nowrap">Izin Mendadak</td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</span>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">05/12/2024</td>
+        <td class="px-6 py-4 whitespace-nowrap">06/12/2024</td>
+        <td class="px-6 py-4 whitespace-nowrap">
+            <input type="checkbox" class="row-checkbox me-2">
+            <button onclick="confirmDelete(this)" class="text-red-600">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+</tbody>
+
+                        <!-- Repeat other rows as needed -->
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="bg-white shadow rounded-lg p-4 mb-4">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Jadwal</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Belum Ditentukan</td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">Pending</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm">disetujui</button>
-                            <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm"">ditolak</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">selesai</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                        <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm">disetujui</button>
-                        <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm"">ditolak</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Suhada Akbra</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">16:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Absen Pulang</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Masuk</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah †</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">Cuti</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            </div>
-        </div>
+    </div>
+</div>
+
+<script>
+function filterTable() {
+    const filter = document.getElementById('approvalFilter').value;
+    const rows = document.querySelectorAll('#approvalTable tbody tr');
+
+    rows.forEach(row => {
+        if (filter === 'all') {
+            row.style.display = '';
+        } else if (filter === 'approved' && row.classList.contains('approved')) {
+            row.style.display = '';
+        } else if (filter === 'rejected' && row.classList.contains('rejected')) {
+            row.style.display = 'none';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function confirmDelete(button) {
+    const row = button.closest('tr');
+    const staffName = row.cells[0].textContent;
+
+    if (confirm(`Apakah Anda yakin ingin menghapus data untuk ${staffName}?`)) {
+        row.remove();
+    }
+}
+
+function selectAll() {
+    document.querySelectorAll('.row-checkbox').forEach(checkbox => checkbox.checked = true);
+}
+
+function deselectAll() {
+    document.querySelectorAll('.row-checkbox').forEach(checkbox => checkbox.checked = false);
+}
+
+function deleteSelected() {
+    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+    if (selectedRows.length === 0) {
+        alert('Tidak ada data yang dipilih untuk dihapus.');
+        return;
+    }
+
+    if (confirm(`Apakah Anda yakin ingin menghapus ${selectedRows.length} data terpilih?`)) {
+        selectedRows.forEach(checkbox => checkbox.closest('tr').remove());
+    }
+}
+</script>
+
+
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
