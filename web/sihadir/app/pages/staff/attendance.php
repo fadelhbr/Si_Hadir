@@ -7,6 +7,21 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
+// Check if the user role is employee
+if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
+    // Unset session variables and destroy session
+    session_unset();
+    session_destroy();
+    
+    // Set headers to prevent caching
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Pragma: no-cache');
+    
+    header('Location: ../../../login.php');
+    exit;
+}
+
 require_once '../../../app/auth/auth.php';
 
 date_default_timezone_set('Asia/Jakarta'); // Change to your relevant timezone

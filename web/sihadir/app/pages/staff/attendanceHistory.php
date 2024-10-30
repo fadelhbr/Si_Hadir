@@ -3,8 +3,23 @@ session_start();
 
 include '../../../app/auth/auth.php';
 
-// Pastikan pengguna sudah login dan memiliki id
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || !isset($_SESSION['id'])) {
+// Check if user is logged in
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header('Location: ../../../login.php');
+    exit;
+}
+
+// Check if the user role is employee
+if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
+    // Unset session variables and destroy session
+    session_unset();
+    session_destroy();
+    
+    // Set headers to prevent caching
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Pragma: no-cache');
+    
     header('Location: ../../../login.php');
     exit;
 }
