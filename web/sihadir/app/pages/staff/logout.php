@@ -309,7 +309,7 @@ if (isset($pdo)) {
             <input type="hidden" name="logout" value="yes">
             <button type="submit" class="logout-button">Ya, Logout</button>
         </form>
-        <a href="pengumumanKaryawan.php">
+        <a href="attendance.php">
             <button class="cancel-button">Tidak, Kembali</button>
         </a>
     </div>

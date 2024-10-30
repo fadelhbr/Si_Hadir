@@ -4,7 +4,7 @@ session_start();
 require_once '../../../app/auth/auth.php';
 
 try {
-    $conn = new PDO("mysql:host=localhost;dbname=si_hadir1", "root", "");
+    $conn = new PDO("mysql:host=localhost;dbname=si_hadir", "root", "");
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("Connection failed: " . $e->getMessage());
@@ -233,17 +233,18 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    <div class="bg-yellow-300 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
-        <h3 class="text-yellow-700 text-center text-lg font-sans font-bold mt-5">SEDANG DALAM PERMOHONAN</h3>
-        <p class="text-3xl font-extrabold text-yellow-700 text-center font-mono mt-4">1</p>
+    <div class="bg-white shadow-50 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
+        <h3 class="text-black text-center text-lg font-sans font-bold mt-5">SEDANG DALAM PERMOHONAN</h3>
+        <p class="text-3xl font-extrabold text-yellow-500 text-center font-mono mt-4">1</p>
         <canvas id="pendingChart" class="h-20"></canvas>
     </div>
-    <div class="bg-green-200 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
-        <h3 class="text-green-700 text-center text-lg font-sans font-bold mt-5">TELAH DIJAWAB</h3>
-        <p class="text-3xl font-extrabold text-green-700 text-center font-mono mt-4">4</p>
+    <div class="bg-white shadow-50 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
+        <h3 class="text-black text-center text-lg font-sans font-bold mt-5">TELAH DIJAWAB</h3>
+        <p class="text-3xl font-extrabold text-green-500 text-center font-mono mt-4">4</p>
         <canvas id="approvedChart" class="h-20"></canvas>
     </div>
 </div>
+
 
     
     <div class="bg-white shadow rounded-lg p-4 mb-4">
@@ -340,6 +341,11 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
             </div>
             <div class="modal-body">
                 <div class="mb-3">
+                    <label for="tableSelect" class="form-label">Pilih Tabel:</label>
+                     <select id="tableSelect" class="form-select" onchange="toggleTable()" style="margin-bottom: 20px;">
+                        <option value="izin">Tabel Izin</option>
+                        <option value="cuti">Tabel Cuti</option>
+                    </select>
                     <label for="approvalFilter" class="form-label">Tampilkan:</label>
                     <select id="approvalFilter" class="form-select" onchange="filterTable()">
                         <option value="all">Semua</option>
@@ -351,25 +357,26 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                 <!-- Tombol Select All dan Deselect All -->
                 
                 <div class="mb-3">
-                    <button class="btn btn-izin" id="izinButton" onclick="showIzinTable()">Tabel Izin</button>
-                    <button class="btn btn-secondary" id="cutiButton" onclick="showCutiTable()">Tabel Cuti</button>
+                    <button class="btn btn-primary" onclick="selectAll()">Pilih Semua</button>
+                    <button class="btn btn-secondary" onclick="deselectAll()">Batal Pilih Semua</button>
+                    <button class="btn btn-danger" onclick="confirmDelete()">Hapus Data</button> <!-- Tombol Hapus -->
                 </div>
 
-
-                <!-- Wrapper for horizontal scroll -->
-                <div id="izinHistoryTable" class="table-container">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Izin</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <!-- Tabel Izin -->
+                    <div id="izinHistoryTable" class="table-container">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Izin</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Pilih</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        
                             <?php
                             // Mengambil data dari perizinan_view dengan status disetujui atau ditolak
                             $sql = "SELECT * FROM perizinan_view WHERE status IN ('disetujui', 'ditolak')";
@@ -378,11 +385,14 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
 
                             foreach ($dataIzin as $row): ?>
                                 <tr>
-                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['Nama_Staff']); ?></td>
-                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal']); ?></td>
-                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['jenis_izin']); ?></td>
-                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?></td>
-                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['status']); ?></td>
+                                    <td class="px-4 py-3 text-center">Nama Staff</td>
+                                    <td class="px-4 py-3 text-center">Tanggal</td>
+                                    <td class="px-4 py-3 text-center">Jenis Izin</td>
+                                    <td class="px-4 py-3 text-center">Keterangan</td>
+                                    <td class="px-4 py-3 text-center">Status</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <input type="checkbox" class="row-checkbox">
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -400,7 +410,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Durasi Cuti</th>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Aksi</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Pilih</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm">
@@ -423,7 +433,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                         </tbody>
                     </table>
                 </div>
-
             </div>
         </div>
     </div>
@@ -540,6 +549,20 @@ function confirmDelete(button) {
     }
 }
 
+function toggleTable() {
+    const selectedTable = document.getElementById('tableSelect').value;
+    const izinTable = document.getElementById('izinHistoryTable');
+    const cutiTable = document.getElementById('cutiHistoryTable');
+
+    if (selectedTable === 'izin') {
+        izinTable.classList.remove('hidden');
+        cutiTable.classList.add('hidden');
+    } else if (selectedTable === 'cuti') {
+        cutiTable.classList.remove('hidden');
+        izinTable.classList.add('hidden');
+    }
+}
+
 function selectAll() {
     document.querySelectorAll('.row-checkbox').forEach(checkbox => checkbox.checked = true);
 }
@@ -547,18 +570,29 @@ function selectAll() {
 function deselectAll() {
     document.querySelectorAll('.row-checkbox').forEach(checkbox => checkbox.checked = false);
 }
+function confirmDelete() {
+        // Ambil semua checkbox yang terpilih
+        const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+        
+        // Jika tidak ada checkbox yang dipilih, tampilkan notifikasi
+        if (checkboxes.length === 0) {
+            alert('Silakan pilih data yang ingin dihapus.');
+            return;
+        }
 
-function deleteSelected() {
-    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
-    if (selectedRows.length === 0) {
-        alert('Tidak ada data yang dipilih untuk dihapus.');
-        return;
+        // Tampilkan konfirmasi penghapusan
+        const confirmation = confirm(`Anda yakin ingin menghapus ${checkboxes.length} data yang dipilih?`);
+        if (confirmation) {
+            // Logika untuk menghapus data
+            checkboxes.forEach(checkbox => {
+                // Anda dapat menambahkan logika untuk menghapus data dari server
+                // Misalnya, panggil AJAX atau redirect ke PHP script
+                checkbox.closest('tr').remove(); // Hapus baris dari tabel
+            });
+            alert('Data berhasil dihapus.');
+        }
     }
 
-    if (confirm(`Apakah Anda yakin ingin menghapus ${selectedRows.length} data terpilih?`)) {
-        selectedRows.forEach(checkbox => checkbox.closest('tr').remove());
-    }
-}
 </script>
 
 
