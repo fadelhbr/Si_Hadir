@@ -7,22 +7,19 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
-// Check if the user role is employee
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
-    session_unset();
-    session_destroy();
-    
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Cache-Control: post-check=0, pre-check=0', false);
-    header('Pragma: no-cache');
-    
-    header('Location: ../../../login.php');
-    exit;
-}
-
 require_once '../../../app/auth/auth.php';
 
-function getEmployeeShiftSchedule($pdo, $employeeId, $date) {
+date_default_timezone_set('Asia/Jakarta'); // Change to your relevant timezone
+
+function checkEmployeeRole($pdo, $userId) {
+    $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    return $user && $user['role'] === 'karyawan';
+}
+
+function getActiveShiftSchedule($pdo, $employeeId, $date) {
     $query = "SELECT 
                 js.id as jadwal_shift_id,
                 js.maksimal_keterlambatan,
@@ -42,28 +39,43 @@ function getEmployeeShiftSchedule($pdo, $employeeId, $date) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-function getAttendanceStatus($pdo, $employeeId, $date) {
+function getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId) {
     $query = "SELECT id, waktu_masuk, waktu_keluar, status_kehadiran, jadwal_shift_id, keterangan, kode_unik 
               FROM absensi 
-              WHERE pegawai_id = ? AND DATE(tanggal) = ?
-              ORDER BY id DESC
-              LIMIT 1";
+              WHERE pegawai_id = ? AND DATE(tanggal) = ?";
     
     $stmt = $pdo->prepare($query);
     $stmt->execute([$employeeId, $date]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    $record = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$record) {
+        $query = "INSERT INTO absensi 
+                  (pegawai_id, tanggal, waktu_masuk, waktu_keluar, status_kehadiran, jadwal_shift_id, kode_unik) 
+                  VALUES (?, ?, '00:00:00', '00:00:00', '', ?, '000000')";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$employeeId, $date, $shiftId]);
+        
+        return getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId);
+    }
+    
+    return $record;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $uniqueCode = $_POST['unique_code'];
+        $uniqueCode = $_POST['unique_code'] ?? null;
+        $confirmEarlyLeave = isset($_POST['confirm_early_leave']) && $_POST['confirm_early_leave'] === 'true';
+        $attendanceId = $_POST['attendance_id'] ?? null;
         $userId = $_SESSION['id'];
         $currentDate = date('Y-m-d');
         $currentTime = new DateTime();
         
         $pdo->beginTransaction();
         
-        // Get employee ID
+        if (!checkEmployeeRole($pdo, $userId)) {
+            throw new Exception('Akses ditolak. Hanya karyawan yang dapat melakukan absensi.');
+        }
+        
         $stmt = $pdo->prepare("SELECT id, status_aktif FROM pegawai WHERE user_id = ?");
         $stmt->execute([$userId]);
         $employee = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -77,117 +89,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $employeeId = $employee['id'];
-
-        // Get shift schedule
-        $shiftSchedule = getEmployeeShiftSchedule($pdo, $employeeId, $currentDate);
+        $shiftSchedule = getActiveShiftSchedule($pdo, $employeeId, $currentDate);
         
         if (!$shiftSchedule) {
-            throw new Exception('Anda tidak memiliki jadwal shift aktif hari ini. Jadwal shift diperlukan untuk melakukan absensi.');
+            throw new Exception('Tidak ada shift untuk hari ini.');
         }
-
-        // Get current attendance status
-        $attendance = getAttendanceStatus($pdo, $employeeId, $currentDate);
-
-        // Calculate shift times
+        
+        $attendance = getOrCreateAttendanceRecord($pdo, $employeeId, $currentDate, $shiftSchedule['jadwal_shift_id']);
+        
         $shiftStart = new DateTime($currentDate . ' ' . $shiftSchedule['jam_masuk']);
-        $shiftEnd = new DateTime($currentDate . ' ' . $shiftSchedule['jam_keluar']);
         $maxLateTime = (clone $shiftStart)->modify('+' . (int)$shiftSchedule['maksimal_keterlambatan'] . ' minutes');
+        $shiftEnd = new DateTime($currentDate . ' ' . $shiftSchedule['jam_keluar']);
 
-        // Check if the code has already been used
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM absensi WHERE kode_unik = ?");
-        $stmt->execute([$uniqueCode]);
-        if ($stmt->fetchColumn() > 0) {
-            throw new Exception('Kode QR ini sudah digunakan.');
+        // Combined check-in and check-out logic
+if ($uniqueCode) {
+    // If waktu_masuk is still default, this is a check-in
+    if ($attendance['waktu_masuk'] == '00:00:00') {
+        // Check if the current time is before the shift start time
+        if ($currentTime < $shiftStart) {
+            throw new Exception('Shift belum dimulai. Absensi dimulai pukul ' . $shiftStart->format('H:i'));
         }
 
-        // Update attendance status
-        if (!$attendance || ($attendance['waktu_masuk'] == '00:00:00' && $attendance['waktu_keluar'] == '00:00:00' && $attendance['kode_unik'] == '000000')) {
-            $status = $currentTime > $maxLateTime ? 'terlambat' : 'dalam_shift';
-            
-            $query = "UPDATE absensi 
-                    SET waktu_masuk = CURRENT_TIME(),
-                        kode_unik = ?,
-                        status_kehadiran = ?
-                    WHERE id = ?";
+        // Check if the current time is after the shift end time
+        if ($currentTime > $shiftEnd) {
+            throw new Exception('Anda melewati jam keluar shift dan tidak diperbolehkan absen. Anda melewatkan shift absen hari ini.');
+        }
+
+        // Calculate the latest acceptable check-in time
+        $latestCheckInTime = (clone $shiftStart)->modify('+' . (int)$shiftSchedule['maksimal_keterlambatan'] . ' minutes');
+
+        // Determine attendance status
+        $lateTime = $currentTime > $latestCheckInTime ? 'terlambat' : 'dalam_shift';
+
+        // Update the attendance record for check-in
+        $query = "UPDATE absensi SET waktu_masuk = CURRENT_TIME(), status_kehadiran = ?, kode_unik = ? WHERE id = ?";
+        $stmt = $pdo->prepare($query);
+        if (!$stmt->execute([$lateTime, $uniqueCode, $attendance['id']])) {
+            throw new Exception('Gagal mencatat absensi masuk.');
+        }
+
+        $message = [
+            'status' => 'success',
+            'text' => 'Absensi masuk berhasil dicatat.'
+        ];
+    }
+    // If waktu_masuk is filled but waktu_keluar is still default, this is a check-out
+    else if ($attendance['waktu_keluar'] == '00:00:00') {
+        // Check if trying to check out before shift end time
+        if ($currentTime < $shiftEnd) {
+            // Update record for early leave
+            $query = "UPDATE absensi SET waktu_keluar = CURRENT_TIME(), status_kehadiran = 'pulang_dahulu' WHERE id = ?";
             $stmt = $pdo->prepare($query);
-            if (!$stmt->execute([
-                $uniqueCode,
-                $status,
-                $attendance ? $attendance['id'] : null
-            ])) {
-                throw new Exception('Gagal mengupdate absensi masuk.');
+            if (!$stmt->execute([$attendance['id']])) {
+                throw new Exception('Gagal mengupdate absensi keluar.');
             }
-            
+
             $message = [
                 'status' => 'success',
-                'text' => 'Absensi masuk berhasil dicatat.'
+                'text' => 'Absensi keluar berhasil dicatat sebagai pulang lebih awal.'
             ];
-        } elseif ($attendance && $attendance['waktu_masuk'] != '00:00:00' && $attendance['waktu_keluar'] == '00:00:00') {
-            if ($attendance && $attendance['waktu_masuk'] != '00:00:00' && $attendance['waktu_keluar'] == '00:00:00') {
-                if ($currentTime < $shiftEnd) {
-                    // Automatically update attendance status to 'pulang_dahulu'
-                    $status = 'pulang_dahulu';
-                    
-                    $query = "UPDATE absensi 
-                            SET waktu_keluar = CURRENT_TIME(),
-                                status_kehadiran = ?
-                            WHERE id = ?";
-                    $stmt = $pdo->prepare($query);
-                    if (!$stmt->execute([
-                        $status,
-                        $attendance['id']
-                    ])) {
-                        throw new Exception('Gagal mengupdate absensi keluar.');
-                    }
-                    
-                    $message = [
-                        'status' => 'success',
-                        'text' => 'Anda telah pulang lebih dahulu.',
-                        'color' => 'green' // Add a color indicator
-                    ];
-                } elseif ($currentTime >= $shiftEnd) {
-                    $status = 'hadir';
-                    
-                    $query = "UPDATE absensi 
-                            SET waktu_keluar = CURRENT_TIME(),
-                                status_kehadiran = ?,
-                                keterangan = null
-                            WHERE id = ?";
-                    $stmt = $pdo->prepare($query);
-                    if (!$stmt->execute([
-                        $status,
-                        $attendance['id']
-                    ])) {
-                        throw new Exception('Gagal mengupdate absensi keluar.');
-                    }
-                    
-                    $message = [
-                        'status' => 'success',
-                        'text' => 'Absensi keluar berhasil dicatat.'
-                    ];
-                } else {
-                    throw new Exception('Anda sudah melakukan absen masuk dan keluar hari ini.');
-                }
-            } else {
-                // Check for the 'pulang_dahulu' status before allowing further submissions
-                if ($attendance && $attendance['status_kehadiran'] === 'pulang_dahulu') {
-                    throw new Exception('Anda sudah absen hari ini.');
-                }
-                throw new Exception('Anda sudah melakukan absen masuk dan keluar hari ini.');
+        } else {
+            // Update record for normal check-out
+            $query = "UPDATE absensi SET waktu_keluar = CURRENT_TIME(), status_kehadiran = 'hadir' WHERE id = ?";
+            $stmt = $pdo->prepare($query);
+            if (!$stmt->execute([$attendance['id']])) {
+                throw new Exception('Gagal mengupdate absensi keluar.');
             }
-        }            
 
+            $message = [
+                'status' => 'success',
+                'text' => 'Absensi keluar berhasil dicatat.'
+            ];
+        }
+    }
+    // If both times are filled, attendance is complete for the day
+    else {
+        throw new Exception('Anda sudah melakukan absensi masuk dan keluar hari ini.');
+    }
+}
+        
         $pdo->commit();
+        
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        
         $message = ['status' => 'error', 'text' => $e->getMessage()];
     }
     
     if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
         strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+        header('Content-Type: application/json');
         echo json_encode($message);
         exit;
     }
@@ -608,82 +600,176 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="../../../assets/js/scripts.js"></script>
     <script>
         // Update time and date
-            function updateDateTime() {
-                const now = new Date();
-                const formattedTime = now.toLocaleTimeString('id-ID', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                });
-                document.getElementById('currentTime').textContent = formattedTime;
-                document.getElementById('currentDate').textContent = now.toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                });
+function updateDateTime() {
+    const now = new Date();
+    const formattedTime = now.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+    document.getElementById('currentTime').textContent = formattedTime;
+    document.getElementById('currentDate').textContent = now.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
+// Update initially and then every second
+updateDateTime();
+setInterval(updateDateTime, 1000);
+
+// Function to show alert
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+    // Insert alert before the form
+    const formCard = document.querySelector('.attendance-form-card');
+    formCard.insertAdjacentElement('beforebegin', alertDiv);
+
+    // Auto-dismiss alert after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Function to handle early leave confirmation
+async function handleEarlyLeave(attendanceId) {
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: `confirm_early_leave=true&attendance_id=${attendanceId}`
+        });
+
+        const data = await response.json();
+        showAlert(data.text, data.status === 'success' ? 'success' : 'danger');
+        
+        if (data.status === 'success') {
+            document.getElementById('attendanceForm').reset();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('Terjadi kesalahan. Silakan coba lagi.', 'danger');
+    }
+}
+
+// Form submission handler
+document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const submitButton = form.querySelector('.submit-button');
+    const formData = new FormData(form);
+
+    try {
+        submitButton.disabled = true;
+        
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
+        });
 
-            // Update initially and then every second
-            updateDateTime();
-            setInterval(updateDateTime, 1000);
-
-            // Form submission handler
-            document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
+        const data = await response.json();
+        
+        if (data.status === 'confirm') {
+            // Create and show confirmation modal
+            const modalHtml = `
+                <div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Konfirmasi Pulang Awal</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                ${data.text}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="button" class="btn btn-primary confirm-leave">Ya, Pulang Sekarang</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove any existing modals
+            const existingModal = document.getElementById('confirmationModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add new modal to document
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+            modal.show();
+            
+            // Handle confirmation
+            document.querySelector('.confirm-leave').addEventListener('click', async () => {
+                modal.hide();
                 
-                const form = this;
-                const submitButton = form.querySelector('.submit-button');
-                const formData = new FormData(form);
-
                 try {
-                    submitButton.disabled = true;
-                    
-                    const response = await fetch(window.location.href, {
+                    const confirmResponse = await fetch(window.location.href, {
                         method: 'POST',
-                        body: formData,
                         headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
                             'X-Requested-With': 'XMLHttpRequest'
-                        }
+                        },
+                        body: `confirm_early_leave=true&attendance_id=${data.attendance_id}`
                     });
-
-                    const data = await response.json();
                     
-                    // Create alert element
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = `alert alert-${data.status === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
-                    alertDiv.innerHTML = `
-                        ${data.text}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    `;
-
-                    // Insert alert before the form
-                    const formCard = document.querySelector('.attendance-form-card');
-                    formCard.insertAdjacentElement('beforebegin', alertDiv);
-
-                    if (data.status === 'success') {
+                    const confirmData = await confirmResponse.json();
+                    showAlert(confirmData.text, confirmData.status === 'success' ? 'success' : 'danger');
+                    
+                    if (confirmData.status === 'success') {
                         form.reset();
                     }
-
-                    // Auto-dismiss alert after 5 seconds
-                    setTimeout(() => {
-                        alertDiv.remove();
-                    }, 5000);
-
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('Terjadi kesalahan. Silakan coba lagi.');
-                } finally {
-                    submitButton.disabled = false;
+                    showAlert('Terjadi kesalahan saat memproses pulang awal.', 'danger');
                 }
             });
             
-            // Add input animation
-            const input = document.querySelector('.modern-input');
-            input.addEventListener('focus', () => {
-                input.parentElement.classList.add('focused');
+            // Clean up modal when hidden
+            document.getElementById('confirmationModal').addEventListener('hidden.bs.modal', function () {
+                this.remove();
             });
-            input.addEventListener('blur', () => {
-                input.parentElement.classList.remove('focused');
-            });
+        } else {
+            showAlert(data.text, data.status === 'success' ? 'success' : 'danger');
+            
+            if (data.status === 'success') {
+                form.reset();
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('Terjadi kesalahan. Silakan coba lagi.', 'danger');
+    } finally {
+        submitButton.disabled = false;
+    }
+});
+
+
+// Add input animation
+const input = document.querySelector('.modern-input');
+input.addEventListener('focus', () => {
+    input.parentElement.classList.add('focused');
+});
+input.addEventListener('blur', () => {
+    input.parentElement.classList.remove('focused');
+});
     </script>
 </body>
 </html>
