@@ -57,7 +57,7 @@ foreach ($dataMingguan as $row) {
 
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: login.php');
+    header('Location: ../../../login.php');
     exit;
 }
 
@@ -72,7 +72,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     header('Cache-Control: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
     
-    header('Location: login.php');
+    header('Location: ../../../login.php');
     exit;
     
 }
@@ -171,7 +171,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="sidebar-icon" fill="#6c757d">
                                 <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
                             </svg>
-                            Jadwal
+                            Jadwal Shift
                         </a>
                         <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="manageMember.php">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="sidebar-icon" fill="#6c757d" width="24" height="24">
@@ -248,83 +248,88 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     </tr>
 </thead>
 <tbody class="bg-white divide-y divide-gray-200">
-    <?php
-    // Query untuk mengambil data absensi termasuk nama shift dan jam masuk shift
-    $stmt = $pdo->prepare("
-        SELECT 
-            u.nama_lengkap AS nama_staff,
-            d.nama_divisi AS divisi,
-            u.role AS jabatan,
-            js.tanggal AS tanggal_shift,
-            s.jam_masuk AS jam_mulai_shift,
-            s.jam_keluar AS jam_keluar_shift,
-            s.nama_shift AS nama_shift,
-            DATE_FORMAT(a.waktu_masuk, '%H:%i:%s') AS waktu_masuk
-        FROM 
-            absensi a
-        JOIN 
-            pegawai p ON a.pegawai_id = p.id
-        JOIN 
-            users u ON p.user_id = u.id
-        LEFT JOIN 
-            divisi d ON p.divisi_id = d.id
-        JOIN 
-            jadwal_shift js ON a.jadwal_shift_id = js.id
-        JOIN 
-            shift s ON js.shift_id = s.id
-        ORDER BY 
-            a.waktu_masuk DESC
-    ");
-    $stmt->execute();
-    $recentAbsences = $stmt->fetchAll(PDO::FETCH_ASSOC);
+<?php
+// Query untuk mengambil data absensi termasuk nama shift dan jam masuk shift
+$stmt = $pdo->prepare("
+    SELECT 
+        u.nama_lengkap AS nama_staff,
+        d.nama_divisi AS divisi,
+        u.role AS jabatan,
+        js.tanggal AS tanggal_shift,
+        s.nama_shift AS nama_shift,
+        a.waktu_masuk,
+        a.waktu_keluar,
+        a.status_kehadiran
+    FROM 
+        absensi a
+    JOIN 
+        pegawai p ON a.pegawai_id = p.id
+    JOIN 
+        users u ON p.user_id = u.id
+    LEFT JOIN 
+        divisi d ON p.divisi_id = d.id
+    JOIN 
+        jadwal_shift js ON a.jadwal_shift_id = js.id
+    JOIN 
+        shift s ON js.shift_id = s.id
+    WHERE 
+        (a.waktu_masuk != '00:00:00' OR a.waktu_keluar != '00:00:00') AND a.status_kehadiran != ''
+    ORDER BY 
+        a.waktu_masuk DESC
+");
+$stmt->execute();
+$recentAbsences = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Menampilkan hasil query dalam tabel
-    if (!empty($recentAbsences)) {
-        foreach ($recentAbsences as $absen) {
-            // Hitung keterlambatan dengan batas toleransi 10 menit dari jam masuk shift
-            $jamMulaiShift = new DateTime($absen['tanggal_shift'] . ' ' . $absen['jam_mulai_shift']);
-            $waktuMasuk = new DateTime($absen['tanggal_shift'] . ' ' . $absen['waktu_masuk']);
-            $statusKehadiran = '';
-
-            // Tambahkan 10 menit untuk batas keterlambatan
-            $batasToleransi = clone $jamMulaiShift;
-            $batasToleransi->modify('+10 minutes');
-
-            if ($waktuMasuk > $batasToleransi) {
-                // Hitung keterlambatan
-                $selisih = $jamMulaiShift->diff($waktuMasuk);
-                $totalMenitTerlambat = ($selisih->h * 60) + $selisih->i;
-
-                // Format keterlambatan dalam jam dan menit
-                $jamTerlambat = floor($totalMenitTerlambat / 60);
-                $menitTerlambat = $totalMenitTerlambat % 60;
-
-                // Ubah format sesuai kebutuhan
-                if ($jamTerlambat > 0) {
-                    $statusKehadiran = "{$jamTerlambat} Jam " . ($menitTerlambat > 0 ? "{$menitTerlambat} Menit" : "");
-                } else {
-                    $statusKehadiran = "{$menitTerlambat} Menit";
-                }
-
-                $statusClass = "px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm"; // Kelas untuk keterlambatan
-            } else {
-                $statusKehadiran = "Hadir Tepat Waktu";
-                $statusClass = "px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm"; // Kelas untuk kehadiran tepat waktu
-            }
-
-            echo "<tr>";
-            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['nama_staff']) . "</td>";
-            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['divisi']) . "</td>";
-            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['jabatan']) . "</td>";
-            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['nama_shift']) . "</td>"; // Menampilkan nama shift
-            echo "<td class='px-6 py-4 whitespace-nowrap text-blue-500'>Absen Masuk (" . htmlspecialchars($absen['waktu_masuk']) . ")</td>";
-            echo "<td class='px-6 py-4 whitespace-nowrap'>" . "<span class='$statusClass'>" . htmlspecialchars($statusKehadiran) . "</span>" . "</td>"; 
-            echo "</tr>";
+// Menampilkan hasil query dalam tabel
+if (!empty($recentAbsences)) {
+    foreach ($recentAbsences as $absen) {
+        // Skip if both times are 00:00:00
+        if ($absen['waktu_masuk'] === '00:00:00' && $absen['waktu_keluar'] === '00:00:00') {
+            continue;
         }
-    } else {
-        echo "<tr><td colspan='6' class='px-6 py-4 text-center'>Tidak ada aktivitas absen</td></tr>";
+
+        // Handle waktu masuk jika tidak 00:00:00
+        if ($absen['waktu_masuk'] !== '00:00:00') {
+            $aktivitas = "Absen Masuk (" . htmlspecialchars($absen['waktu_masuk']) . ")";
+        } else {
+            $aktivitas = "";
+        }
+
+        // Handle waktu keluar jika tidak 00:00:00
+        if ($absen['waktu_keluar'] !== '00:00:00') {
+            $aktivitas = $aktivitas ? $aktivitas . "<br>" : "";
+            $aktivitas .= "Absen Keluar (" . htmlspecialchars($absen['waktu_keluar']) . ")";
+        }
+
+        // Get the status class based on the status_kehadiran value
+        switch ($absen['status_kehadiran']) {
+            case 'hadir':
+                $statusKehadiran = "Hadir Tepat Waktu";
+                $statusClass = "px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm";
+                break;
+            case 'terlambat':
+                $statusKehadiran = "Terlambat";
+                $statusClass = "px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm";
+                break;
+            default:
+                $statusKehadiran = "";
+                $statusClass = "";
+                break;
+        }
+
+        echo "<tr>";
+        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['nama_staff']) . "</td>";
+        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['divisi']) . "</td>";
+        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['jabatan']) . "</td>";
+        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['nama_shift']) . "</td>";
+        echo "<td class='px-6 py-4 whitespace-nowrap text-blue-500'>" . $aktivitas . "</td>";
+        echo "<td class='px-6 py-4 whitespace-nowrap'>" . "<span class='$statusClass'>" . htmlspecialchars($statusKehadiran) . "</span>" . "</td>"; 
+        echo "</tr>";
     }
-    ?>
+} else {
+    echo "<tr><td colspan='6' class='px-6 py-4 text-center'>Tidak ada aktivitas absen</td></tr>";
+}
+?>
 </tbody>
 
                         </table>

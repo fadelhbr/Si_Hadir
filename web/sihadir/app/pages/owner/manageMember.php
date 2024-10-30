@@ -193,31 +193,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
     try {
         $pdo->beginTransaction();
 
-        // Base update query
-        $updateQuery = "UPDATE users SET 
-            nama_lengkap = :nama_lengkap,
-            email = :email,
-            username = :username,
-            no_telp = :no_telp";
-        
-        // Add password to update if provided
-        $params = [
-            'user_id' => $_POST['user_id'],
+        // Update user table
+        $stmt = $pdo->prepare("
+            UPDATE users 
+            SET nama_lengkap = :nama_lengkap,
+                email = :email,
+                username = :username,
+                no_telp = :no_telp
+            WHERE id = :user_id
+        ");
+        $stmt->execute([
             'nama_lengkap' => $_POST['nama_lengkap'],
             'email' => $_POST['email'],
             'username' => $_POST['username'],
-            'no_telp' => $_POST['no_telp']
-        ];
-
-        if (!empty($_POST['password'])) {
-            $updateQuery .= ", password = :password";
-            $params['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
-        }
-
-        $updateQuery .= " WHERE id = :user_id";
-        
-        $stmt = $pdo->prepare($updateQuery);
-        $stmt->execute($params);
+            'no_telp' => $_POST['no_telp'],
+            'user_id' => $_POST['user_id']
+        ]);
 
         // Update division
         $stmt = $pdo->prepare("
@@ -230,19 +221,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
             'user_id' => $_POST['user_id']
         ]);
 
-        // Update maksimal keterlambatan in jadwal_shift
-        $maksimalKeterlambatanJam = $_POST['maksimal_keterlambatan_jam'];
-        $maksimalKeterlambatanMenit = $_POST['maksimal_keterlambatan_menit'];
-        $maksimalKeterlambatan = sprintf('%02d:%02d:00', $maksimalKeterlambatanJam, $maksimalKeterlambatanMenit);
-
+        // Update shift in jadwal_shift
         $stmt = $pdo->prepare("
-            UPDATE jadwal_shift 
-            SET maksimal_keterlambatan = :maksimal_keterlambatan
-            WHERE pegawai_id = :pegawai_id AND tanggal = CURRENT_DATE
+            UPDATE jadwal_shift
+            SET shift_id = :shift_id,
+                maksimal_keterlambatan = :maksimal_keterlambatan
+            WHERE pegawai_id = (
+                SELECT id 
+                FROM pegawai
+                WHERE user_id = :user_id
+            ) 
+            AND tanggal = CURRENT_DATE
         ");
         $stmt->execute([
-            'maksimal_keterlambatan' => $maksimalKeterlambatan,
-            'pegawai_id' => $_POST['user_id']
+            'shift_id' => $_POST['shift_id'],
+            'maksimal_keterlambatan' => sprintf('%02d:%02d:00', $_POST['maksimal_keterlambatan_jam'], $_POST['maksimal_keterlambatan_menit']),
+            'user_id' => $_POST['user_id']
         ]);
 
         $pdo->commit();
@@ -252,10 +246,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
         ];
     } catch (PDOException $e) {
         $pdo->rollBack();
-        $_SESSION['toast'] = [
-            'type' => 'error',
-            'message' => 'Gagal mengupdate member: ' . $e->getMessage()
-        ];
+        
+        // Handle duplicate data error
+        if ($e->getCode() == 23000) {
+            $_SESSION['toast'] = [
+                'type' => 'error',
+                'message' => 'Gagal mengupdate member: Data sudah ada'
+            ];
+        } else {
+            $_SESSION['toast'] = [
+                'type' => 'error',
+                'message' => 'Gagal mengupdate member: ' . $e->getMessage()
+            ];
+        }
     }
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
@@ -608,14 +611,14 @@ if(isset($_POST['remove_device'])) {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Maksimal Keterlambatan</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control" name="maksimal_keterlambatan_jam" placeholder="Jam" min="0">
-                                <span class="input-group-text">Jam</span>
-                                <input type="number" class="form-control" name="maksimal_keterlambatan_menit" placeholder="Menit" min="0">
-                                <span class="input-group-text">Menit</span>
-                            </div>
+                            <div class="col-md-6">
+                        <label class="form-label">Maksimal Keterlambatan</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="jam" name="maksimal_keterlambatan_jam" placeholder="Jam" min="0" max="23">
+                            <span class="input-group-text">Jam</span>
+                            <input type="number" class="form-control" id="menit" name="maksimal_keterlambatan_menit" placeholder="Menit" min="0" max="59">
+                            <span class="input-group-text">Menit</span>
+                        </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -686,13 +689,13 @@ if(isset($_POST['remove_device'])) {
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Maksimal Keterlambatan</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control" name="maksimal_keterlambatan_jam" id="edit_maksimal_keterlambatan_jam" placeholder="Jam" min="0">
-                                <span class="input-group-text">Jam</span>
-                                <input type="number" class="form-control" name="maksimal_keterlambatan_menit" id="edit_maksimal_keterlambatan_menit" placeholder="Menit" min="0">
-                                <span class="input-group-text">Menit</span>
-                            </div>
+                        <label class="form-label">Maksimal Keterlambatan</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="jam" name="maksimal_keterlambatan_jam" placeholder="Jam" min="0" max="23">
+                            <span class="input-group-text">Jam</span>
+                            <input type="number" class="form-control" id="menit" name="maksimal_keterlambatan_menit" placeholder="Menit" min="0" max="59">
+                            <span class="input-group-text">Menit</span>
+                        </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -798,6 +801,24 @@ if(isset($_POST['remove_device'])) {
 
     <!-- Scripts -->
     <script>
+document.getElementById("jam").addEventListener("input", validateTime);
+document.getElementById("menit").addEventListener("input", validateTime);
+
+function validateTime() {
+  let jamInput = document.getElementById("jam");
+  let menitInput = document.getElementById("menit");
+
+  // Ensure values are within valid range
+  jamInput.value = Math.min(Math.max(0, jamInput.value), 23);
+  menitInput.value = Math.min(Math.max(0, menitInput.value), 59);
+
+  // Construct the time string in the correct format
+  let maximalKeterlambatan = `${String(jamInput.value).padStart(2, '0')}:${String(menitInput.value).padStart(2, '0')}:00`;
+
+  // Update the form field with the properly formatted time
+  document.querySelector('input[name="maksimal_keterlambatan"]').value = maximalKeterlambatan;
+}
+
         // Function to handle edit user
         function editUser(user) {
             document.getElementById('edit_user_id').value = user.id;
