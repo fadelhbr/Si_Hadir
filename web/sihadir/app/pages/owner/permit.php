@@ -1,6 +1,15 @@
 <?php
 session_start();
 
+require_once '../../../app/auth/auth.php';
+
+try {
+    $conn = new PDO("mysql:host=localhost;dbname=si_hadir1", "root", "");
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header('Location: ../../../login.php');
@@ -71,8 +80,85 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
             margin-right: 10px;
             vertical-align: middle;
             }
-            
+
+            .hidden {
+                display: none;
+            }
             </style>
+
+<style>
+    /* Style untuk switch */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+        margin: 0 10px; /* Menambahkan margin di sekitar switch */
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        border-radius: 50%;
+        transition: .4s;
+    }
+
+    input:checked + .slider {
+        background-color: #2196F3;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+
+<style>
+    .btn-izin {
+        background-color: #007bff; /* Warna biru */
+        color: white;
+        transition: background-color 0.3s, color 0.3s;
+    }
+    
+    .btn-cuti {
+        background-color: #6c757d; /* Warna abu-abu */
+        color: white;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    .btn-active {
+        background-color: #0056b3 !important; /* Warna tombol aktif */
+        color: white !important;
+    }
+</style>
+
+
         
     </head>
     <body class="bg-blue-50">
@@ -145,49 +231,102 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
         </div>
         <input type="text" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari nama/email/kode staff">
     </div>
-    <div class="flex flex-col md:flex-row gap-6 mb-8">
-        <div class="bg-white p-6 rounded-lg shadow flex-1 min-w-[300px]">
-            <div class="flex items-center justify-between">
-                <h3 class="text-gray-600">sedang dalam permohonan</h3>
-            </div>
-            <p class="text-3xl font-bold text-gray-800 mt-2">1</p>
-            <canvas id="pendingChart" class="mt-4 h-20"></canvas>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow flex-1 min-w-[300px]">
-            <div class="flex items-center justify-between">
-                <h3 class="text-gray-600">telah di jawab</h3>
-            </div>
-            <p class="text-3xl font-bold text-gray-800 mt-2">4</p>
-            <canvas id="approvedChart" class="mt-4 h-20"></canvas>
-        </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-yellow-300 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
+        <h3 class="text-yellow-700 text-center text-lg font-sans font-bold mt-5">SEDANG DALAM PERMOHONAN</h3>
+        <p class="text-3xl font-extrabold text-yellow-700 text-center font-mono mt-4">1</p>
+        <canvas id="pendingChart" class="h-20"></canvas>
     </div>
+    <div class="bg-green-200 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
+        <h3 class="text-green-700 text-center text-lg font-sans font-bold mt-5">TELAH DIJAWAB</h3>
+        <p class="text-3xl font-extrabold text-green-700 text-center font-mono mt-4">4</p>
+        <canvas id="approvedChart" class="h-20"></canvas>
+    </div>
+</div>
+
     
     <div class="bg-white shadow rounded-lg p-4 mb-4">
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-            <tr>
-                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
-                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Perizinan</th>
-                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
-                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Mulai</th>
-                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Selesai</th>
-                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Aksi</th>
-            </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-            <tr>
-                <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Dina Darius</td>
-                <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Cuti</td>
-                <td class="px-4 py-4 text-sm text-yellow-500 text-center border-r border-gray-200 whitespace-nowrap">sedang dalam permohonan</td>
-                <td class="px-4 py-4 text-sm text-gray-500 text-center border-r border-gray-200 whitespace-nowrap">17/09/2024</td>
-                <td class="px-4 py-4 text-sm text-gray-500 text-center border-r border-gray-200 whitespace-nowrap">20/09/2024</td>
-                <td class="px-4 py-4 text-center whitespace-nowrap">
-                    <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm mr-2">Disetujui</button>
-                    <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    <!-- Tombol switch untuk beralih antara tabel -->
+    <div class="flex items-center mb-4">
+        <label class="switch">
+            <input type="checkbox" id="tableSwitch" onchange="toggleTable()">
+            <span class="slider"></span>
+        </label>
+        <span id="tableLabel" class="ml-2">Tabel Izin</span> <!-- Label yang ditampilkan -->
+    </div>
+    <div id="izinTable" class="table-container">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Izin</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Bukti Pendukung</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php
+                // Mengambil data dari perizinan_view
+                $sql = "SELECT * FROM perizinan_view WHERE status = 'pending'";
+                $stmt = $pdo->query($sql);
+                $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                foreach ($dataIzin as $row): ?>
+                    <tr>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['Nama_Staff']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['tanggal']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['jenis_izin']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['bukti_pendukung']); ?></td>
+                        </td>
+                        <td class="text-center">
+                            <button class="bg-green-500 text-white py-1 px-2 rounded">Disetujui</button>
+                            <button class="bg-red-500 text-white py-1 px-2 rounded">Ditolak</button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="cutiTable" class="table-container hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Mulai</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Selesai</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Durasi Cuti</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php
+                // Mengambil data dari cuti_view
+                $sql = "SELECT * FROM cuti_view WHERE status = 'pending'";
+                $stmt = $pdo->query($sql);
+                $dataCuti = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                foreach ($dataCuti as $row): ?>
+                    <tr>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['nama_staff']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['tanggal_mulai']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['tanggal_selesai']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['durasi_cuti']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                        <td class="text-center px-4 py-3">
+                            <button class="bg-green-500 text-white py-1 px-2 rounded">Disetujui</button>
+                            <button class="bg-red-500 text-white py-1 px-2 rounded">Ditolak</button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>            
+            </tbody>
+        </table>
+    </div>
 </div>
 
 
@@ -210,103 +349,169 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                 </div>
 
                 <!-- Tombol Select All dan Deselect All -->
+                
                 <div class="mb-3">
-                    <button class="btn btn-primary" onclick="selectAll()">Select All</button>
-                    <button class="btn btn-secondary" onclick="deselectAll()">Deselect All</button>
-                    <button class="btn btn-danger" onclick="deleteSelected()">Delete Selected</button>
+                    <button class="btn btn-izin" id="izinButton" onclick="showIzinTable()">Tabel Izin</button>
+                    <button class="btn btn-secondary" id="cutiButton" onclick="showCutiTable()">Tabel Cuti</button>
                 </div>
 
+
                 <!-- Wrapper for horizontal scroll -->
-                <div class="table-responsive" style="overflow-x: auto; max-width: 100%;">
-                    <table class="min-w-full divide-y divide-gray-200" id="approvalTable">
+                <div id="izinHistoryTable" class="table-container">
+                    <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Perizinan</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Izin</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Mulai</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Selesai</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Aksi</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-    <!-- Approved Row -->
-    <tr class="approved">
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Dina Darius</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Cuti</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
-            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Disetujui</span>
-        </td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">17/09/2024</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">20/09/2024</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
-            <input type="checkbox" class="row-checkbox me-2">
-            <button onclick="confirmDelete(this)" class="text-red-600">
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    </tr>
-    
-    <!-- Rejected Row -->
-    <tr class="rejected">
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Alfina Amalia</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Izin</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
-            <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</span>
-        </td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">24/11/2024</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">27/11/2024</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
-            <input type="checkbox" class="row-checkbox me-2">
-            <button onclick="confirmDelete(this)" class="text-red-600">
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    </tr>
-    
-    <!-- Approved Row -->
-    <tr class="approved">
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Rudi Hartono</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Cuti Tahunan</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
-            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Disetujui</span>
-        </td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">01/12/2024</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">10/12/2024</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
-            <input type="checkbox" class="row-checkbox me-2">
-            <button onclick="confirmDelete(this)" class="text-red-600">
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    </tr>
-    
-    <!-- Rejected Row -->
-    <tr class="rejected">
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Siti Nurhaliza</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">Izin Mendadak</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
-            <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">Ditolak</span>
-        </td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">05/12/2024</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">06/12/2024</td>
-        <td class="px-4 py-4 text-sm text-gray-900 text-center border-r border-gray-200 whitespace-nowrap">
-            <input type="checkbox" class="row-checkbox me-2">
-            <button onclick="confirmDelete(this)" class="text-red-600">
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    </tr>
-</tbody>
+                        <tbody>
+                            <?php
+                            // Mengambil data dari perizinan_view dengan status disetujui atau ditolak
+                            $sql = "SELECT * FROM perizinan_view WHERE status IN ('disetujui', 'ditolak')";
+                            $stmt = $pdo->query($sql);
+                            $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-  <!-- Additional rows omitted for brevity -->
-  </tbody>
+                            foreach ($dataIzin as $row): ?>
+                                <tr>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['Nama_Staff']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['jenis_izin']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['status']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
                     </table>
                 </div>
+
+                <!-- Tabel Cuti -->
+                <div id="cutiHistoryTable" class="table-container hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Mulai</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Selesai</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Durasi Cuti</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <?php
+                            // Mengambil data dari cuti_view dengan status disetujui atau ditolak
+                            $sql = "SELECT * FROM cuti_view WHERE status IN ('disetujui', 'ditolak')";
+                            $stmt = $pdo->query($sql);
+                            $dataCuti = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                            foreach ($dataCuti as $row): ?>
+                                <tr>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['nama_staff']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_mulai']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_selesai']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['durasi_cuti']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['status']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
+
+
+<script>
+    // Fungsi untuk membuka modal "Riwayat Persetujuan" dengan tombol izin sebagai default
+    function openApprovalModal() {
+        // Set tombol "Tabel Izin" sebagai aktif secara default
+        document.getElementById("izinButton").classList.add("btn-active");
+        document.getElementById("cutiButton").classList.remove("btn-active");
+
+        // Menampilkan tabel izin dan menyembunyikan tabel cuti
+        document.getElementById("izinHistoryTable").style.display = "block";
+        document.getElementById("cutiHistoryTable").style.display = "none";
+
+        // Buka modal menggunakan Bootstrap
+        const approvalModal = new bootstrap.Modal(document.getElementById('approvalModal'));
+        approvalModal.show();
+    }
+
+    function showIzinTable() {
+        document.getElementById("cutiButton").classList.remove("btn-active");
+        document.getElementById("izinButton").classList.add("btn-active");
+        
+        document.getElementById("izinHistoryTable").style.display = "block";
+        document.getElementById("cutiHistoryTable").style.display = "none";
+    }
+
+    function showCutiTable() {
+        document.getElementById("izinButton").classList.remove("btn-active");
+        document.getElementById("cutiButton").classList.add("btn-active");
+        
+        document.getElementById("cutiHistoryTable").style.display = "block";
+        document.getElementById("izinHistoryTable").style.display = "none";
+    }
+</script>
+
+    <script>
+function filterTable() {
+    const filterValue = document.getElementById("approvalFilter").value;
+    const rows = document.querySelectorAll("#izinHistoryTable tbody tr");
+
+    rows.forEach(row => {
+        const statusCell = row.querySelector("td:last-child");
+        const statusText = statusCell.textContent.trim();
+
+        if (filterValue === "all" || (filterValue === "approved" && statusText === "approved") || (filterValue === "rejected" && statusText === "rejected")) {
+            row.style.display = ""; // Tampilkan
+        } else {
+            row.style.display = "none"; // Sembunyikan
+        }
+    });
+}
+</script>
+
+<script>
+    function toggleTable() {
+        const isChecked = document.getElementById('tableSwitch').checked;
+        const tableLabel = document.getElementById('tableLabel');
+        
+        // Mengubah label teks sesuai dengan tabel yang aktif
+        if (isChecked) {
+            document.getElementById('izinTable').classList.add('hidden');
+            document.getElementById('cutiTable').classList.remove('hidden');
+            tableLabel.textContent = "Tabel Cuti"; // Ubah label menjadi Tabel Cuti
+        } else {
+            document.getElementById('izinTable').classList.remove('hidden');
+            document.getElementById('cutiTable').classList.add('hidden');
+            tableLabel.textContent = "Tabel Izin"; // Ubah label menjadi Tabel Izin
+        }
+    }
+    </script>
+
+<script>
+function updateStatus(id, status) {
+    // Cari elemen tombol berdasarkan ID
+    const actionButtons = document.getElementById(`action-buttons-${id}`);
+    
+    // Mengubah isi tombol menjadi status yang sesuai
+    if (status === 'disetujui') {
+        actionButtons.innerHTML = '<div class="w-24 h-10 bg-green-300 text-green-700 rounded-full text-sm flex items-center justify-center">Disetujui</div>';
+    } else if (status === 'ditolak') {
+        actionButtons.innerHTML = '<div class="w-24 h-10 bg-red-300 text-red-700 rounded-full text-sm flex items-center justify-center">Ditolak</div>';
+    }
+}
+</script>
 
 <script>
 function filterTable() {
