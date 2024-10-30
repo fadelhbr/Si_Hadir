@@ -23,8 +23,21 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     exit;
 }
 
-// Function to get attendance statistics for the selected date
-function getAttendanceStats($pdo, $date) {
+// Function to get attendance statistics for the selected date and shift
+function getAttendanceStats($pdo, $date, $shift = 'all') {
+    $params = ['date' => $date];
+    $query = "SELECT status_kehadiran, COUNT(*) as count 
+              FROM absensi a
+              LEFT JOIN jadwal_shift js ON (a.pegawai_id = js.pegawai_id AND DATE(a.tanggal) = js.tanggal)
+              WHERE DATE(a.tanggal) = :date";
+
+    if ($shift !== 'all' && is_numeric($shift)) {
+        $query .= " AND js.shift_id = :shift_id";
+        $params['shift_id'] = $shift;
+    }
+
+    $query .= " GROUP BY status_kehadiran";
+
     $stats = array(
         'hadir' => 0,
         'alpha' => 0,
@@ -33,16 +46,11 @@ function getAttendanceStats($pdo, $date) {
         'cuti' => 0,
         'sakit' => 0
     );
-    
-    $query = "SELECT status_kehadiran, COUNT(*) as count 
-              FROM absensi 
-              WHERE DATE(tanggal) = :date
-              GROUP BY status_kehadiran";
-              
+
     try {
         $stmt = $pdo->prepare($query);
-        $stmt->execute(['date' => $date]);
-        
+        $stmt->execute($params);
+
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             if (isset($stats[$row['status_kehadiran']])) {
                 $stats[$row['status_kehadiran']] = $row['count'];
@@ -51,40 +59,39 @@ function getAttendanceStats($pdo, $date) {
     } catch (PDOException $e) {
         error_log("Database error in getAttendanceStats: " . $e->getMessage());
     }
-    
+
     return $stats;
 }
 
 // Function to get detailed attendance records
 function getAttendanceRecords($pdo, $date, $search = '', $shift = 'all') {
+    $params = ['date' => $date];
+    $query = "SELECT 
+                a.*, 
+                u.nama_lengkap as nama_pegawai,
+                s.nama_shift,
+                s.jam_masuk,
+                s.jam_keluar
+              FROM absensi a 
+              LEFT JOIN pegawai p ON a.pegawai_id = p.id
+              LEFT JOIN users u ON p.user_id = u.id
+              LEFT JOIN jadwal_shift js ON (a.pegawai_id = js.pegawai_id AND DATE(a.tanggal) = js.tanggal)
+              LEFT JOIN shift s ON js.shift_id = s.id
+              WHERE DATE(a.tanggal) = :date";
+
+    if (!empty($search)) {
+        $query .= " AND (u.nama_lengkap LIKE :search OR u.email LIKE :search)";
+        $params['search'] = "%$search%";
+    }
+
+    if ($shift !== 'all' && is_numeric($shift)) {
+        $query .= " AND js.shift_id = :shift_id";
+        $params['shift_id'] = $shift;
+    }
+
+    $query .= " ORDER BY a.waktu_masuk ASC";
+
     try {
-        $params = ['date' => $date];
-        
-        $query = "SELECT 
-                    a.*, 
-                    u.nama_lengkap as nama_pegawai,
-                    s.nama_shift,
-                    s.jam_masuk,
-                    s.jam_keluar
-                  FROM absensi a 
-                  LEFT JOIN pegawai p ON a.pegawai_id = p.id
-                  LEFT JOIN users u ON p.user_id = u.id
-                  LEFT JOIN jadwal_shift js ON (a.pegawai_id = js.pegawai_id AND DATE(a.tanggal) = js.tanggal)
-                  LEFT JOIN shift s ON js.shift_id = s.id
-                  WHERE DATE(a.tanggal) = :date";
-        
-        if (!empty($search)) {
-            $query .= " AND (u.nama_lengkap LIKE :search OR u.email LIKE :search)";
-            $params['search'] = "%$search%";
-        }
-        
-        if ($shift !== 'all' && is_numeric($shift)) {
-            $query .= " AND js.shift_id = :shift_id";
-            $params['shift_id'] = $shift;
-        }
-        
-        $query .= " ORDER BY a.waktu_masuk ASC";
-        
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
         return $stmt;
@@ -120,7 +127,7 @@ $selectedShift = isset($_GET['shift']) ? $_GET['shift'] : 'all';
 
 // Get the statistics and records with error handling
 try {
-    $stats = getAttendanceStats($pdo, $selectedDate);
+    $stats = getAttendanceStats($pdo, $selectedDate, $selectedShift);
     $records = getAttendanceRecords($pdo, $selectedDate, $searchQuery, $selectedShift);
     $shifts = getShifts($pdo);
     
@@ -133,10 +140,7 @@ try {
     $shifts = array();
     $displayDate = date('l, d F Y');
 }
-
-// Rest of the HTML code remains the same...
 ?>
-
 
 <!DOCTYPE html>
     <html lang="en">
@@ -265,37 +269,39 @@ try {
                             </div>
                         </div>
                     </nav>
-                    <!-- Page content-->
-                    <div class="container-fluid p-4">
-                <h1 class="text-3xl font-semibold mb-4">Monitor Absensi</h1>
-                
-                <!-- Search and filter form -->
-                <form class="flex items-center justify-between mb-4" method="GET">
-                    <div class="flex space-x-2">
-                        <input type="date" name="date" class="border border-gray-300 rounded px-2 py-1" 
-                               value="<?php echo $selectedDate; ?>">
-                        <select name="shift" class="border border-gray-300 rounded px-2 py-1">
-                            <option value="all">Semua Jadwal</option>
-                            <?php foreach($shifts as $shift): ?>
-                                <option value="<?php echo $shift['id']; ?>" 
-                                        <?php echo ($selectedShift == $shift['id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($shift['nama_shift']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <input type="text" name="search" class="border border-gray-300 rounded px-2 py-1" 
-                           placeholder="Cari nama/email/kode staff" value="<?php echo htmlspecialchars($searchQuery); ?>">
-                </form>
+                    <!-- Page content -->
+        <div class="container-fluid p-4">
+            <h1 class="text-3xl font-semibold mb-4">Monitor Absensi</h1>
+            
+            <!-- Search and filter form -->
+            <form class="flex items-center justify-between mb-4" method="GET">
+                <div class="flex space-x-2">
+                    <input type="date" name="date" class="border border-gray-300 rounded px-2 py-1" 
+                           value="<?php echo $selectedDate; ?>"
+                           onchange="this.form.submit()">
+                    <select name="shift" class="border border-gray-300 rounded px-2 py-1"
+                            onchange="this.form.submit()">
+                        <option value="all" <?php echo ($selectedShift === 'all') ? 'selected' : ''; ?>>Semua Jadwal</option>
+                        <?php foreach($shifts as $shift): ?>
+                            <option value="<?php echo $shift['id']; ?>" 
+                                    <?php echo ($selectedShift == $shift['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($shift['nama_shift']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <input type="text" name="search" class="border border-gray-300 rounded px-2 py-1" 
+                       placeholder="Cari nama/email/kode staff" value="<?php echo htmlspecialchars($searchQuery); ?>">
+            </form>
 
-                <!-- Status cards -->
-                <div class="bg-white shadow rounded-lg p-4 mb-4">
-                    <h2 class="text-lg font-semibold mb-4">Status Kehadiran Staff Hari Ini (<?php echo $displayDate; ?>)</h2>
-                    <div class="grid grid-cols-6 gap-6 text-center">
-                        <div class="status-card bg-blue-50 p-4 rounded-lg">
-                            <p class="text-sm">Sesuai Jadwal</p>
-                            <p class="text-2xl font-bold text-blue-500"><?php echo $stats['hadir']; ?></p>
-                        </div>
+            <!-- Status cards -->
+            <div class="bg-white shadow rounded-lg p-4 mb-4">
+                <h2 class="text-lg font-semibold mb-4">Status Kehadiran Staff Hari Ini (<?php echo $displayDate; ?>)</h2>
+                <div class="grid grid-cols-6 gap-6 text-center">
+                    <div class="status-card bg-blue-50 p-4 rounded-lg">
+                        <p class="text-sm">Sesuai Jadwal</p>
+                        <p class="text-2xl font-bold text-blue-500"><?php echo $stats['hadir']; ?></p>
+                    </div>
                         <div class="status-card bg-red-50 p-4 rounded-lg">
                             <p class="text-sm">Tidak Masuk</p>
                             <p class="text-2xl font-bold text-red-500"><?php echo $stats['alpha']; ?></p>
@@ -320,75 +326,76 @@ try {
                 </div>
 
                 <!-- Attendance table -->
-                <div class="bg-white shadow rounded-lg p-4 mb-4">
-                    <h2 class="text-lg font-semibold mb-4">Aktivitas</h2>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+            <div class="bg-white shadow rounded-lg p-4 mb-4">
+                <h2 class="text-lg font-semibold mb-4">Aktivitas</h2>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Jadwal</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <?php while ($record = $records->fetch(PDO::FETCH_ASSOC)): ?>
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Jadwal</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php echo htmlspecialchars($record['nama_pegawai']); ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php 
+                                    echo $record['nama_shift'] 
+                                        ? htmlspecialchars($record['nama_shift']) . ' (' . 
+                                          substr($record['jam_masuk'], 0, 5) . ' - ' . 
+                                          substr($record['jam_keluar'], 0, 5) . ')'
+                                        : 'Belum Ditentukan'; 
+                                    ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php 
+                                    $statusClass = '';
+                                    switch($record['status_kehadiran']) {
+                                        case 'hadir':
+                                            $statusClass = 'text-blue-500';
+                                            break;
+                                        case 'terlambat':
+                                            $statusClass = 'text-yellow-500';
+                                            break;
+                                        case 'alpha':
+                                            $statusClass = 'text-red-500';
+                                            break;
+                                        case 'izin':
+                                            $statusClass = 'text-purple-500';
+                                            break;
+                                        case 'cuti':
+                                            $statusClass = 'text-orange-500';
+                                            break;
+                                        case 'sakit':
+                                            $statusClass = 'text-green-500';
+                                            break;
+                                    }
+                                    ?>
+                                    <span class="<?php echo $statusClass; ?>">
+                                        <?php echo ucfirst($record['status_kehadiran']); ?>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php echo $record['waktu_masuk'] ? date('H:i', strtotime($record['waktu_masuk'])) : '-'; ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php echo $record['waktu_keluar'] ? date('H:i', strtotime($record['waktu_keluar'])) : '-'; ?>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <?php while ($record = $records->fetch(PDO::FETCH_ASSOC)): ?>
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo htmlspecialchars($record['nama_pegawai']); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php 
-                                        echo $record['nama_shift'] 
-                                            ? htmlspecialchars($record['nama_shift']) . ' (' . 
-                                              substr($record['jam_mulai'], 0, 5) . ' - ' . 
-                                              substr($record['jam_selesai'], 0, 5) . ')'
-                                            : 'Belum Ditentukan'; 
-                                        ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php 
-                                        $statusClass = '';
-                                        switch($record['status_kehadiran']) {
-                                            case 'hadir':
-                                                $statusClass = 'text-blue-500';
-                                                break;
-                                            case 'terlambat':
-                                                $statusClass = 'text-yellow-500';
-                                                break;
-                                            case 'alpha':
-                                                $statusClass = 'text-red-500';
-                                                break;
-                                            case 'izin':
-                                                $statusClass = 'text-purple-500';
-                                                break;
-                                            case 'cuti':
-                                                $statusClass = 'text-orange-500';
-                                                break;
-                                            case 'sakit':
-                                                $statusClass = 'text-green-500';
-                                                break;
-                                        }
-                                        ?>
-                                        <span class="<?php echo $statusClass; ?>">
-                                            <?php echo ucfirst($record['status_kehadiran']); ?>
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo $record['waktu_masuk'] ? date('H:i', strtotime($record['waktu_masuk'])) : '-'; ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo $record['waktu_keluar'] ? date('H:i', strtotime($record['waktu_keluar'])) : '-'; ?>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-                    </table>
-                </div>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+</div>
+
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->

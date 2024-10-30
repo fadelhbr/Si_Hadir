@@ -380,94 +380,95 @@ if (isset($_GET['action'])) {
                         </div>
                     </div>
                 </nav>
-                <!-- Page content-->
-                <div class="">
-        <div class="page-container">
-            <div class="flex justify-between items-center py-4">
-                <h1 class="text-3xl font-semibold mb-4">Rekap Absensi Karyawan</h1>
+                <!-- Page content -->
+        <div class="flex-1 bg-blue-50 p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-semibold">Rekap Absensi Karyawan</h1>
                 <div class="flex gap-4">
-                <a href="?action=print"><button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Download PDF</button>
-                    </a>
-                <a href="?action=excel"><button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
-                        Download Excel
-                    </button></a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="page-container">
-        <!-- Filter Section -->
-        <div class="filter-section">
-        <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai:</label>
-                        <input type="date" name="start_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value="<?php echo isset($start_date) ? $start_date : ''; ?>">
-                    </div>
-                    <div>
-                        <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir:</label>
-                        <input type="date" name="end_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value="<?php echo isset($end_date) ? $end_date : ''; ?>">
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
-                            Filter Data
+                    <a href="?action=print">
+                        <button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+                            Download PDF
                         </button>
+                    </a>
+                    <a href="?action=excel">
+                        <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                            Download Excel
+                        </button>
+                    </a>
+                </div>
+            </div>
+            <!-- Filter Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai:</label>
+                            <input type="date" name="start_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value="<?php echo isset($start_date) ? $start_date : ''; ?>">
+                        </div>
+                        <div>
+                            <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir:</label>
+                            <input type="date" name="end_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value="<?php echo isset($end_date) ? $end_date : ''; ?>">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
+                                Filter Data
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <!-- Table Section -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">Detail Absensi Karyawan</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="reportTable" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Karyawan</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hadir</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terlambat</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sakit</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Izin</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody" class="bg-white divide-y divide-gray-200">
+                            <?php
+                            if (!empty($attendanceDetails)) {
+                                foreach ($attendanceDetails as $detail) {
+                                    echo "<tr>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['nama_staff']) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['hadir']) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['terlambat']) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['sakit']) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['izin']) . "</td>";
+                                    echo "</tr>";
+                                }
+                            } else {
+                                echo "<tr><td colspan='5' class='px-6 py-4 text-center'>Tidak ada data absensi karyawan</td></tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-500">
+                            Showing 1 to 3 of 50 entries
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Previous</button>
+                            <button class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600">1</button>
+                            <button class="px-3 py-1 border rounded-md hover:bg-gray-50">2</button>
+                            <button class="px-3 py-1 border rounded-md hover:bg-gray-50">3</button>
+                            <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Next</button>
+                        </div>
                     </div>
                 </div>
-            </form>        
-        </div>
-
-       <!-- Table Section -->
-<div class="bg-white rounded-lg shadow-md overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-800">Detail Absensi Karyawan</h3>
-    </div>
-    <div class="overflow-x-auto">
-        <table id="reportTable" class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Karyawan</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hadir</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terlambat</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sakit</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Izin</th>
-                </tr>
-            </thead>
-            <tbody id="reportTableBody" class="bg-white divide-y divide-gray-200">
-                <?php
-                if (!empty($attendanceDetails)) {
-                    foreach ($attendanceDetails as $detail) {
-                        echo "<tr>";
-                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['nama_staff']) . "</td>";
-                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['hadir']) . "</td>";
-                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['terlambat']) . "</td>";
-                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['sakit']) . "</td>";
-                        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['izin']) . "</td>";
-                        echo "</tr>";
-                    }
-                } else {
-                    echo "<tr><td colspan='5' class='px-6 py-4 text-center'>Tidak ada data absensi karyawan</td></tr>";
-                }
-                    ?>
-            </tbody>
-        </table>
-    </div>
-    <div class="px-6 py-4 border-t border-gray-200">
-        <div class="flex justify-between items-center">
-            <div class="text-sm text-gray-500">
-                Showing 1 to 3 of 50 entries
-            </div>
-            <div class="flex space-x-2">
-                <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Previous</button>
-                <button class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600">1</button>
-                <button class="px-3 py-1 border rounded-md hover:bg-gray-50">2</button>
-                <button class="px-3 py-1 border rounded-md hover:bg-gray-50">3</button>
-                <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Next</button>
             </div>
         </div>
     </div>
-</div>
 
 <script>
     // Export functions

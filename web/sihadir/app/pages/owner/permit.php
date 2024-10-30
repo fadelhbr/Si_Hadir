@@ -4,7 +4,7 @@ session_start();
 require_once '../../../app/auth/auth.php';
 
 try {
-    $conn = new PDO("mysql:host=localhost;dbname=si_hadir", "root", "");
+    $conn = new PDO("mysql:host=localhost;dbname=si_hadir", "root", "abc54321");
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("Connection failed: " . $e->getMessage());
