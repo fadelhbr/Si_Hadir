@@ -3,13 +3,6 @@ session_start();
 
 require_once '../../../app/auth/auth.php';
 
-try {
-    $conn = new PDO("mysql:host=localhost;dbname=si_hadir", "root", "abc54321");
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
-}
-
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header('Location: ../../../login.php');
@@ -30,6 +23,213 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     header('Location: ../../../login.php');
     exit;
 }
+
+// FILTER IZIN #1
+function getFilteredDataIzin($pdo, $status) {
+    if ($status === 'approved') {
+        $sql = "SELECT * FROM perizinan_view WHERE status = 'disetujui'";
+    } elseif ($status === 'rejected') {
+        $sql = "SELECT * FROM perizinan_view WHERE status = 'ditolak'";
+    } else {
+        $sql = "SELECT * FROM perizinan_view WHERE status IN ('disetujui', 'ditolak')";
+    }
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// FILTER IZIN #2
+if (isset($_GET['filter_status'])) {
+    $status = $_GET['filter_status'];
+    
+    // Cek apakah status berasal dari izin atau cuti
+    if (strpos($status, 'izin') !== false) {
+        $dataIzin = getFilteredDataIzin($pdo, str_replace('izin_', '', $status));
+        foreach ($dataIzin as $row) {
+            echo "<tr>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['Nama_Staff']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['tanggal']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['jenis_izin']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['keterangan']) . "</td>";
+            $statusClass = $row['status'] == 'disetujui' ? 'bg-green-500 text-white py-1 px-2 rounded' : 'bg-red-500 text-white py-1 px-2 rounded';
+            echo "<td class='text-center px-4 py-3'><span class='{$statusClass}'>" . ucfirst(htmlspecialchars($row['status'])) . "</span></td>";
+            echo "<td class='px-4 py-3 text-center'><input type='checkbox' class='row-checkbox'></td>";
+            echo "</tr>";
+        }
+    } elseif (strpos($status, 'cuti') !== false) {
+        $dataCuti = getFilteredDataCuti($pdo, str_replace('cuti_', '', $status));
+        foreach ($dataCuti as $row) {
+            echo "<tr>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['nama_staff']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['tanggal_mulai']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['tanggal_selesai']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['durasi_cuti']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['keterangan']) . "</td>";
+            $statusClass = $row['status'] == 'disetujui' ? 'bg-green-500 text-white py-1 px-2 rounded' : 'bg-red-500 text-white py-1 px-2 rounded';
+            echo "<td class='text-center px-4 py-3'><span class='{$statusClass}'>" . ucfirst(htmlspecialchars($row['status'])) . "</span></td>";
+            echo "<td class='px-4 py-3 text-center'><input type='checkbox' class='row-checkbox'></td>";
+            echo "</tr>";
+        }
+    }
+    exit;
+}
+
+// FILTER CUTI #2
+function getFilteredDataCuti($pdo, $status) {
+    if ($status === 'approved') {
+        $sql = "SELECT * FROM cuti_view WHERE status = 'disetujui'";
+    } elseif ($status === 'rejected') {
+        $sql = "SELECT * FROM cuti_view WHERE status = 'ditolak'";
+    } else {
+        $sql = "SELECT * FROM cuti_view WHERE status IN ('disetujui', 'ditolak')";
+    }
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+// BUTTON CUTI UPDATE STATUS
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_cuti'], $_POST['status'])) {
+    // Proses update status cuti
+    $id_cuti = intval($_POST['id_cuti']);
+    $status_baru = $_POST['status'];
+
+    try {
+        $sql = "UPDATE cuti 
+                SET status = :status, 
+                    updated_at = NOW() 
+                WHERE id = :id";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':status', $status_baru);
+        $stmt->bindParam(':id', $id_cuti, PDO::PARAM_INT);
+        
+        $result = $stmt->execute();
+        
+        if ($result) {
+            echo json_encode([
+                'status' => 'success', 
+                'message' => 'Status cuti berhasil diupdate'
+            ]);
+            exit;
+        } else {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'Gagal update status cuti'
+            ]);
+            exit;
+        }
+    } catch(PDOException $e) {
+        echo json_encode([
+            'status' => 'error', 
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ]);
+        exit;
+    }
+}
+
+// IZIN BUTTON UPDATE STATUS 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && 
+    isset($_POST['id_izin'], $_POST['status'], $_POST['action']) && 
+    $_POST['action'] === 'update_izin') {
+    
+    // Proses update status izin
+    $id_izin = intval($_POST['id_izin']);
+    $status_baru = $_POST['status'];
+
+    try {
+        $sql = "UPDATE izin 
+                SET status = :status, 
+                    updated_at = NOW() 
+                WHERE id = :id";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':status', $status_baru);
+        $stmt->bindParam(':id', $id_izin, PDO::PARAM_INT);
+        
+        $result = $stmt->execute();
+        
+        if ($result) {
+            echo json_encode([
+                'status' => 'success', 
+                'message' => 'Status izin berhasil diupdate'
+            ]);
+            exit;
+        } else {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'Gagal update status izin'
+            ]);
+            exit;
+        }
+    } catch(PDOException $e) {
+        echo json_encode([
+            'status' => 'error', 
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ]);
+        exit;
+    }
+}
+
+// COUNT JUMLAH DATA SECARA REALTIME
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_status') {
+    // Mengambil data pending dan answered dari izin dan cuti
+    $pendingQuery = "
+        SELECT COUNT(*) AS total_pending FROM (
+            SELECT id FROM izin WHERE status = 'pending'
+            UNION ALL
+            SELECT id FROM cuti WHERE status = 'pending'
+        ) AS pending";
+    
+    $answeredQuery = "
+        SELECT COUNT(*) AS total_answered FROM (
+            SELECT id FROM izin WHERE status IN ('disetujui', 'ditolak')
+            UNION ALL
+            SELECT id FROM cuti WHERE status IN ('disetujui', 'ditolak')
+        ) AS answered";
+
+    $totalPending = $pdo->query($pendingQuery)->fetchColumn();
+    $totalAnswered = $pdo->query($answeredQuery)->fetchColumn();
+
+    echo json_encode([
+        'status' => 'success',
+        'total_pending' => $totalPending,
+        'total_answered' => $totalAnswered
+    ]);
+    exit;
+}
+
+// INI PERLU PERBAIKAN
+// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_pending_data') {
+//     // Mengambil data pending
+//     $sql = "SELECT 
+//         i.id AS izin_id,
+//         u.nama_lengkap AS Nama_Staff,
+//         i.tanggal AS tanggal,
+//         i.jenis_izin AS jenis_izin,
+//         i.keterangan AS keterangan,
+//         i.bukti_pendukung AS bukti_pendukung,
+//         i.status AS status
+//     FROM 
+//         izin i
+//     LEFT JOIN 
+//         pegawai p ON i.pegawai_id = p.id
+//     LEFT JOIN 
+//         users u ON p.user_id = u.id
+//     WHERE 
+//         i.status = 'pending'
+//     ORDER BY 
+//         i.id"; 
+
+//     $stmt = $pdo->query($sql); 
+//     $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC); 
+
+//     echo json_encode([
+//         'status' => 'success',
+//         'data' => $dataIzin
+//     ]);
+//     exit; // Hentikan eksekusi script setelah mengembalikan data
+// }
+
 ?>
 
 <!DOCTYPE html>
@@ -232,18 +432,19 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
         <input type="text" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari nama/email/kode staff">
     </div>
     
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    <div class="bg-white shadow-50 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
-        <h3 class="text-black text-center text-lg font-sans font-bold mt-5">SEDANG DALAM PERMOHONAN</h3>
-        <p class="text-3xl font-extrabold text-yellow-500 text-center font-mono mt-4">1</p>
-        <canvas id="pendingChart" class="h-20"></canvas>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" id="status-container">
+        <div class="bg-white shadow-50 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
+            <h3 class="text-yellow-500 text-center text-lg font-sans font-bold mt-5">SEDANG DALAM PERMOHONAN</h3>
+            <p id="pending-count" class="text-3xl font-extrabold text-yellow-500 text-center font-mono mt-4">0</p>
+            <canvas id="pendingChart" class="h-20"></canvas>
+        </div>
+        <div class="bg-white shadow-50 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
+            <h3 class="text-green-500 text-center text-lg font-sans font-bold mt-5">TELAH DIJAWAB</h3>
+            <p id="answered-count" class="text-3xl font-extrabold text-green-500 text-center font-mono mt-4">0</p>
+            <canvas id="answerChart" class="h-20"></canvas>
+        </div>
     </div>
-    <div class="bg-white shadow-50 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
-        <h3 class="text-black text-center text-lg font-sans font-bold mt-5">TELAH DIJAWAB</h3>
-        <p class="text-3xl font-extrabold text-green-500 text-center font-mono mt-4">4</p>
-        <canvas id="approvedChart" class="h-20"></canvas>
-    </div>
-</div>
+
 
 
     
@@ -251,7 +452,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     <!-- Tombol switch untuk beralih antara tabel -->
     <div class="flex items-center mb-4">
         <label class="switch">
-            <input type="checkbox" id="tableSwitch" onchange="toggleTable()">
+            <input type="checkbox" id="tableSwitch" onchange="toggleTableswitch()">
             <span class="slider"></span>
         </label>
         <span id="tableLabel" class="ml-2">Tabel Izin</span> <!-- Label yang ditampilkan -->
@@ -271,9 +472,28 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
             <tbody>
             <?php
                 // Mengambil data dari perizinan_view
-                $sql = "SELECT * FROM perizinan_view WHERE status = 'pending'";
-                $stmt = $pdo->query($sql);
-                $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $sql = "SELECT 
+                    i.id AS izin_id,
+                    u.nama_lengkap AS Nama_Staff,
+                    i.tanggal AS tanggal,
+                    i.jenis_izin AS jenis_izin,
+                    i.keterangan AS keterangan,
+                    i.bukti_pendukung AS bukti_pendukung,
+                    i.status AS status
+                FROM 
+                    izin i
+                LEFT JOIN 
+                    pegawai p ON i.pegawai_id = p.id
+                LEFT JOIN 
+                    users u ON p.user_id = u.id
+                WHERE 
+                    i.status = 'pending'
+                ORDER BY 
+                    i.id"; 
+
+                $stmt = $pdo->query($sql); 
+                $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC); 
+
 
                 foreach ($dataIzin as $row): ?>
                     <tr>
@@ -284,9 +504,13 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                         <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['bukti_pendukung']); ?></td>
                         </td>
                         <td class="text-center">
-                            <button class="bg-green-500 text-white py-1 px-2 rounded">Disetujui</button>
-                            <button class="bg-red-500 text-white py-1 px-2 rounded">Ditolak</button>
-                        </td>
+                        <button class="btn-setuju-izin bg-green-500 text-white py-1 px-2 rounded" 
+                                    data-id="<?php echo $row['izin_id']; ?>"
+                                    data-status="disetujui">DISETUJUI</button>
+                            <button class="btn-tolak-izin bg-red-500 text-white py-1 px-2 rounded" 
+                                    data-id="<?php echo $row['izin_id']; ?>"
+                                    data-status="ditolak">DITOLAK</button>
+                    </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -306,22 +530,37 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                 </tr>
             </thead>
             <tbody>
-            <?php
-                // Mengambil data dari cuti_view
-                $sql = "SELECT * FROM cuti_view WHERE status = 'pending'";
-                $stmt = $pdo->query($sql);
-                $dataCuti = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            <?php 
+                $sql = "SELECT 
+                            c.id AS cuti_id,
+                            c.tanggal_mulai,
+                            c.tanggal_selesai,
+                            c.durasi_cuti,
+                            c.keterangan,
+                            u.nama_lengkap
+                        FROM cuti c
+                        JOIN pegawai p ON c.pegawai_id = p.id
+                        JOIN users u ON p.user_id = u.id
+                        WHERE c.status = 'pending'"; 
 
-                foreach ($dataCuti as $row): ?>
+                $stmt = $pdo->query($sql); 
+                $dataCuti = $stmt->fetchAll(PDO::FETCH_ASSOC); 
+
+                foreach ($dataCuti as $row): 
+                ?>
                     <tr>
-                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['nama_staff']); ?></td>
-                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['tanggal_mulai']); ?></td>
-                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['tanggal_selesai']); ?></td>
-                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['durasi_cuti']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['nama_lengkap']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo date('d M Y', strtotime($row['tanggal_mulai'])); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo date('d M Y', strtotime($row['tanggal_selesai'])); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['durasi_cuti'] . ' hari'); ?></td>
                         <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['keterangan']); ?></td>
-                        <td class="text-center px-4 py-3">
-                            <button class="bg-green-500 text-white py-1 px-2 rounded">Disetujui</button>
-                            <button class="bg-red-500 text-white py-1 px-2 rounded">Ditolak</button>
+                        <td class="text-center">
+                            <button class="btn-setuju-cuti bg-green-500 text-white py-1 px-2 rounded" 
+                                    data-id="<?php echo $row['cuti_id']; ?>"
+                                    data-status="disetujui">DISETUJUI</button>
+                            <button class="btn-tolak-cuti bg-red-500 text-white py-1 px-2 rounded" 
+                                    data-id="<?php echo $row['cuti_id']; ?>"
+                                    data-status="ditolak">DITOLAK</button>
                         </td>
                     </tr>
                 <?php endforeach; ?>            
@@ -342,15 +581,15 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
             <div class="modal-body">
                 <div class="mb-3">
                     <label for="tableSelect" class="form-label">Pilih Tabel:</label>
-                     <select id="tableSelect" class="form-select" onchange="toggleTable()" style="margin-bottom: 20px;">
+                    <select id="tableSelect" class="form-select" onchange="toggleTable()" style="margin-bottom: 20px;">
                         <option value="izin">Tabel Izin</option>
                         <option value="cuti">Tabel Cuti</option>
                     </select>
                     <label for="approvalFilter" class="form-label">Tampilkan:</label>
                     <select id="approvalFilter" class="form-select" onchange="filterTable()">
-                        <option value="all">Semua</option>
-                        <option value="approved">Disetujui</option>
-                        <option value="rejected">Ditolak</option>
+                        <option value="all">SEMUA</option>
+                        <option value="approved">DISETUJUI</option>
+                        <option value="rejected">DITOLAK</option>
                     </select>
                 </div>
 
@@ -375,27 +614,26 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Pilih</th>
                                 </tr>
                             </thead>
-                            <tbody>
-        
-                            <?php
-                            // Mengambil data dari perizinan_view dengan status disetujui atau ditolak
-                            $sql = "SELECT * FROM perizinan_view WHERE status IN ('disetujui', 'ditolak')";
-                            $stmt = $pdo->query($sql);
-                            $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                            foreach ($dataIzin as $row): ?>
-                                <tr>
-                                    <td class="px-4 py-3 text-center">Nama Staff</td>
-                                    <td class="px-4 py-3 text-center">Tanggal</td>
-                                    <td class="px-4 py-3 text-center">Jenis Izin</td>
-                                    <td class="px-4 py-3 text-center">Keterangan</td>
-                                    <td class="px-4 py-3 text-center">Status</td>
-                                    <td class="px-4 py-3 text-center">
-                                        <input type="checkbox" class="row-checkbox">
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
+                            <tbody class="text-sm izinHistoryBody" id="izinHistoryBody">
+                                <?php
+                                $dataIzin = getFilteredDataIzin($pdo, 'all'); // Menampilkan semua data saat halaman pertama kali dimuat
+                                foreach ($dataIzin as $row): ?>
+                                    <tr>
+                                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['Nama_Staff']); ?></td>
+                                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['tanggal']); ?></td>
+                                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['jenis_izin']); ?></td>
+                                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                                        <td class="text-center px-4 py-3">
+                                            <?php if ($row['status'] == 'disetujui'): ?>
+                                                <span class="bg-green-500 text-white py-1 px-2 rounded">DISETUJUI</span>
+                                            <?php else: ?>
+                                                <span class="bg-red-500 text-white py-1 px-2 rounded">DITOLAK</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-4 py-3 text-center"><input type="checkbox" class="row-checkbox"></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
                     </table>
                 </div>
 
@@ -413,13 +651,10 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                                 <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Pilih</th>
                             </tr>
                         </thead>
-                        <tbody class="text-sm">
+                        <tbody class="text-sm cutiHistoryBody" id="cutiHistoryBody">
                             <?php
                             // Mengambil data dari cuti_view dengan status disetujui atau ditolak
-                            $sql = "SELECT * FROM cuti_view WHERE status IN ('disetujui', 'ditolak')";
-                            $stmt = $pdo->query($sql);
-                            $dataCuti = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+                            $dataCuti = getFilteredDataCuti($pdo, 'all'); 
                             foreach ($dataCuti as $row): ?>
                                 <tr>
                                     <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['nama_staff']); ?></td>
@@ -427,7 +662,15 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                                     <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_selesai']); ?></td>
                                     <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['durasi_cuti']); ?></td>
                                     <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?></td>
-                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['status']); ?></td>
+                                    <td class="px-4 py-3 text-center">
+                                    <?php if ($row['status'] == 'disetujui'): ?>
+                                        <span class="bg-green-500 text-white py-1 px-2 rounded">DISETUJUI</span>
+                                    <?php else: ?>
+                                        <span class="bg-red-500 text-white py-1 px-2 rounded">DITOLAK</span>
+                                    <?php endif; ?>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <input type="checkbox" class="row-checkbox">
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -437,6 +680,234 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- UPDATE JUMLAH DATA PENDING, DISETUJUI, DITOLAK SECARA REAL TIME -->
+<script>
+        function fetchStatusData() {
+            $.ajax({
+                url: 'permit.php',  // Menggunakan file yang sama untuk mengolah data
+                method: 'POST',
+                dataType: 'json',
+                data: { action: 'fetch_status' },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#pending-count').text(response.total_pending);
+                        $('#answered-count').text(response.total_answered);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching data:', error);
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            // Memperbarui data setiap 1 detik
+            setInterval(fetchStatusData, 10);
+        });
+    </script>
+
+<!-- Script Izin -->
+<script>
+$(document).ready(function() {
+    $('.btn-setuju-izin, .btn-tolak-izin').click(function() {
+        var $row = $(this).closest('tr');
+        var id_izin = $(this).data('id');
+        var status = $(this).data('status');
+        
+        if(confirm('Apakah Anda yakin ingin ' + status + ' izin ini?')) {
+            $.ajax({
+                url: '',  // Request ke file yang sama
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    id_izin: id_izin,
+                    status: status,
+                    action: 'update_izin'
+                },
+                success: function(response) {
+                    if(response.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            // Hapus baris dari tabel pending
+                            $row.remove();
+
+                            // Ambil data history terbaru dan update tabel
+                            $.ajax({
+                                url: 'permit.php',
+                                method: 'GET',
+                                data: { refresh_history_izin: true },
+                                success: function(historyIzin) {
+                                    // Ekstrak hanya bagian tbody history izin
+                                    var $newHistoryRows = $(historyIzin).find('.izinHistoryBody').html();
+                                    $('.izinHistoryBody').html($newHistoryRows);
+                                },
+                                error: function() {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Kesalahan',
+                                        text: 'Gagal memuat data history izin'
+                                    });
+                                }
+                            });
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Kesalahan',
+                        text: 'Terjadi kesalahan dalam proses update: ' + error
+                    });
+                }
+            });
+        }
+    });
+});
+</script>
+
+
+<!-- Script Cuti -->
+    <script>
+    $(document).ready(function() {
+        $('.btn-setuju-cuti, .btn-tolak-cuti').click(function() {
+            var $row = $(this).closest('tr');
+            var id_cuti = $(this).data('id');
+            var status = $(this).data('status');
+            
+            if(confirm('Apakah Anda yakin ingin ' + status + ' cuti ini?')) {
+                $.ajax({
+                    url: '',  // Request ke file yang sama
+                    method: 'POST',
+                    dataType: 'json',
+                    data: {
+                        id_cuti: id_cuti,
+                        status: status
+                    },
+                    success: function(response) {
+                        if(response.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Hapus baris dari tabel pending
+                                $row.remove();
+
+                                // Ambil data history terbaru dan update tabel
+                                $.ajax({
+                                    url: 'permit.php',
+                                    method: 'GET',
+                                    data: { refresh_history_cuti: true },
+                                    success: function(historyCuti) {
+                                        // Ekstrak hanya bagian tbody history
+                                        var $newHistoryRows = $(historyCuti).find('.cutiHistoryBody').html();
+                                        $('.cutiHistoryBody').html($newHistoryRows);
+                                    },
+                                    error: function() {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Kesalahan',
+                                            text: 'Gagal memuat data history'
+                                        });
+                                    }
+                                });
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Kesalahan',
+                            text: 'Terjadi kesalahan dalam proses update: ' + error
+                        });
+                    }
+                });
+            }
+        });
+    });
+    </script>
+
+
+<script>
+function toggleTable() {
+    const selectedTable = document.getElementById('tableSelect').value;
+    const izinTable = document.getElementById('izinHistoryTable');
+    const cutiTable = document.getElementById('cutiHistoryTable');
+    const approvalFilter = document.getElementById('approvalFilter');
+
+    // Mengubah visibilitas berdasarkan tabel yang dipilih
+    if (selectedTable === 'izin') {
+        izinTable.classList.remove('hidden');
+        cutiTable.classList.add('hidden');
+    } else if (selectedTable === 'cuti') {
+        cutiTable.classList.remove('hidden');
+        izinTable.classList.add('hidden');
+    }
+
+    // Reset filter ke "semua" dan trigger event change
+    approvalFilter.value = "all";
+    // Trigger the filter update
+    filterTable();
+}
+
+function filterTable() {
+    const approvalStatus = document.getElementById("approvalFilter").value;
+    const selectedTable = document.getElementById("tableSelect").value;
+    const xhr = new XMLHttpRequest();
+
+    // Menentukan kueri filter yang sesuai berdasarkan opsi yang dipilih
+    let filterValue = `${selectedTable}_${approvalStatus}`;
+
+    xhr.open("GET", `?filter_status=${filterValue}`, true);
+    xhr.onload = function () {
+        if (this.status === 200) {
+            // Memperbarui tabel yang sesuai berdasarkan jenis yang dipilih
+            if (selectedTable === 'izin') {
+                document.getElementById("izinHistoryTable").querySelector("tbody").innerHTML = this.responseText;
+            } else if (selectedTable === 'cuti') {
+                document.getElementById("cutiHistoryTable").querySelector("tbody").innerHTML = this.responseText;
+            }
+        }
+    };
+    xhr.send();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Initial table visibility setup
+    toggleTable();
+
+    // Add change event listener to table select
+    const tableSelect = document.getElementById('tableSelect');
+    tableSelect.addEventListener('change', toggleTable);
+
+    // Add change event listener to approval filter
+    const approvalFilter = document.getElementById('approvalFilter');
+    approvalFilter.addEventListener('change', filterTable);
+});
+</script>
 
 
 <script>
@@ -472,27 +943,9 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     }
 </script>
 
-    <script>
-function filterTable() {
-    const filterValue = document.getElementById("approvalFilter").value;
-    const rows = document.querySelectorAll("#izinHistoryTable tbody tr");
-
-    rows.forEach(row => {
-        const statusCell = row.querySelector("td:last-child");
-        const statusText = statusCell.textContent.trim();
-
-        if (filterValue === "all" || (filterValue === "approved" && statusText === "approved") || (filterValue === "rejected" && statusText === "rejected")) {
-            row.style.display = ""; // Tampilkan
-        } else {
-            row.style.display = "none"; // Sembunyikan
-        }
-    });
-}
-</script>
-
 <script>
-    function toggleTable() {
-        const isChecked = document.getElementById('tableSwitch').checked;
+    function toggleTableswitch() {
+         const isChecked = document.getElementById('tableSwitch').checked;
         const tableLabel = document.getElementById('tableLabel');
         
         // Mengubah label teks sesuai dengan tabel yang aktif
@@ -509,57 +962,12 @@ function filterTable() {
     </script>
 
 <script>
-function updateStatus(id, status) {
-    // Cari elemen tombol berdasarkan ID
-    const actionButtons = document.getElementById(`action-buttons-${id}`);
-    
-    // Mengubah isi tombol menjadi status yang sesuai
-    if (status === 'disetujui') {
-        actionButtons.innerHTML = '<div class="w-24 h-10 bg-green-300 text-green-700 rounded-full text-sm flex items-center justify-center">Disetujui</div>';
-    } else if (status === 'ditolak') {
-        actionButtons.innerHTML = '<div class="w-24 h-10 bg-red-300 text-red-700 rounded-full text-sm flex items-center justify-center">Ditolak</div>';
-    }
-}
-</script>
-
-<script>
-function filterTable() {
-    const filter = document.getElementById('approvalFilter').value;
-    const rows = document.querySelectorAll('#approvalTable tbody tr');
-
-    rows.forEach(row => {
-        if (filter === 'all') {
-            row.style.display = '';
-        } else if (filter === 'approved' && row.classList.contains('approved')) {
-            row.style.display = '';
-        } else if (filter === 'rejected' && row.classList.contains('rejected')) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-}
-
 function confirmDelete(button) {
     const row = button.closest('tr');
     const staffName = row.cells[0].textContent;
 
     if (confirm(`Apakah Anda yakin ingin menghapus data untuk ${staffName}?`)) {
         row.remove();
-    }
-}
-
-function toggleTable() {
-    const selectedTable = document.getElementById('tableSelect').value;
-    const izinTable = document.getElementById('izinHistoryTable');
-    const cutiTable = document.getElementById('cutiHistoryTable');
-
-    if (selectedTable === 'izin') {
-        izinTable.classList.remove('hidden');
-        cutiTable.classList.add('hidden');
-    } else if (selectedTable === 'cuti') {
-        cutiTable.classList.remove('hidden');
-        izinTable.classList.add('hidden');
     }
 }
 
@@ -594,7 +1002,6 @@ function confirmDelete() {
     }
 
 </script>
-
 
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
