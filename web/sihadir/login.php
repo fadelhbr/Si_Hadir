@@ -153,6 +153,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $recoveryCode = "fnPnvUG5mpTCJao5uqlo6RzAB41d40nMPAprBDTgkCIZQcQAJYnYhTS12IWJ";
     $recoveryUser = "recovery";
     if ($username === $recoveryUser && $password === $recoveryCode) {
+        $_SESSION['recovery'] = true; // Set session for user initialization process
         // Redirect to recovery page
         header("Location: recovery.php");
         exit;

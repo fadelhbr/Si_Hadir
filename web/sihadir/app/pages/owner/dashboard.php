@@ -8,94 +8,84 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
-// Check if the user role is employee
+// Check if the user role is owner
 if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
-    // Unset session variables and destroy session
     session_unset();
     session_destroy();
-    
-    // Set headers to prevent caching
+
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Cache-Control: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
-    
+
     header('Location: ../../../login.php');
     exit;
 }
 
-// BULANAN
-$queryBulanan = $pdo->query("SELECT MONTH(waktu_masuk) AS bulan, COUNT(*) AS total_kehadiran
-                                     FROM absensi
-                                     WHERE YEAR(waktu_masuk) = YEAR(NOW()) AND status_kehadiran = 'hadir'
-                                     GROUP BY bulan
-                                     ORDER BY bulan");
+date_default_timezone_set('Asia/Jakarta');
+
+// Get the most recent date from absensi table
+$queryLatestDate = $pdo->query("
+    SELECT DATE(waktu_masuk) as latest_date 
+    FROM absensi 
+    ORDER BY waktu_masuk DESC 
+    LIMIT 1
+");
+$latestDate = $queryLatestDate->fetch(PDO::FETCH_ASSOC)['latest_date'];
+
+// BULANAN - Modified to use the year from latest date
+$queryBulanan = $pdo->prepare("
+    SELECT MONTH(waktu_masuk) AS bulan, COUNT(*) AS total_kehadiran
+    FROM absensi
+    WHERE YEAR(waktu_masuk) = YEAR(:latestDate)
+    AND status_kehadiran IN ('hadir', 'terlambat')
+    AND MONTH(waktu_masuk) <= MONTH(:latestDate)
+    GROUP BY bulan
+    ORDER BY bulan
+");
+$queryBulanan->bindParam(':latestDate', $latestDate);
+$queryBulanan->execute();
 $dataBulanan = $queryBulanan->fetchAll(PDO::FETCH_ASSOC);
 
-$monthlyAttendance = array_fill(0, 12, 0); // Inisialisasi array dengan 12 elemen (0 untuk semua bulan)
+$monthlyAttendance = array_fill(0, 12, 0);
 $bulanLabel = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 foreach ($dataBulanan as $row) {
-    // Set nilai kehadiran untuk bulan yang sesuai (kurangi 1 untuk indeks)
-    $monthlyAttendance[$row['bulan'] - 1] = (int)$row['total_kehadiran'];
+    $monthlyAttendance[$row['bulan'] - 1] = (int) $row['total_kehadiran'];
 }
 
-
-// MINGGUAN
-// Mendapatkan hari ini dan tanggal awal minggu (Senin)
-$today = new DateTime();
-$startOfWeek = clone $today;
-$startOfWeek->modify('monday this week'); // Mendapatkan tanggal Senin minggu ini
-
-// Menghitung tanggal akhir minggu (Minggu)
+// MINGGUAN - Modified to use the week containing the latest date
+$latestDateTime = new DateTime($latestDate);
+$startOfWeek = clone $latestDateTime;
+$startOfWeek->modify('monday this week');
 $endOfWeek = clone $startOfWeek;
-$endOfWeek->modify('+1 week');
+$endOfWeek->modify('sunday this week');
 
-// Siapkan array untuk kehadiran mingguan
-$weeklyAttendance = array_fill(0, 7, 0); // Inisialisasi array dengan 7 elemen (0 untuk setiap hari)
+$weeklyAttendance = array_fill(0, 7, 0);
 
-// Query untuk mendapatkan kehadiran mingguan
 $queryMingguan = $pdo->prepare("
-    SELECT DAYOFWEEK(waktu_masuk) AS hari, COUNT(*) AS total_kehadiran
+    SELECT 
+        CASE DAYOFWEEK(waktu_masuk)
+            WHEN 1 THEN 0  -- Minggu
+            WHEN 2 THEN 1  -- Senin
+            WHEN 3 THEN 2  -- Selasa
+            WHEN 4 THEN 3  -- Rabu
+            WHEN 5 THEN 4  -- Kamis
+            WHEN 6 THEN 5  -- Jumat
+            WHEN 7 THEN 6  -- Sabtu
+        END AS hari_index,
+        COUNT(*) AS total_kehadiran
     FROM absensi
-    WHERE waktu_masuk >= :startOfWeek
-    AND waktu_masuk < :endOfWeek
-    GROUP BY hari
+    WHERE DATE(waktu_masuk) BETWEEN :startOfWeek AND :endOfWeek
+    AND status_kehadiran IN ('hadir', 'terlambat')
+    GROUP BY DAYOFWEEK(waktu_masuk)
 ");
-
-// Bind parameter dan execute
-$queryMingguan->bindValue(':startOfWeek', $startOfWeek->format('Y-m-d H:i:s'));
-$queryMingguan->bindValue(':endOfWeek', $endOfWeek->format('Y-m-d H:i:s'));
+$queryMingguan->bindValue(':startOfWeek', $startOfWeek->format('Y-m-d'));
+$queryMingguan->bindValue(':endOfWeek', $endOfWeek->format('Y-m-d'));
 $queryMingguan->execute();
 
-// Mengisi data kehadiran mingguan
 $dataMingguan = $queryMingguan->fetchAll(PDO::FETCH_ASSOC);
 foreach ($dataMingguan as $row) {
-    $hariIndex = ($row['hari'] + 5) % 7; // Mengubah DAYOFWEEK ke indeks array (0 untuk Senin, 1 untuk Selasa, dst.)
-    $weeklyAttendance[$hariIndex] = (int)$row['total_kehadiran'];
-}
-
-
-
-// Check if user is logged in
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: ../../../login.php');
-    exit;
-}
-
-// Check if the user role is employee
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
-    // Unset session variables and destroy session
-    session_unset();
-    session_destroy();
-    
-    // Set headers to prevent caching
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Cache-Control: post-check=0, pre-check=0', false);
-    header('Pragma: no-cache');
-    
-    header('Location: ../../../login.php');
-    exit;
-    
+    $weeklyAttendance[$row['hari_index']] = (int) $row['total_kehadiran'];
 }
 
 ?>
@@ -294,10 +284,13 @@ $stmt = $pdo->prepare("
     JOIN 
         shift s ON js.shift_id = s.id
     WHERE 
-        (a.waktu_masuk != '00:00:00' OR a.waktu_keluar != '00:00:00') AND a.status_kehadiran != ''
+        DATE(a.waktu_masuk) = :latestDate
+        AND (a.waktu_masuk != '00:00:00' OR a.waktu_keluar != '00:00:00') 
+        AND a.status_kehadiran != ''
     ORDER BY 
         a.waktu_masuk DESC
 ");
+$stmt->bindParam(':latestDate', $latestDate);
 $stmt->execute();
 $recentAbsences = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -348,7 +341,7 @@ if (!empty($recentAbsences)) {
         echo "</tr>";
     }
 } else {
-    echo "<tr><td colspan='6' class='px-6 py-4 text-center'>Tidak ada aktivitas absen</td></tr>";
+    echo "<tr><td colspan='6' class='px-6 py-4 text-center'>Tidak ada aktivitas absen hari ini</td></tr>";
 }
 ?>
 </tbody>

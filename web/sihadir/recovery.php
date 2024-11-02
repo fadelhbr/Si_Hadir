@@ -1,8 +1,9 @@
 <?php
+session_start();
 
 // Check if user is logged in
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: login.php');
+if (!isset($_SESSION['recovery']) || $_SESSION['recovery'] !== true) {
+    header('Location: login.php'); // Atau redirect ke halaman lain, misalnya dashboard jika login berhasil
     exit;
 }
 

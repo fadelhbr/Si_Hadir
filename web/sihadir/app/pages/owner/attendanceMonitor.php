@@ -281,7 +281,7 @@ try {
                            onchange="this.form.submit()">
                     <select name="shift" class="border border-gray-300 rounded px-2 py-1"
                             onchange="this.form.submit()">
-                        <option value="all" <?php echo ($selectedShift === 'all') ? 'selected' : ''; ?>>Semua Jadwal</option>
+                        <option value="all" <?php echo ($selectedShift === 'all') ? 'selected' : ''; ?>>Semua Shift</option>
                         <?php foreach($shifts as $shift): ?>
                             <option value="<?php echo $shift['id']; ?>" 
                                     <?php echo ($selectedShift == $shift['id']) ? 'selected' : ''; ?>>
@@ -299,7 +299,7 @@ try {
                 <h2 class="text-lg font-semibold mb-4">Status Kehadiran Staff Hari Ini (<?php echo $displayDate; ?>)</h2>
                 <div class="grid grid-cols-6 gap-6 text-center">
                     <div class="status-card bg-blue-50 p-4 rounded-lg">
-                        <p class="text-sm">Sesuai Jadwal</p>
+                        <p class="text-sm">Sesuai Jadwal Shift</p>
                         <p class="text-2xl font-bold text-blue-500"><?php echo $stats['hadir']; ?></p>
                     </div>
                         <div class="status-card bg-red-50 p-4 rounded-lg">
@@ -328,14 +328,14 @@ try {
                 <!-- Attendance table -->
             <div class="bg-white shadow rounded-lg p-4 mb-4">
                 <h2 class="text-lg font-semibold mb-4">Aktivitas</h2>
-                <table class="min-w-full divide-y divide-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-center">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Jadwal</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Shift</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
