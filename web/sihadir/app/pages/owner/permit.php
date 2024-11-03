@@ -198,37 +198,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// INI PERLU PERBAIKAN
-// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_pending_data') {
-//     // Mengambil data pending
-//     $sql = "SELECT 
-//         i.id AS izin_id,
-//         u.nama_lengkap AS Nama_Staff,
-//         i.tanggal AS tanggal,
-//         i.jenis_izin AS jenis_izin,
-//         i.keterangan AS keterangan,
-//         i.bukti_pendukung AS bukti_pendukung,
-//         i.status AS status
-//     FROM 
-//         izin i
-//     LEFT JOIN 
-//         pegawai p ON i.pegawai_id = p.id
-//     LEFT JOIN 
-//         users u ON p.user_id = u.id
-//     WHERE 
-//         i.status = 'pending'
-//     ORDER BY 
-//         i.id"; 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_pending_data') {
+    // Mengambil data pending
+    $sql = "SELECT 
+        i.id AS izin_id,
+        u.nama_lengkap AS Nama_Staff,
+        i.tanggal AS tanggal,
+        i.jenis_izin AS jenis_izin,
+        i.keterangan AS keterangan,
+        i.bukti_pendukung AS bukti_pendukung,
+        i.status AS status
+    FROM 
+        izin i
+    LEFT JOIN 
+        pegawai p ON i.pegawai_id = p.id
+    LEFT JOIN 
+        users u ON p.user_id = u.id
+    WHERE 
+        i.status = 'pending'
+    ORDER BY 
+        i.id"; 
 
-//     $stmt = $pdo->query($sql); 
-//     $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC); 
+    $stmt = $pdo->query($sql); 
+    $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC); 
 
-//     echo json_encode([
-//         'status' => 'success',
-//         'data' => $dataIzin
-//     ]);
-//     exit; // Hentikan eksekusi script setelah mengembalikan data
-// }
+    echo json_encode([
+        'status' => 'success',
+        'data' => $dataIzin
+    ]);
+    exit; // Hentikan eksekusi script setelah mengembalikan data
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_permit') {
+    ob_clean();
+    ob_start();
+    
+    header('Content-Type: application/json');
+    
+    try {
+        $pdo->beginTransaction();
+        
+        $staffData = json_decode($_POST['staff_data'], true);
+        $tableType = $_POST['table_type'];
+        $successCount = 0;
+        $errors = [];
+
+        foreach ($staffData as $data) {
+            if ($tableType === 'izin') {
+                $stmt = $pdo->prepare("
+                    DELETE i FROM izin i
+                    INNER JOIN pegawai p ON i.pegawai_id = p.id
+                    INNER JOIN users u ON p.user_id = u.id
+                    WHERE u.nama_lengkap = ? AND i.tanggal = ? AND i.jenis_izin = ?
+                ");
+                $result = $stmt->execute([$data['nama'], $data['tanggal'], $data['jenisIzin']]);
+            } else {
+                $stmt = $pdo->prepare("
+                    DELETE c FROM cuti c
+                    INNER JOIN pegawai p ON c.pegawai_id = p.id
+                    INNER JOIN users u ON p.user_id = u.id
+                    WHERE u.nama_lengkap = ? AND c.tanggal_mulai = ? AND c.tanggal_selesai = ?
+                ");
+                $result = $stmt->execute([$data['nama'], $data['tanggalMulai'], $data['tanggalSelesai']]);
+            }
+
+            if ($result) {
+                $successCount++;
+            } else {
+                $errors[] = "Gagal menghapus data untuk: " . $data['nama'];
+            }
+        }
+
+        if ($successCount > 0) {
+            $pdo->commit();
+            echo json_encode([
+                'success' => true,
+                'message' => "$successCount Data berhasil dihapus",
+                'errors' => $errors
+            ]);
+        } else {
+            $pdo->rollBack();
+            echo json_encode([
+                'success' => false,
+                'message' => 'Tidak ada data yang dihapus',
+                'errors' => $errors
+            ]);
+        }
+
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error sistem: ' . $e->getMessage()
+        ]);
+    }
+    
+    exit;
+}
 
 ?>
 
@@ -427,9 +493,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <h1 class="text-3xl font-semibold mb-4">Cuti & Perizinan</h1>
     <div class="flex flex-col md:flex-row items-center justify-between mb-4 space-y-2 md:space-y-0 md:space-x-2">
         <div class="flex space-x-2">
-            <button class="bg-gray-300 text-gray-700 px-4 py-2 rounded" id="historyToggle" data-bs-toggle="modal" data-bs-target="#approvalModal">Riwayat Persetujuan</button>
+            <button class="bg-blue-600 text-white px-4 py-2 rounded" id="historyToggle" data-bs-toggle="modal" data-bs-target="#approvalModal">Riwayat Persetujuan</button>
         </div>
-        <input type="text" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari nama/email/kode staff">
+        <input type="text" id="searchInput" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari Nama Staff">
     </div>
     
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" id="status-container">
@@ -630,7 +696,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                                 <span class="bg-red-500 text-white py-1 px-2 rounded">DITOLAK</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-4 py-3 text-center"><input type="checkbox" class="row-checkbox"></td>
+                                        <td class="px-4 py-3 text-center">
+                                            <input type="checkbox" class="row-checkbox">
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -638,7 +706,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
 
                 <!-- Tabel Cuti -->
-                <div id="cutiHistoryTable" class="table-container hidden">
+                <div id="cutiHistoryTable" class="hidden table-container hidden">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -671,6 +739,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         <input type="checkbox" class="row-checkbox">
+                                    <td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -781,7 +850,7 @@ $(document).ready(function() {
 </script>
 
 
-<!-- Script Cuti -->
+<!-- JS SCRIPT -->
     <script>
     $(document).ready(function() {
         $('.btn-setuju-cuti, .btn-tolak-cuti').click(function() {
@@ -850,64 +919,88 @@ $(document).ready(function() {
     });
     </script>
 
+<!-- PENCARIAN NAMA STAFf -->
+    <script>
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const namaStaff = row.cells[0].textContent.toLowerCase();
+                row.style.display = namaStaff.includes(searchValue) ? '' : 'none';
+            });
+        });
+    </script>
 
-<script>
-function toggleTable() {
-    const selectedTable = document.getElementById('tableSelect').value;
-    const izinTable = document.getElementById('izinHistoryTable');
-    const cutiTable = document.getElementById('cutiHistoryTable');
-    const approvalFilter = document.getElementById('approvalFilter');
+    <!-- JS FILTER TABEL, DEFAULT FILTER DATA "SEMUA" -->
+    <script>
+    function toggleTable() {
+        const selectedTable = document.getElementById('tableSelect').value;
+        const izinTable = document.getElementById('izinHistoryTable');
+        const cutiTable = document.getElementById('cutiHistoryTable');
+        const approvalFilter = document.getElementById('approvalFilter');
 
-    // Mengubah visibilitas berdasarkan tabel yang dipilih
-    if (selectedTable === 'izin') {
-        izinTable.classList.remove('hidden');
-        cutiTable.classList.add('hidden');
-    } else if (selectedTable === 'cuti') {
-        cutiTable.classList.remove('hidden');
-        izinTable.classList.add('hidden');
+        // Mengubah visibilitas berdasarkan tabel yang dipilih
+        if (selectedTable === 'izin') {
+            izinTable.classList.remove('hidden');
+            cutiTable.classList.add('hidden');
+        } else if (selectedTable === 'cuti') {
+            cutiTable.classList.remove('hidden');
+            izinTable.classList.add('hidden');
+        }
+
+        // Reset filter ke "semua" dan trigger event change
+        approvalFilter.value = "all";
+        // Trigger the filter update
+        filterTable();
     }
 
-    // Reset filter ke "semua" dan trigger event change
-    approvalFilter.value = "all";
-    // Trigger the filter update
-    filterTable();
-}
+    function filterTable() {
+        const approvalStatus = document.getElementById("approvalFilter").value;
+        const selectedTable = document.getElementById("tableSelect").value;
+        const xhr = new XMLHttpRequest();
 
-function filterTable() {
-    const approvalStatus = document.getElementById("approvalFilter").value;
-    const selectedTable = document.getElementById("tableSelect").value;
-    const xhr = new XMLHttpRequest();
+        // Menentukan kueri filter yang sesuai berdasarkan opsi yang dipilih
+        let filterValue = `${selectedTable}_${approvalStatus}`;
 
-    // Menentukan kueri filter yang sesuai berdasarkan opsi yang dipilih
-    let filterValue = `${selectedTable}_${approvalStatus}`;
-
-    xhr.open("GET", `?filter_status=${filterValue}`, true);
-    xhr.onload = function () {
-        if (this.status === 200) {
-            // Memperbarui tabel yang sesuai berdasarkan jenis yang dipilih
-            if (selectedTable === 'izin') {
-                document.getElementById("izinHistoryTable").querySelector("tbody").innerHTML = this.responseText;
-            } else if (selectedTable === 'cuti') {
-                document.getElementById("cutiHistoryTable").querySelector("tbody").innerHTML = this.responseText;
+        xhr.open("GET", `?filter_status=${filterValue}`, true);
+        xhr.onload = function () {
+            if (this.status === 200) {
+                // Memperbarui tabel yang sesuai berdasarkan jenis yang dipilih
+                if (selectedTable === 'izin') {
+                    document.getElementById("izinHistoryTable").querySelector("tbody").innerHTML = this.responseText;
+                } else if (selectedTable === 'cuti') {
+                    document.getElementById("cutiHistoryTable").querySelector("tbody").innerHTML = this.responseText;
+                }
             }
-        }
-    };
-    xhr.send();
-}
+        };
+        xhr.send();
+    }
 
-document.addEventListener("DOMContentLoaded", function() {
-    // Initial table visibility setup
-    toggleTable();
+    document.addEventListener("DOMContentLoaded", function() {
+        // Initial table visibility setup
+        toggleTable();
 
-    // Add change event listener to table select
-    const tableSelect = document.getElementById('tableSelect');
-    tableSelect.addEventListener('change', toggleTable);
+        // Add change event listener to table select
+        const tableSelect = document.getElementById('tableSelect');
+        tableSelect.addEventListener('change', toggleTable);
 
-    // Add change event listener to approval filter
-    const approvalFilter = document.getElementById('approvalFilter');
-    approvalFilter.addEventListener('change', filterTable);
-});
-</script>
+        // Add change event listener to approval filter
+        const approvalFilter = document.getElementById('approvalFilter');
+        approvalFilter.addEventListener('change', filterTable);
+
+        const approvalModal = document.getElementById('approvalModal');
+        approvalModal.addEventListener('hide.bs.modal', function () {
+            approvalFilter.value = "all";
+        });
+
+        approvalModal.addEventListener('show.bs.modal', function () {
+            // Reset tampilan tabel ke default
+            toggleTable();
+        });
+            
+    });
+    </script>
 
 
 <script>
@@ -962,44 +1055,220 @@ document.addEventListener("DOMContentLoaded", function() {
     </script>
 
 <script>
-function confirmDelete(button) {
-    const row = button.closest('tr');
-    const staffName = row.cells[0].textContent;
-
-    if (confirm(`Apakah Anda yakin ingin menghapus data untuk ${staffName}?`)) {
-        row.remove();
+function getActiveTable() {
+    // Cek tabel mana yang sedang aktif/visible
+    const izinTable = document.querySelector('#izinHistoryTable');
+    const cutiTable = document.querySelector('#cutiHistoryTable');
+    
+    if (izinTable && !izinTable.classList.contains('hidden')) {
+        return 'izin';
+    } else if (cutiTable && !cutiTable.classList.contains('hidden')) {
+        return 'cuti';
     }
+    
+    return null;
 }
 
 function selectAll() {
-    document.querySelectorAll('.row-checkbox').forEach(checkbox => checkbox.checked = true);
+    const activeTable = getActiveTable();
+    if (activeTable === 'izin') {
+        // Select semua checkbox di tabel izin
+        document.querySelectorAll('#izinHistoryTable .row-checkbox').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    } else if (activeTable === 'cuti') {
+        // Select semua checkbox di tabel cuti
+        document.querySelectorAll('#cutiHistoryTable .row-checkbox').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    }
 }
 
 function deselectAll() {
-    document.querySelectorAll('.row-checkbox').forEach(checkbox => checkbox.checked = false);
+    const activeTable = getActiveTable();
+    if (activeTable === 'izin') {
+        // Deselect semua checkbox di tabel izin
+        document.querySelectorAll('#izinHistoryTable .row-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    } else if (activeTable === 'cuti') {
+        // Deselect semua checkbox di tabel cuti
+        document.querySelectorAll('#cutiHistoryTable .row-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
 }
-function confirmDelete() {
-        // Ambil semua checkbox yang terpilih
+
+// Fungsi untuk menampilkan tabel yang dipilih dan menyembunyikan yang lain
+function showTable(tableType) {
+    const izinTable = document.querySelector('#izinHistoryTable');
+    const cutiTable = document.querySelector('#cutiHistoryTable');
+    
+    if (tableType === 'izin') {
+        izinTable.classList.remove('hidden');
+        cutiTable.classList.add('hidden');
+    } else if (tableType === 'cuti') {
+        izinTable.classList.add('hidden');
+        cutiTable.classList.remove('hidden');
+    }
+    
+    // Reset semua checkbox saat berganti tabel
+    document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+// Event listener untuk menghandle perubahan tabel
+document.addEventListener('DOMContentLoaded', function() {
+    // Tambahkan event listener untuk tombol atau dropdown yang mengubah tabel
+    const tableSelect = document.querySelector('#tableSelect'); // Sesuaikan dengan ID elemen pemilih tabel Anda
+    if (tableSelect) {
+        tableSelect.addEventListener('change', function() {
+            showTable(this.value);
+        });
+    }
+});
+
+function confirmDelete(button) {
+    const isIndividual = button && button.closest;
+    let staffData = [];
+    let rowsToDelete = [];
+
+    // Tentukan tabel mana yang aktif
+    const activeTable = document.querySelector('#izinHistoryTable:not(.hidden)') ? 'izin' : 'cuti';
+
+    if (isIndividual) {
+        const row = button.closest('tr');
+        staffData.push(getRowData(row, activeTable));
+        rowsToDelete.push(row);
+        
+        if (!confirm(`Apakah Anda yakin ingin menghapus data untuk ${staffData[0].nama}?`)) {
+            return;
+        }
+    } else {
         const checkboxes = document.querySelectorAll('.row-checkbox:checked');
         
-        // Jika tidak ada checkbox yang dipilih, tampilkan notifikasi
         if (checkboxes.length === 0) {
             alert('Silakan pilih data yang ingin dihapus.');
             return;
         }
 
-        // Tampilkan konfirmasi penghapusan
-        const confirmation = confirm(`Anda yakin ingin menghapus ${checkboxes.length} data yang dipilih?`);
-        if (confirmation) {
-            // Logika untuk menghapus data
-            checkboxes.forEach(checkbox => {
-                // Anda dapat menambahkan logika untuk menghapus data dari server
-                // Misalnya, panggil AJAX atau redirect ke PHP script
-                checkbox.closest('tr').remove(); // Hapus baris dari tabel
-            });
-            alert('Data berhasil dihapus.');
+        checkboxes.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            staffData.push(getRowData(row, activeTable));
+            rowsToDelete.push(row);
+        });
+
+        if (!confirm(`Anda yakin ingin menghapus ${checkboxes.length} data yang dipilih?`)) {
+            return;
         }
     }
+
+    sendDeleteRequest(staffData, rowsToDelete, activeTable);
+}
+
+function sendDeleteRequest(staffData, rowsToDelete, tableType) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', window.location.href, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    
+    xhr.onload = function() {
+        try {
+            console.log('Response:', xhr.responseText);
+            const response = JSON.parse(xhr.responseText);
+            
+            if (response.success) {
+                // Hapus baris dari tabel tanpa reload halaman
+                rowsToDelete.forEach(row => row.remove());
+                
+                // Reset checkbox "Select All" jika ada
+                const selectAllCheckbox = document.querySelector('#select-all');
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                }
+                
+                // Tampilkan pesan sukses
+                showMessage(response.message, 'success');
+                
+                // Perbarui tampilan atau lakukan operasi lain jika diperlukan
+                updateTableView(tableType);
+            } else {
+                showMessage(response.message, 'error');
+                if (response.errors) {
+                    console.log('Errors:', response.errors);
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showMessage('Terjadi kesalahan dalam pemrosesan. Silakan coba lagi.', 'error');
+        }
+    };
+    
+    xhr.onerror = function() {
+        console.error('Network Error');
+        showMessage('Terjadi kesalahan jaringan. Silakan cek koneksi Anda.', 'error');
+    };
+
+    const data = `action=delete_permit&staff_data=${encodeURIComponent(JSON.stringify(staffData))}&table_type=${tableType}`;
+    console.log('Sending data:', data);
+    xhr.send(data);
+}
+
+
+function updateRowNumbers() {
+    const rows = document.querySelectorAll('table tbody tr');
+    rows.forEach((row, index) => {
+        const numberCell = row.querySelector('td:first-child');
+        if (numberCell) {
+            numberCell.textContent = index + 1;
+        }
+    });
+}
+
+// Tambahkan event listener untuk checkbox individual
+document.addEventListener('DOMContentLoaded', function() {
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const selectAllCheckbox = document.querySelector('#select-all');
+
+    rowCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = 
+                    Array.from(rowCheckboxes).every(cb => cb.checked);
+            }
+        });
+    });
+});
+
+// Fungsi helper untuk mencari baris berdasarkan nama staff
+function findRowByStaffName(name) {
+    const rows = document.querySelectorAll('tr');
+    for (let row of rows) {
+        if (row.cells.length > 0 && row.cells[0].textContent.trim() === name) {
+            return row;
+        }
+    }
+    return null;
+}
+
+function getRowData(row, tableType) {
+    if (tableType === 'izin') {
+        return {
+            nama: row.cells[0].textContent.trim(),
+            tanggal: row.cells[1].textContent.trim(),
+            jenisIzin: row.cells[2].textContent.trim(),
+            type: 'izin'
+        };
+    } else {
+        return {
+            nama: row.cells[0].textContent.trim(),
+            tanggalMulai: row.cells[1].textContent.trim(),
+            tanggalSelesai: row.cells[2].textContent.trim(),
+            type: 'cuti'
+        };
+    }
+}
+</script>
 
 </script>
 
