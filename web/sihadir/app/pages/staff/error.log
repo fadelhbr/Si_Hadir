@@ -1,2 +1,0 @@
-[2024-10-29 10:29:53] Database error during logout: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`si_hadir`.`log_akses`, CONSTRAINT `log_akses_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`))
-[2024-10-29 10:29:54] Database error during logout: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`si_hadir`.`log_akses`, CONSTRAINT `log_akses_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`))

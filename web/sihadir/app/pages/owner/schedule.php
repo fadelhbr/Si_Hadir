@@ -558,7 +558,7 @@ unset($_SESSION['error'], $_SESSION['success']);
             setTimeout(function () {
                 document.querySelectorAll('.alert').forEach(function (alert) {
                     alert.classList.add('fade-out');
-                    setTimeout(() => alert.remove(), 2000);
+                    setTimeout(() => alert.remove(), 3000);
                 });
             }, 5000);
         });
