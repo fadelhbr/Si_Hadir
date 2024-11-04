@@ -1,6 +1,64 @@
 <?php
 session_start();
 require_once '../../../app/auth/auth.php';
+    
+date_default_timezone_set('Asia/Jakarta');
+
+// BULANAN
+$queryBulanan = $pdo->query("SELECT MONTH(waktu_masuk) AS bulan, COUNT(*) AS total_kehadiran
+                                FROM absensi
+                                WHERE YEAR(waktu_masuk) = YEAR(NOW()) 
+                                AND status_kehadiran IN ('hadir', 'terlambat')
+                                GROUP BY bulan
+                                ORDER BY bulan;
+");
+$dataBulanan = $queryBulanan->fetchAll(PDO::FETCH_ASSOC);
+
+$monthlyAttendance = array_fill(0, 12, 0); // Inisialisasi array dengan 12 elemen (0 untuk semua bulan)
+$bulanLabel = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+foreach ($dataBulanan as $row) {
+    // Set nilai kehadiran untuk bulan yang sesuai (kurangi 1 untuk indeks)
+    $monthlyAttendance[$row['bulan'] - 1] = (int)$row['total_kehadiran'];
+}
+
+
+// MINGGUAN
+// Mendapatkan hari ini dan tanggal awal minggu (Senin)
+$today = new DateTime();
+$startOfWeek = clone $today;
+$startOfWeek->modify('monday this week'); // Mendapatkan tanggal Senin minggu ini
+
+// Menghitung tanggal akhir minggu (Minggu)
+$endOfWeek = clone $startOfWeek;
+$endOfWeek->modify('+1 week');
+
+// Siapkan array untuk kehadiran mingguan
+$weeklyAttendance = array_fill(0, 7, 0); // Inisialisasi array dengan 7 elemen (0 untuk setiap hari)
+
+// Query untuk mendapatkan kehadiran mingguan
+$queryMingguan = $pdo->prepare("
+    SELECT DAYOFWEEK(tanggal) AS hari, COUNT(*) AS total_kehadiran
+    FROM absensi
+    WHERE tanggal >=:startOfWeek
+      AND tanggal < :endOfWeek
+      AND status_kehadiran IN ('hadir', 'terlambat')
+    GROUP BY hari;
+");
+
+// Bind parameter dan execute
+$queryMingguan->bindValue(':startOfWeek', $startOfWeek->format('Y-m-d')); // Hanya perlu format tanggal
+$queryMingguan->bindValue(':endOfWeek', $endOfWeek->format('Y-m-d')); // Hanya perlu format tanggal
+$queryMingguan->execute();
+
+// Mengisi data kehadiran mingguan
+$dataMingguan = $queryMingguan->fetchAll(PDO::FETCH_ASSOC);
+foreach ($dataMingguan as $row) {
+    $hariIndex = ($row['hari'] + 6) % 7; // Mengubah DAYOFWEEK ke indeks array (0 untuk Senin, 1 untuk Selasa, dst.)
+    $weeklyAttendance[$hariIndex] = (int)$row['total_kehadiran'];
+}
+
+
 
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
@@ -8,84 +66,20 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
-// Check if the user role is owner
+// Check if the user role is employee
 if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
+    // Unset session variables and destroy session
     session_unset();
     session_destroy();
-
+    
+    // Set headers to prevent caching
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Cache-Control: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
-
+    
     header('Location: ../../../login.php');
     exit;
-}
-
-date_default_timezone_set('Asia/Jakarta');
-
-// Get the most recent date from absensi table
-$queryLatestDate = $pdo->query("
-    SELECT DATE(waktu_masuk) as latest_date 
-    FROM absensi 
-    ORDER BY waktu_masuk DESC 
-    LIMIT 1
-");
-$latestDate = $queryLatestDate->fetch(PDO::FETCH_ASSOC)['latest_date'];
-
-// BULANAN - Modified to use the year from latest date
-$queryBulanan = $pdo->prepare("
-    SELECT MONTH(waktu_masuk) AS bulan, COUNT(*) AS total_kehadiran
-    FROM absensi
-    WHERE YEAR(waktu_masuk) = YEAR(:latestDate)
-    AND status_kehadiran IN ('hadir', 'terlambat')
-    AND MONTH(waktu_masuk) <= MONTH(:latestDate)
-    GROUP BY bulan
-    ORDER BY bulan
-");
-$queryBulanan->bindParam(':latestDate', $latestDate);
-$queryBulanan->execute();
-$dataBulanan = $queryBulanan->fetchAll(PDO::FETCH_ASSOC);
-
-$monthlyAttendance = array_fill(0, 12, 0);
-$bulanLabel = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-foreach ($dataBulanan as $row) {
-    $monthlyAttendance[$row['bulan'] - 1] = (int) $row['total_kehadiran'];
-}
-
-// MINGGUAN - Modified to use the week containing the latest date
-$latestDateTime = new DateTime($latestDate);
-$startOfWeek = clone $latestDateTime;
-$startOfWeek->modify('monday this week');
-$endOfWeek = clone $startOfWeek;
-$endOfWeek->modify('sunday this week');
-
-$weeklyAttendance = array_fill(0, 7, 0);
-
-$queryMingguan = $pdo->prepare("
-    SELECT 
-        CASE DAYOFWEEK(waktu_masuk)
-            WHEN 1 THEN 0  -- Minggu
-            WHEN 2 THEN 1  -- Senin
-            WHEN 3 THEN 2  -- Selasa
-            WHEN 4 THEN 3  -- Rabu
-            WHEN 5 THEN 4  -- Kamis
-            WHEN 6 THEN 5  -- Jumat
-            WHEN 7 THEN 6  -- Sabtu
-        END AS hari_index,
-        COUNT(*) AS total_kehadiran
-    FROM absensi
-    WHERE DATE(waktu_masuk) BETWEEN :startOfWeek AND :endOfWeek
-    AND status_kehadiran IN ('hadir', 'terlambat')
-    GROUP BY DAYOFWEEK(waktu_masuk)
-");
-$queryMingguan->bindValue(':startOfWeek', $startOfWeek->format('Y-m-d'));
-$queryMingguan->bindValue(':endOfWeek', $endOfWeek->format('Y-m-d'));
-$queryMingguan->execute();
-
-$dataMingguan = $queryMingguan->fetchAll(PDO::FETCH_ASSOC);
-foreach ($dataMingguan as $row) {
-    $weeklyAttendance[$row['hari_index']] = (int) $row['total_kehadiran'];
+    
 }
 
 ?>
@@ -210,142 +204,137 @@ foreach ($dataMingguan as $row) {
                             Log out
                         </a>
                 </div>
-            </div>
-            <!-- Page content wrapper-->
-            <div id="page-content-wrapper">
-                <!-- Top navigation-->
-                <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
-                    <div class="container-fluid">
-                        <button class="btn btn-primary" id="sidebarToggle">☰</button>
-                        <div id="navbarSupportedContent"></div>
-                    </div>
-                </nav>
+                </div>
+                <!-- Page content wrapper-->
+                <div id="page-content-wrapper">
+                    <!-- Top navigation-->
+                    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
+                        <div class="container-fluid">
+                            <button class="btn btn-primary" id="sidebarToggle">☰</button>
+                            <div id="navbarSupportedContent"></div>
+                        </div>
+                    </nav>
 
-                <!-- Page content-->
-                <div class="container-fluid p-4">
-                    <h1 class="text-3xl font-semibold mb-4">Dashboard</h1>
-                    <!-- Charts Section -->
-                    <div class="grid grid-cols-2 gap-6">
-                        <!-- Monthly Attendance Trend -->
-                        <div class="bg-white shadow rounded-lg p-4 mb-4">
-                            <h2 class="text-lg font-semibold mb-4">Kehadiran Bulanan</h2>
-                            <div class="chart-container">
-                                <canvas id="monthlyChart"></canvas>
+                    <!-- Page content-->
+                    <div class="container-fluid p-4">
+                        <h1 class="text-3xl font-semibold mb-4">Dashboard</h1>
+                        <!-- Charts Section -->
+                        <div class="grid grid-cols-2 gap-6">
+                            <!-- Monthly Attendance Trend -->
+                            <div class="bg-white shadow rounded-lg p-4 mb-4">
+                                <h2 class="text-lg font-semibold mb-4">Kehadiran Bulanan</h2>
+                                <div class="chart-container">
+                                    <canvas id="monthlyChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Weekly Attendance -->
+                            <div class="bg-white shadow rounded-lg p-4 mb-4">
+                                <h2 class="text-lg font-semibold mb-4">Kehadiran Seminggu Terakhir</h2>
+                                <div class="chart-container">
+                                    <canvas id="weeklyChart"></canvas>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Weekly Attendance -->
-                        <div class="bg-white shadow rounded-lg p-4 mb-4">
-                            <h2 class="text-lg font-semibold mb-4">Kehadiran Minggu Ini</h2>
-                            <div class="chart-container">
-                                <canvas id="weeklyChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                        <!-- tabel kehadiran -->
-                        <div class="bg-white shadow rounded-lg p-4 mb-4">
-                        <div class="bg-white shadow rounded-lg p-4 mb-4">
-                        <h2 class="text-lg font-semibold mb-4">Aktivitas</h2>
+                        <!-- Tabel Kehadiran -->
+                        <div id="activityTable" class="bg-white shadow rounded-lg p-4 mb-4">
+                        <h2 class="text-lg font-semibold mb-4">Aktivitas Hari Ini</h2>
                         <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
-    <tr>
-        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
-        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jabatan</th>
-        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift</th>
-        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
-        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Kehadiran</th>
-    </tr>
-</thead>
-<tbody class="bg-white divide-y divide-gray-200">
-<?php
-// Query untuk mengambil data absensi termasuk nama shift dan jam masuk shift
-$stmt = $pdo->prepare("
-    SELECT 
-        u.nama_lengkap AS nama_staff,
-        d.nama_divisi AS divisi,
-        u.role AS jabatan,
-        js.tanggal AS tanggal_shift,
-        s.nama_shift AS nama_shift,
-        a.waktu_masuk,
-        a.waktu_keluar,
-        a.status_kehadiran
-    FROM 
-        absensi a
-    JOIN 
-        pegawai p ON a.pegawai_id = p.id
-    JOIN 
-        users u ON p.user_id = u.id
-    LEFT JOIN 
-        divisi d ON p.divisi_id = d.id
-    JOIN 
-        jadwal_shift js ON a.jadwal_shift_id = js.id
-    JOIN 
-        shift s ON js.shift_id = s.id
-    WHERE 
-        DATE(a.waktu_masuk) = :latestDate
-        AND (a.waktu_masuk != '00:00:00' OR a.waktu_keluar != '00:00:00') 
-        AND a.status_kehadiran != ''
-    ORDER BY 
-        a.waktu_masuk DESC
-");
-$stmt->bindParam(':latestDate', $latestDate);
-$stmt->execute();
-$recentAbsences = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                            <tr>
+                                <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
+                                <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
+                                <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Shift</th>
+                                <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
+                                <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status Kehadiran</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                        <?php
+                            // Get current date
+                            $today = date('Y-m-d');
 
-// Menampilkan hasil query dalam tabel
-if (!empty($recentAbsences)) {
-    foreach ($recentAbsences as $absen) {
-        // Skip if both times are 00:00:00
-        if ($absen['waktu_masuk'] === '00:00:00' && $absen['waktu_keluar'] === '00:00:00') {
-            continue;
-        }
+                            // Query untuk mengambil data absensi hari ini
+                            $stmt = $pdo->prepare("
+                                SELECT 
+                                    u.nama_lengkap AS nama_staff,
+                                    d.nama_divisi AS divisi,
+                                    u.role AS jabatan,
+                                    s.nama_shift AS nama_shift,
+                                    a.waktu_masuk,
+                                    a.waktu_keluar,
+                                    a.status_kehadiran,
+                                    DATE(a.tanggal) as tanggal_absen
+                                FROM 
+                                    absensi a
+                                JOIN 
+                                    pegawai p ON a.pegawai_id = p.id
+                                JOIN 
+                                    users u ON p.user_id = u.id
+                                LEFT JOIN 
+                                    divisi d ON p.divisi_id = d.id
+                                JOIN 
+                                    jadwal_shift js ON a.jadwal_shift_id = js.id
+                                JOIN 
+                                    shift s ON js.shift_id = s.id
+                                WHERE 
+                                    DATE(a.tanggal) = :today
+                                    AND (a.waktu_masuk != '00:00:00' OR a.waktu_keluar != '00:00:00')
+                                    AND a.status_kehadiran != ''
+                                ORDER BY 
+                                    CASE 
+                                        WHEN a.waktu_masuk != '00:00:00' THEN a.waktu_masuk
+                                        ELSE a.waktu_keluar
+                                    END DESC
+                            ");
 
-        // Handle waktu masuk jika tidak 00:00:00
-        if ($absen['waktu_masuk'] !== '00:00:00') {
-            $aktivitas = "Absen Masuk (" . htmlspecialchars($absen['waktu_masuk']) . ")";
-        } else {
-            $aktivitas = "";
-        }
+                            $stmt->execute(['today' => $today]);
+                            $todayAbsences = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Handle waktu keluar jika tidak 00:00:00
-        if ($absen['waktu_keluar'] !== '00:00:00') {
-            $aktivitas = $aktivitas ? $aktivitas . "<br>" : "";
-            $aktivitas .= "Absen Keluar (" . htmlspecialchars($absen['waktu_keluar']) . ")";
-        }
+                            // Jika tidak ada data hari ini
+                            if (empty($todayAbsences)) {
+                                echo "<tr><td colspan='5' class='px-6 py-4 text-center'>Belum Ada Aktivitas Hari Ini</td></tr>";
+                            } else {
+                                foreach ($todayAbsences as $absen) {
+                                    // Handle waktu masuk dan keluar
+                                    $aktivitas = "";
+                                    if ($absen['waktu_masuk'] !== '00:00:00') {
+                                        $aktivitas = "Absen Masuk (" . htmlspecialchars($absen['waktu_masuk']) . ")";
+                                    }
 
-        // Get the status class based on the status_kehadiran value
-        switch ($absen['status_kehadiran']) {
-            case 'hadir':
-                $statusKehadiran = "Hadir Tepat Waktu";
-                $statusClass = "px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm";
-                break;
-            case 'terlambat':
-                $statusKehadiran = "Terlambat";
-                $statusClass = "px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm";
-                break;
-            default:
-                $statusKehadiran = "";
-                $statusClass = "";
-                break;
-        }
+                                    if ($absen['waktu_keluar'] !== '00:00:00') {
+                                        $aktivitas = $aktivitas ? $aktivitas . "<br>" : "";
+                                        $aktivitas .= "Absen Keluar (" . htmlspecialchars($absen['waktu_keluar']) . ")";
+                                    }
 
-        echo "<tr>";
-        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['nama_staff']) . "</td>";
-        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['divisi']) . "</td>";
-        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['jabatan']) . "</td>";
-        echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($absen['nama_shift']) . "</td>";
-        echo "<td class='px-6 py-4 whitespace-nowrap text-blue-500'>" . $aktivitas . "</td>";
-        echo "<td class='px-6 py-4 whitespace-nowrap'>" . "<span class='$statusClass'>" . htmlspecialchars($statusKehadiran) . "</span>" . "</td>"; 
-        echo "</tr>";
-    }
-} else {
-    echo "<tr><td colspan='6' class='px-6 py-4 text-center'>Tidak ada aktivitas absen hari ini</td></tr>";
-}
-?>
-</tbody>
+                                    // Get the status class based on the status_kehadiran value
+                                    switch ($absen['status_kehadiran']) {
+                                        case 'hadir':
+                                            $statusKehadiran = "Hadir Tepat Waktu";
+                                            $statusClass = "px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm";
+                                            break;
+                                        case 'terlambat':
+                                            $statusKehadiran = "Terlambat";
+                                            $statusClass = "px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm";
+                                            break;
+                                        default:
+                                            $statusKehadiran = "";
+                                            $statusClass = "";
+                                            break;
+                                    }
 
+                                    echo "<tr>";
+                                    echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($absen['nama_staff']) . "</td>";
+                                    echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($absen['divisi']) . "</td>";
+                                    echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($absen['nama_shift']) . "</td>";
+                                    echo "<td class='px-6 py-4 text-center whitespace-nowrap text-blue-500'>" . $aktivitas . "</td>";
+                                    echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . "<span class='$statusClass'>" . htmlspecialchars($statusKehadiran) . "</span>" . "</td>"; 
+                                    echo "</tr>";
+                                }
+                            }
+                            ?>
+                        </tbody>
                         </table>
                     </div>
             </div>
@@ -358,66 +347,99 @@ if (!empty($recentAbsences)) {
 
         <!-- Custom JS to handle sidebar toggle -->
 
-
+                    
         <script>
-    // Data untuk grafik bulanan
-    const monthlyData = <?php echo json_encode($monthlyAttendance); ?>;
+        function checkReset() {
+        const now = new Date();
+        
+        // Mendapatkan waktu saat ini dalam WIB (UTC+7)
+        const currentHour = now.getUTCHours() + 7; // Mengonversi ke WIB
+        const currentMinute = now.getUTCMinutes();
 
-    // Mengubah data bulanan menjadi format yang sesuai
-    const monthlyLabels = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        // Memastikan jam tidak melebihi 24
+        const adjustedHour = currentHour >= 24 ? currentHour - 24 : currentHour;
 
-    // Grafik kehadiran bulanan
-    const monthlyChartCtx = document.getElementById('monthlyChart').getContext('2d');
-    const monthlyChart = new Chart(monthlyChartCtx, {
-        type: 'bar',
-        data: {
-            labels: monthlyLabels,
-            datasets: [{
-                label: 'Kehadiran Bulanan',
-                data: monthlyData, // Pastikan monthlyData berisi 12 angka, satu untuk setiap bulan
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
+        // Cek apakah waktu saat ini adalah 10:15 WIB
+        const isTenFifteen = adjustedHour === 12 && currentMinute === 25;
 
-    // Data untuk grafik mingguan
-const weeklyData = <?php echo json_encode($weeklyAttendance); ?>;
+        const tbody = document.querySelector('#activityTable tbody');
 
-// Grafik kehadiran mingguan
-const weeklyChartCtx = document.getElementById('weeklyChart').getContext('2d');
-const weeklyChart = new Chart(weeklyChartCtx, {
-    type: 'bar',
-    data: {
-        labels: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
-        datasets: [{
-            label: 'Kehadiran Minggu Ini',
-            data: weeklyData,
-            backgroundColor: 'rgba(153, 102, 255, 0.2)',
-            borderColor: 'rgba(153, 102, 255, 1)',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            y: {
-                beginAtZero: true
-            }
+        if (isTenFifteen) {
+            // Jika sudah jam 10:15, ubah isi tbody menjadi "Tidak ada aktivitas absen"
+            tbody.innerHTML = "<tr><td colspan='5' class='px-6 py-4 text-center'>Tidak ada aktivitas absen</td></tr>";
+        } else {
+            // Logika untuk mengembalikan data jika perlu
+            // Misalnya, jika ingin mengupdate data dengan AJAX atau fetch data dari server
+            // Anda bisa memanggil fungsi untuk mengambil data baru atau memperbarui tampilan tabel
         }
     }
-});
 
+    // Jalankan sekali saat halaman dimuat
+    checkReset();
+
+    // Periksa setiap menit
+    setInterval(checkReset, 60000); // 60000 ms = 1 menit
 </script>
+
+        <script>
+        // Data untuk grafik bulanan
+        const monthlyData = <?php echo json_encode($monthlyAttendance); ?>;
+
+        // Mengubah data bulanan menjadi format yang sesuai
+        const monthlyLabels = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        // Grafik kehadiran bulanan
+        const monthlyChartCtx = document.getElementById('monthlyChart').getContext('2d');
+        const monthlyChart = new Chart(monthlyChartCtx, {
+            type: 'bar',
+            data: {
+                labels: monthlyLabels,
+                datasets: [{
+                    label: 'Kehadiran Bulanan',
+                    data: monthlyData, // Pastikan monthlyData berisi 12 angka, satu untuk setiap bulan
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Data untuk grafik mingguan
+            const weeklyData = <?php echo json_encode($weeklyAttendance); ?>;
+
+            // Grafik kehadiran mingguan
+            const weeklyChartCtx = document.getElementById('weeklyChart').getContext('2d');
+            const weeklyChart = new Chart(weeklyChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
+                    datasets: [{
+                        label: 'Kehadiran Seminggu Terakhir',
+                        data: weeklyData,
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            </script>
 
 
         <script>
