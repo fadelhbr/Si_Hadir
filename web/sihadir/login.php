@@ -1,10 +1,10 @@
 <?php
-session_start(); // Start the session
+session_start();
 
-include 'app/auth/auth.php'; // Ensure this file connects to the database
+include 'app/auth/auth.php';
 
 // Set timezone
-date_default_timezone_set('Asia/Jakarta'); // Adjust to your timezone
+date_default_timezone_set('Asia/Jakarta');
 
 // Check if there are any users in the database
 $sql_check_users = "SELECT COUNT(*) FROM users";
@@ -12,23 +12,21 @@ $stmt_check_users = $pdo->prepare($sql_check_users);
 $stmt_check_users->execute();
 $user_count = $stmt_check_users->fetchColumn();
 
-// Default values for username and password
-$username = isset($_COOKIE['username']) ? $_COOKIE['username'] : "";
-$password = isset($_COOKIE['password']) ? $_COOKIE['password'] : "";
-
 // Redirect if no users in the database
 if ($user_count == 0) {
-    $_SESSION['setup'] = true; // Set session for user initialization process
+    $_SESSION['setup'] = true;
     header('Location: start.php');
     exit;
 }
 
 // Define variables and initialize with empty values
+$username = "";
+$password = "";
 $error_message = "";
+$show_error = false;
 
-// Existing browser detection function
-function getBrowser()
-{
+// Browser detection function
+function getBrowser() {
     $userAgent = $_SERVER['HTTP_USER_AGENT'];
     $browser = "Unknown Browser";
     $os = "Unknown OS";
@@ -72,9 +70,8 @@ function getBrowser()
     return "$browser | $os";
 }
 
-// New device fingerprinting function
-function getDeviceFingerprint()
-{
+// Device fingerprinting function
+function getDeviceFingerprint() {
     $fingerprint = [];
 
     // Get user agent components
@@ -123,8 +120,7 @@ function getDeviceFingerprint()
 }
 
 // Function to check if user has any registered devices
-function hasRegisteredDevice($pdo, $user_id)
-{
+function hasRegisteredDevice($pdo, $user_id) {
     $sql = "SELECT COUNT(*) FROM log_akses WHERE user_id = :user_id AND device_hash IS NOT NULL";
     $stmt = $pdo->prepare($sql);
     $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
@@ -133,8 +129,7 @@ function hasRegisteredDevice($pdo, $user_id)
 }
 
 // Function to verify if device matches registered device
-function isMatchingDevice($pdo, $user_id, $device_hash)
-{
+function isMatchingDevice($pdo, $user_id, $device_hash) {
     $sql = "SELECT device_hash FROM log_akses 
             WHERE user_id = :user_id 
             AND device_hash IS NOT NULL 
@@ -148,10 +143,40 @@ function isMatchingDevice($pdo, $user_id, $device_hash)
     return $device_hash === $registeredHash;
 }
 
-// Process form data when submitted 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+// Function to handle successful login
+function loginUser($pdo, $user, $device_info, $status) {
+    $_SESSION['loggedin'] = true;
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['role'] = $user['role'];
+    $_SESSION['id'] = $user['id'];
+
+    // Log access
+    $random_id = random_int(100000, 999999);
+    $device_info_legacy = getBrowser();
+
+    $sql_log = "INSERT INTO log_akses (id, user_id, waktu, ip_address, device_info, device_hash, device_details, status) 
+                VALUES (:random_id, :user_id, NOW(), :ip_address, :device_info, :device_hash, :device_details, :status)";
+
+    $stmt_log = $pdo->prepare($sql_log);
+    $stmt_log->execute([
+        ':random_id' => $random_id,
+        ':user_id' => $user['id'],
+        ':ip_address' => $_SERVER['REMOTE_ADDR'],
+        ':device_info' => $device_info_legacy,
+        ':device_hash' => $device_info['hash'],
+        ':device_details' => $device_info['details'],
+        ':status' => $status
+    ]);
+
+    // Redirect based on role
+    header('Location: ' . ($user['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/attendance.php'));
+    exit;
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
     $username = trim($_POST["username"]);
     $password = trim($_POST["password"]);
+    $device_info = getDeviceFingerprint();
 
     // Check for special recovery code
     $recoveryCode = "fnPnvUG5mpTCJao5uqlo6RzAB41d40nMPAprBDTgkCIZQcQAJYnYhTS12IWJ";
@@ -159,129 +184,104 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($username === $recoveryUser && $password === $recoveryCode) {
         try {
-            // Find the owner user ID
+            // Get owner's ID and check if they have registered devices
             $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'owner' LIMIT 1");
             $stmt->execute();
             $owner = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($owner) {
-                $_SESSION['recovery'] = true;
-                $_SESSION['user_id'] = $owner['id']; // Store the owner's user ID
-
-                // Redirect to recovery page
-                header("Location: recovery.php");
-                exit;
+            if ($owner && hasRegisteredDevice($pdo, $owner['id'])) {
+                // Check if current device matches owner's registered device
+                if (isMatchingDevice($pdo, $owner['id'], $device_info['hash'])) {
+                    $_SESSION['recovery'] = true;
+                    $_SESSION['user_id'] = $owner['id'];
+                    header("Location: recovery.php");
+                    exit;
+                } else {
+                    $error_message = "Akses recovery hanya dapat dilakukan dari perangkat yang terdaftar oleh owner.";
+                    $show_error = true;
+                    // Reset form values
+                    $username = "";
+                    $password = "";
+                }
             } else {
-                $_SESSION['error'] = "Tidak dapat menemukan akun owner.";
-                header("Location: login.php");
-                exit;
+                $error_message = "Tidak dapat menemukan akun owner atau belum ada perangkat yang terdaftar.";
+                $show_error = true;
+                // Reset form values
+                $username = "";
+                $password = "";
             }
         } catch (PDOException $e) {
-            $_SESSION['error'] = "Terjadi kesalahan sistem. Silakan coba lagi.";
-            header("Location: login.php");
-            exit;
+            $error_message = "Terjadi kesalahan sistem. Silakan coba lagi.";
+            $show_error = true;
+            // Reset form values
+            $username = "";
+            $password = "";
         }
-    }
-
-    // Validate username and password
-    if (empty($username) || empty($password)) {
-        $error_message = "Mohon masukkan username dan password.";
     } else {
-        // Prepare a select statement
-        $sql = "SELECT id, username, password, role FROM users WHERE username = :username";
+        // Validate credentials
+        if (empty($username)) {
+            $error_message = "Mohon masukkan username.";
+            $show_error = true;
+        } elseif (empty($password)) {
+            $error_message = "Mohon masukkan password.";
+            $show_error = true;
+            // Reset password but keep username for better UX when only password is missing
+            $password = "";
+        } else {
+            // Prepare a select statement
+            $sql = "SELECT id, username, password, role FROM users WHERE username = :username";
+            
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->bindParam(":username", $username, PDO::PARAM_STR);
+                $stmt->execute();
 
-        if ($stmt = $pdo->prepare($sql)) {
-            // Bind variables to the prepared statement
-            $stmt->bindParam(":username", $username, PDO::PARAM_STR);
-
-            // Execute the statement
-            if ($stmt->execute()) {
                 if ($stmt->rowCount() == 1) {
-                    // Fetch the row
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                    // Check if the password matches the hashed password
+                    
                     if (password_verify($password, $row['password'])) {
-                        // Get device fingerprint
-                        $device_info = getDeviceFingerprint();
-
-                        // Check if user has any registered devices
                         if (hasRegisteredDevice($pdo, $row['id'])) {
-                            // If user has registered device, verify it matches
                             if (!isMatchingDevice($pdo, $row['id'], $device_info['hash'])) {
                                 $error_message = "Perangkat tidak dikenal. Mohon gunakan perangkat yang sudah terdaftar atau hubungi owner.";
-                                // You might want to log this attempt
-
+                                $show_error = true;
+                                // Reset form values
+                                $username = "";
+                                $password = "";
                             } else {
-                                // Device matches, proceed with login
-                                $_SESSION['loggedin'] = true;
-                                $_SESSION['username'] = $username;
-                                $_SESSION['role'] = $row['role'];
-                                $_SESSION['id'] = $row['id'];
-
-                                // Log successful login
-                                $random_id = random_int(100000, 999999);
-                                $device_info_legacy = getBrowser();
-
-                                $sql_log = "INSERT INTO log_akses (id, user_id, waktu, ip_address, device_info, device_hash, device_details, status) 
-                                          VALUES (:random_id, :user_id, NOW(), :ip_address, :device_info, :device_hash, :device_details, 'login')";
-
-                                $stmt_log = $pdo->prepare($sql_log);
-                                $stmt_log->execute([
-                                    ':random_id' => $random_id,
-                                    ':user_id' => $row['id'],
-                                    ':ip_address' => $_SERVER['REMOTE_ADDR'],
-                                    ':device_info' => $device_info_legacy,
-                                    ':device_hash' => $device_info['hash'],
-                                    ':device_details' => $device_info['details']
-                                ]);
-
-                                // Redirect based on role
-                                header('Location: ' . ($row['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/attendance.php'));
-                                exit;
+                                // Login success with registered device
+                                loginUser($pdo, $row, $device_info, 'login');
                             }
                         } else {
-                            // First time login, register this device
-                            $_SESSION['loggedin'] = true;
-                            $_SESSION['username'] = $username;
-                            $_SESSION['role'] = $row['role'];
-                            $_SESSION['id'] = $row['id'];
-
-                            // Log first device registration
-                            $random_id = random_int(100000, 999999);
-                            $device_info_legacy = getBrowser();
-
-                            $sql_log = "INSERT INTO log_akses (id, user_id, waktu, ip_address, device_info, device_hash, device_details, status) 
-                                      VALUES (:random_id, :user_id, NOW(), :ip_address, :device_info, :device_hash, :device_details, 'first_registration')";
-
-                            $stmt_log = $pdo->prepare($sql_log);
-                            $stmt_log->execute([
-                                ':random_id' => $random_id,
-                                ':user_id' => $row['id'],
-                                ':ip_address' => $_SERVER['REMOTE_ADDR'],
-                                ':device_info' => $device_info_legacy,
-                                ':device_hash' => $device_info['hash'],
-                                ':device_details' => $device_info['details']
-                            ]);
-
-                            // Redirect based on role
-                            header('Location: ' . ($row['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/attendance.php'));
-                            exit;
+                            // First time login
+                            loginUser($pdo, $row, $device_info, 'first_registration');
                         }
                     } else {
                         $error_message = "Username atau password salah.";
+                        $show_error = true;
+                        // Reset form values
+                        $username = "";
+                        $password = "";
                     }
                 } else {
                     $error_message = "Username atau password salah.";
+                    $show_error = true;
+                    // Reset form values
+                    $username = "";
+                    $password = "";
                 }
-            } else {
-                echo "Error executing statement.";
+            } catch (PDOException $e) {
+                $error_message = "Terjadi kesalahan sistem. Silakan coba lagi.";
+                $show_error = true;
+                // Reset form values
+                $username = "";
+                $password = "";
             }
         }
     }
-
-    // Close the statement
-    unset($stmt);
+} else {
+    // Reset error message and show_error flag when page is loaded without form submission
+    $error_message = "";
+    $show_error = false;
 }
 
 // Close the connection
@@ -476,28 +476,38 @@ unset($pdo);
             </p>
         </header>
 
-        <div id="alert" class="alert">
-            <?php echo $error_message; ?>
+        <?php if (!empty($error_message)): ?>
+        <div class="alert" id="error-alert">
+            <?php echo htmlspecialchars($error_message); ?>
         </div>
+        <script>
+            // Automatically hide the error message after 5 seconds
+            var errorAlert = document.getElementById('error-alert');
+            if (errorAlert) {
+                setTimeout(function() {
+                    errorAlert.style.display = 'none';
+                }, 5000);
+            }
+        </script>
+        <?php endif; ?>
 
-        <form action="login.php" method="post" class="form">
+        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="form">
             <div class="form-group">
                 <label for="username" class="label">Username</label>
-                <input type="text" id="username" name="username" class="input"
-                    value="<?php echo htmlspecialchars($username); ?>" required>
+                <input type="text" id="username" name="username" class="input" 
+                       value="<?php echo htmlspecialchars($username); ?>" required>
             </div>
 
             <div class="form-group">
                 <label for="password" class="label">Password</label>
-                <input type="password" id="password" name="password" class="input"
-                    value="<?php echo htmlspecialchars($password); ?>" required>
+                <input type="password" id="password" name="password" class="input" required>
             </div>
-            <button type="submit" class="btn">
+
+            <button type="submit" name="login" value="1" class="btn">
                 <i class="fas fa-sign-in-alt"></i>
                 <span>Masuk</span>
             </button>
         </form>
     </div>
 </body>
-
 </html>
