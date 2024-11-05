@@ -1,14 +1,9 @@
 <?php
 session_start();
 
-// Check if user is logged in
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: ../../../login.php');
-    exit;
-}
+require_once '../../../app/auth/auth.php';
 
-// Check if the user role is employee
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || !isset($_SESSION['role']) || $_SESSION['role'] !== 'karyawan') {
     // Unset session variables and destroy session
     session_unset();
     session_destroy();
@@ -21,24 +16,169 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
     header('Location: ../../../login.php');
     exit;
 }
+
+// Get pegawai_id from database based on user_id
+function getPegawaiId($pdo, $userId) {
+    $stmt = $pdo->prepare("SELECT id FROM pegawai WHERE user_id = :user_id");
+    $stmt->execute(['user_id' => $userId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result ? $result['id'] : null;
+}
+
+function getEmployeePermitData($pdo, $pegawaiId) {
+    if (!$pegawaiId) return [];
+    
+    $sql = "SELECT i.*, u.nama_lengkap as nama_staff, i.status
+            FROM izin i 
+            INNER JOIN pegawai p ON i.pegawai_id = p.id 
+            INNER JOIN users u ON p.user_id = u.id 
+            WHERE i.pegawai_id = :pegawai_id 
+            ORDER BY i.tanggal DESC";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['pegawai_id' => $pegawaiId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getEmployeeLeaveData($pdo, $pegawaiId) {
+    if (!$pegawaiId) return [];
+    
+    $sql = "SELECT c.*, u.nama_lengkap as nama_staff, c.status
+            FROM cuti c 
+            INNER JOIN pegawai p ON c.pegawai_id = p.id 
+            INNER JOIN users u ON p.user_id = u.id 
+            WHERE c.pegawai_id = :pegawai_id 
+            ORDER BY c.tanggal_mulai DESC";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['pegawai_id' => $pegawaiId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Get pegawai_id once and store it
+$pegawaiId = null;
+if (isset($_SESSION['user_id'])) {
+    $pegawaiId = getPegawaiId($pdo, $_SESSION['user_id']);
+    if (!$pegawaiId) {
+        // If pegawai_id not found, redirect to error page or handle appropriately
+        header('Location: ../../../login.php?error=no_employee_record');
+        exit;
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Debug: Print the POST data
+    error_log(print_r($_POST, true));
+    
+    try {
+        // Get pegawai_id
+        if (!isset($_SESSION['user_id'])) {
+            throw new Exception('User ID not found in session');
+        }
+        
+        $stmt = $pdo->prepare("SELECT id FROM pegawai WHERE user_id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $pegawaiId = $stmt->fetchColumn();
+        
+        if (!$pegawaiId) {
+            throw new Exception('Pegawai ID not found');
+        }
+        
+        // Process Permit Request
+        if (isset($_POST['form_type']) && $_POST['form_type'] == 'izin') {
+            $stmt = $pdo->prepare("
+                INSERT INTO izin (pegawai_id, tanggal, jenis_izin, keterangan, status) 
+                VALUES (?, ?, ?, ?, 'pending')
+            ");
+            
+            $result = $stmt->execute([
+                $pegawaiId,
+                $_POST['permitDate'],
+                $_POST['permitType'],
+                $_POST['permitDescription']
+            ]);
+            
+            if (!$result) {
+                throw new Exception('Failed to insert permit request');
+            }
+        }
+        
+        // Process Leave Request
+        if (isset($_POST['form_type']) && $_POST['form_type'] == 'cuti') {
+            // Calculate leave duration
+            $date1 = new DateTime($_POST['leaveStartDate']);
+            $date2 = new DateTime($_POST['leaveEndDate']);
+            $interval = $date1->diff($date2);
+            $durasi_cuti = $interval->days + 1;
+            
+            $stmt = $pdo->prepare("
+                INSERT INTO cuti (pegawai_id, tanggal_mulai, tanggal_selesai, durasi_cuti, keterangan, status) 
+                VALUES (?, ?, ?, ?, ?, 'pending')
+            ");
+            
+            $result = $stmt->execute([
+                $pegawaiId,
+                $_POST['leaveStartDate'],
+                $_POST['leaveEndDate'],
+                $durasi_cuti,
+                $_POST['leaveDescription']
+            ]);
+            
+            if (!$result) {
+                throw new Exception('Failed to insert leave request');
+            }
+        }
+        
+        // Redirect on success
+        header('Location: permit.php?status=success');
+        exit;
+        
+    } catch (Exception $e) {
+        // Log the error
+        error_log($e->getMessage());
+        header('Location: permit.php?status=error&message=' . urlencode($e->getMessage()));
+        exit;
+    }
+}
+
+// Get updated data for tables
+$dataIzin = getEmployeePermitData($pdo, $pegawaiId);
+$dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="utf-8" />
+    <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
         <title>Si Hadir - Absen</title>
         <!-- Favicon-->
-        <link rel="icon" type="image/x-icon" href="../../../assets/favicon.ico" />
+        <link rel="icon" type="image/x-icon" href="../../../assets/icon/favicon.ico" />
         <!-- Core theme CSS (includes Bootstrap)-->
         <link href="../../../assets/css/styles.css" rel="stylesheet" />
         <!-- Link Google Fonts untuk Poppins -->
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+        
         
         <style>
+            .alert {
+    margin-bottom: 1rem;
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.alert-dismissible .btn-close {
+    padding: 0.75rem 1rem;
+}
+
             /* Mengatur font Poppins hanya untuk <strong> di dalam sidebar-heading */
             #sidebar-wrapper .sidebar-heading strong {
                 font-family: 'Poppins', sans-serif; /* Menggunakan font Poppins hanya untuk Si Hadir */
@@ -55,6 +195,14 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                 display: flex !important;
             }
             
+            .status-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            }
+            .status-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            }
+            
             .sidebar-icon {
             width: 24px;
             height: 24px;
@@ -62,24 +210,97 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
             vertical-align: middle;
             }
 
-            /* Menyesuaikan tampilan navbar untuk layar kecil */
-            @media (max-width: 991.98px) {
-                .navbar-nav {
-                    flex-direction: row;
-                }
-                
-                .navbar-nav .nav-item {
-                    padding-right: 10px;
-                }
-                
-                .navbar-nav .dropdown-menu {
-                    position: absolute;
-                }
+            .hidden {
+                display: none;
             }
-        </style>
-        
+            </style>
+
+<style>
+    /* Style untuk switch */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+        margin: 0 10px; /* Menambahkan margin di sekitar switch */
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        border-radius: 50%;
+        transition: .4s;
+    }
+
+    input:checked + .slider {
+        background-color: #2196F3;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+
+<style>
+    .btn-izin {
+        background-color: #007bff; /* Warna biru */
+        color: white;
+        transition: background-color 0.3s, color 0.3s;
+    }
+    
+    .btn-cuti {
+        background-color: #6c757d; /* Warna abu-abu */
+        color: white;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    .btn-active {
+        background-color: #0056b3 !important; /* Warna tombol aktif */
+        color: white !important;
+    }
+</style>
+
     </head>
     <body>
+    <?php if (isset($_GET['status'])): ?>
+        <div class="alert <?php echo $_GET['status'] === 'success' ? 'alert-success' : 'alert-danger'; ?> alert-dismissible fade show" role="alert">
+            <?php 
+            if ($_GET['status'] === 'success') {
+                echo 'Pengajuan berhasil disubmit!';
+            } else {
+                echo 'Error: ' . (isset($_GET['message']) ? htmlspecialchars($_GET['message']) : 'Unknown error');
+            }
+            ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
         <div class="d-flex" id="wrapper">
             <!-- Sidebar-->
             <div class="border-end-0 bg-white" id="sidebar-wrapper">
@@ -122,108 +343,188 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                     </div>
                 </nav>
                 <!-- Page content-->
-                <div class="container-fluid">
-                <h1 class="mt-4">Cuti & Perizinan</h1>
-                
+                <div class="container-fluid p-4">
+                <div id="alertContainer">
+                <?php if (isset($_GET['status'])): ?>
+            <div class="alert <?php echo $_GET['status'] === 'success' ? 'alert-success' : 'alert-danger'; ?> alert-dismissible fade show" role="alert">
+                <?php 
+                if ($_GET['status'] === 'success') {
+                    echo 'Pengajuan berhasil disubmit!';
+                } else {
+                    echo 'Error: ' . (isset($_GET['message']) ? htmlspecialchars($_GET['message']) : 'Unknown error');
+                }
+                ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
+        <?php endif; ?>
+    </div>
+    <h1 class="text-3xl font-semibold mb-4">Cuti & Perizinan</h1>
+    <div class="flex flex-col md:flex-row items-center justify-between mb-4 space-y-2 md:space-y-0 md:space-x-2">
+        <div class="flex space-x-2">
+            <!-- Changed to two separate buttons for leave and permit requests -->
+            <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" id="permitRequestBtn" data-bs-toggle="modal" data-bs-target="#permitRequestModal">Pengajuan Izin</button>
+            <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" id="leaveRequestBtn" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">Pengajuan Cuti</button>
+        </div>
+        <input type="text" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari riwayat pengajuan...">
+    </div>
+</div>
+
+<div class="bg-white shadow rounded-lg p-4 mb-4">
+    <!-- Table switch for viewing history -->
+    <div class="flex items-center mb-4">
+        <label class="switch">
+            <input type="checkbox" id="tableSwitch" onchange="toggleTableswitch()">
+            <span class="slider"></span>
+        </label>
+        <span id="tableLabel" class="ml-2">Riwayat Izin</span>
+    </div>
+
+    <!-- Permit History Table -->
+    <div id="izinTable" class="table-container">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Tanggal</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Jenis Izin</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Keterangan</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <?php foreach ($dataIzin as $row): ?>
+                <tr>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['jenis_izin']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="<?php echo $row['status'] == 'disetujui' ? 'bg-green-500' : ($row['status'] == 'pending' ? 'bg-yellow-500' : 'bg-red-500'); ?> text-white py-1 px-2 rounded">
+                            <?php echo ucfirst(htmlspecialchars($row['status'])); ?>
+                        </span>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Leave History Table -->
+    <div id="cutiTable" class="table-container hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Tanggal Mulai</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Tanggal Selesai</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Durasi Cuti</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Keterangan</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <?php foreach ($dataCuti as $row): ?>
+                <tr>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_mulai']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_selesai']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['durasi_cuti']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="<?php echo $row['status'] == 'disetujui' ? 'bg-green-500' : ($row['status'] == 'pending' ? 'bg-yellow-500' : 'bg-red-500'); ?> text-white py-1 px-2 rounded">
+                            <?php echo ucfirst(htmlspecialchars($row['status'])); ?>
+                        </span>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Permit Request Modal -->
+<div class="modal fade" id="permitRequestModal" tabindex="-1" aria-labelledby="permitRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="permitRequestModalLabel">Pengajuan Izin</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+    <form id="permitRequestForm" method="POST" action="permit.php">
+        <input type="hidden" name="form_type" value="izin">
+        <div class="mb-3">
+            <label for="permitDate" class="form-label">Tanggal</label>
+            <input type="date" class="form-control" id="permitDate" name="permitDate" required>
+        </div>
+        <div class="mb-3">
+            <label for="permitType" class="form-label">Jenis Izin</label>
+            <select class="form-select" id="permitType" name="permitType" required>
+                <option value="" class="placeholder" hidden>Pilih Jenis Izin</option>
+                <option value="sakit">Sakit</option>
+                <option value="keperluan_pribadi">Keperluan Pribadi</option>
+                <option value="lainnya">Lainnya</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="permitDescription" class="form-label">Keterangan</label>
+            <textarea class="form-control" id="permitDescription" name="permitDescription" rows="3" required></textarea>
+        </div>
+        <div class="text-end">
+            <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
+        </div>
+    </form>
+</div>
         </div>
     </div>
+</div>
+
+<!-- Leave Request Modal -->
+<div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leaveRequestModalLabel">Pengajuan Cuti</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+    <form id="leaveRequestForm" method="POST" action="permit.php">
+        <input type="hidden" name="form_type" value="cuti">
+        <div class="mb-3">
+            <label for="leaveStartDate" class="form-label">Tanggal Mulai</label>
+            <input type="date" class="form-control" id="leaveStartDate" name="leaveStartDate" required>
+        </div>
+        <div class="mb-3">
+            <label for="leaveEndDate" class="form-label">Tanggal Selesai</label>
+            <input type="date" class="form-control" id="leaveEndDate" name="leaveEndDate" required>
+        </div>
+        <div class="mb-3">
+            <label for="leaveDescription" class="form-label">Keterangan</label>
+            <textarea class="form-control" id="leaveDescription" name="leaveDescription" rows="3" required></textarea>
+        </div>
+        <div class="text-end">
+            <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
+        </div>
+    </form>
+</div>
+        </div>
+    </div>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../../assets/js/scripts.js"></script>
     
     <script>
-        const qrOption = document.getElementById('qr-option');
-        const manualOption = document.getElementById('manual-option');
-        const qrReader = document.getElementById('qr-reader');
-        const manualForm = document.getElementById('manual-form');
-        const video = document.getElementById('qr-video');
-        const canvas = document.getElementById('qr-canvas');
-        const result = document.getElementById('qr-result');
-        const startScanButton = document.getElementById('start-scan');
-
-        let scanning = false;
-
-        qrOption.onclick = () => {
-            qrReader.style.display = 'block';
-            manualForm.style.display = 'none';
-        };
-
-        manualOption.onclick = () => {
-            qrReader.style.display = 'none';
-            manualForm.style.display = 'block';
-        };
-
-        startScanButton.onclick = () => {
-            if (scanning) {
-                scanning = false;
-                startScanButton.textContent = 'Mulai Scan';
-                video.srcObject.getTracks().forEach(track => track.stop());
-            } else {
-                startScanning();
-            }
-        };
-
-        function startScanning() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function(stream) {
-                    scanning = true;
-                    startScanButton.textContent = 'Stop Scan';
-                    video.srcObject = stream;
-                    video.setAttribute("playsinline", true);
-                    video.play();
-                    requestAnimationFrame(tick);
-                })
-                .catch(function(err) {
-                    console.error("Error accessing the camera", err);
-                    result.textContent = "Error: " + err.message;
-                });
-        }
-
-        function tick() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
-                canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-                var imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
-                var code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                if (code) {
-                    console.log("QR Code detected", code.data);
-                    result.textContent = "QR Code terdeteksi: " + code.data;
-                    submitAttendance(code.data);
-                    scanning = false;
-                    startScanButton.textContent = 'Mulai Scan';
-                    video.srcObject.getTracks().forEach(track => track.stop());
-                }
-            }
-            if (scanning) {
-                requestAnimationFrame(tick);
-            }
-        }
-
-        function submitAttendance(qrData) {
-            fetch('process_attendance.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'qr_data=' + encodeURIComponent(qrData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    result.textContent = "Absensi berhasil dicatat!";
-                } else {
-                    result.textContent = "Error: " + data.message;
-                }
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                result.textContent = "Terjadi kesalahan saat mengirim data.";
-            });
-        }
+function toggleTableswitch() {
+    const isChecked = document.getElementById('tableSwitch').checked;
+    const tableLabel = document.getElementById('tableLabel');
+    
+    if (isChecked) {
+        document.getElementById('izinTable').classList.add('hidden');
+        document.getElementById('cutiTable').classList.remove('hidden');
+        tableLabel.textContent = "Riwayat Cuti";
+    } else {
+        document.getElementById('izinTable').classList.remove('hidden');
+        document.getElementById('cutiTable').classList.add('hidden');
+        tableLabel.textContent = "Riwayat Izin";
+    }
+}
 
         // Sidebar toggle functionality
         const sidebarToggle = document.getElementById('sidebarToggle');
@@ -232,6 +533,95 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
         sidebarToggle.addEventListener('click', function () {
             sidebarWrapper.classList.toggle('collapsed');
         });
+
+function showAlert(message, type = 'success') {
+    const alertContainer = document.getElementById('alertContainer');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    alertContainer.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+        alert.close();
+    }, 5000);
+}
     </script>
+    <script>
+document.getElementById('permitRequestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('permit.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('permitRequestModal'));
+        modal.hide();
+        
+        showAlert('Pengajuan izin berhasil disubmit!', 'success');
+        
+        // Refresh the page after a short delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
+    });
+});
+
+document.getElementById('leaveRequestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('permit.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('leaveRequestModal'));
+        modal.hide();
+        
+        showAlert('Pengajuan cuti berhasil disubmit!', 'success');
+        
+        // Refresh the page after a short delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
+    });
+});
+
+// Handle URL parameters for alerts on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const message = urlParams.get('message');
+    
+    if (status === 'success') {
+        showAlert('Pengajuan berhasil disubmit!', 'success');
+    } else if (status === 'error') {
+        showAlert(`Error: ${message || 'Terjadi kesalahan'}`, 'danger');
+    }
+});
+</script>
 </body>
 </html>
