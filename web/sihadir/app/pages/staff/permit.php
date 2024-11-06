@@ -3,147 +3,152 @@ session_start();
 
 require_once '../../../app/auth/auth.php';
 
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Periksa autentikasi
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || !isset($_SESSION['role']) || $_SESSION['role'] !== 'karyawan') {
-    // Unset session variables and destroy session
     session_unset();
     session_destroy();
-    
-    // Set headers to prevent caching
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Cache-Control: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
-    
     header('Location: ../../../login.php');
     exit;
 }
 
-// Get pegawai_id from database based on user_id
-function getPegawaiId($pdo, $userId) {
-    $stmt = $pdo->prepare("SELECT id FROM pegawai WHERE user_id = :user_id");
-    $stmt->execute(['user_id' => $userId]);
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    return $result ? $result['id'] : null;
+// Pastikan id tersedia dalam session
+if (!isset($_SESSION['id'])) {
+    die("Error: User ID tidak ditemukan dalam session.");
 }
 
-function getEmployeePermitData($pdo, $pegawaiId) {
-    if (!$pegawaiId) return [];
-    
-    $sql = "SELECT i.*, u.nama_lengkap as nama_staff, i.status
-            FROM izin i 
-            INNER JOIN pegawai p ON i.pegawai_id = p.id 
-            INNER JOIN users u ON p.user_id = u.id 
-            WHERE i.pegawai_id = :pegawai_id 
-            ORDER BY i.tanggal DESC";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['pegawai_id' => $pegawaiId]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+$user_id = $_SESSION['id'];
 
-function getEmployeeLeaveData($pdo, $pegawaiId) {
-    if (!$pegawaiId) return [];
-    
-    $sql = "SELECT c.*, u.nama_lengkap as nama_staff, c.status
-            FROM cuti c 
-            INNER JOIN pegawai p ON c.pegawai_id = p.id 
-            INNER JOIN users u ON p.user_id = u.id 
-            WHERE c.pegawai_id = :pegawai_id 
-            ORDER BY c.tanggal_mulai DESC";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['pegawai_id' => $pegawaiId]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
 
-// Get pegawai_id once and store it
-$pegawaiId = null;
-if (isset($_SESSION['user_id'])) {
-    $pegawaiId = getPegawaiId($pdo, $_SESSION['user_id']);
-    if (!$pegawaiId) {
-        // If pegawai_id not found, redirect to error page or handle appropriately
-        header('Location: ../../../login.php?error=no_employee_record');
-        exit;
+try {
+    // Dapatkan pegawai_id
+    $queryPegawai = "SELECT p.id as pegawai_id 
+                     FROM pegawai p 
+                     WHERE p.user_id = :user_id";
+    $stmtPegawai = $pdo->prepare($queryPegawai);
+    $stmtPegawai->execute(['user_id' => $user_id]);
+    $pegawaiData = $stmtPegawai->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$pegawaiData) {
+        die("Data pegawai tidak ditemukan");
     }
-}
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Debug: Print the POST data
-    error_log(print_r($_POST, true));
     
-    try {
-        // Get pegawai_id
-        if (!isset($_SESSION['user_id'])) {
-            throw new Exception('User ID not found in session');
-        }
-        
-        $stmt = $pdo->prepare("SELECT id FROM pegawai WHERE user_id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $pegawaiId = $stmt->fetchColumn();
-        
-        if (!$pegawaiId) {
-            throw new Exception('Pegawai ID not found');
-        }
-        
-        // Process Permit Request
-        if (isset($_POST['form_type']) && $_POST['form_type'] == 'izin') {
-            $stmt = $pdo->prepare("
-                INSERT INTO izin (pegawai_id, tanggal, jenis_izin, keterangan, status) 
-                VALUES (?, ?, ?, ?, 'pending')
-            ");
-            
-            $result = $stmt->execute([
-                $pegawaiId,
-                $_POST['permitDate'],
-                $_POST['permitType'],
-                $_POST['permitDescription']
-            ]);
-            
-            if (!$result) {
-                throw new Exception('Failed to insert permit request');
-            }
-        }
-        
-        // Process Leave Request
-        if (isset($_POST['form_type']) && $_POST['form_type'] == 'cuti') {
-            // Calculate leave duration
-            $date1 = new DateTime($_POST['leaveStartDate']);
-            $date2 = new DateTime($_POST['leaveEndDate']);
-            $interval = $date1->diff($date2);
-            $durasi_cuti = $interval->days + 1;
-            
-            $stmt = $pdo->prepare("
-                INSERT INTO cuti (pegawai_id, tanggal_mulai, tanggal_selesai, durasi_cuti, keterangan, status) 
-                VALUES (?, ?, ?, ?, ?, 'pending')
-            ");
-            
-            $result = $stmt->execute([
-                $pegawaiId,
-                $_POST['leaveStartDate'],
-                $_POST['leaveEndDate'],
-                $durasi_cuti,
-                $_POST['leaveDescription']
-            ]);
-            
-            if (!$result) {
-                throw new Exception('Failed to insert leave request');
-            }
-        }
-        
-        // Redirect on success
-        header('Location: permit.php?status=success');
-        exit;
-        
-    } catch (Exception $e) {
-        // Log the error
-        error_log($e->getMessage());
-        header('Location: permit.php?status=error&message=' . urlencode($e->getMessage()));
-        exit;
-    }
-}
+    $pegawai_id = $pegawaiData['pegawai_id'];
 
-// Get updated data for tables
-$dataIzin = getEmployeePermitData($pdo, $pegawaiId);
-$dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
+    // Handle POST requests untuk form submission
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        try {
+            // Handle form izin
+            if ($_POST['form_type'] === 'izin') {
+                $tanggal = $_POST['permitDate'];
+                $jenis_izin = $_POST['permitType'];
+                $keterangan = $_POST['permitDescription'];
+                
+                $query = "INSERT INTO izin (pegawai_id, tanggal, jenis_izin, keterangan, status, created_at) 
+                         VALUES (:pegawai_id, :tanggal, :jenis_izin, :keterangan, 'pending', NOW())";
+                
+                $stmt = $pdo->prepare($query);
+                $result = $stmt->execute([
+                    'pegawai_id' => $pegawai_id,
+                    'tanggal' => $tanggal,
+                    'jenis_izin' => $jenis_izin,
+                    'keterangan' => $keterangan
+                ]);
+
+                if ($result) {
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => 'Pengajuan izin berhasil disubmit!'
+                    ]);
+                } else {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Gagal menyimpan pengajuan izin'
+                    ]);
+                }
+            }
+            
+            // Handle form cuti
+            if ($_POST['form_type'] === 'cuti') {
+                $tanggal_mulai = $_POST['leaveStartDate'];
+                $tanggal_selesai = $_POST['leaveEndDate'];
+                $keterangan = $_POST['leaveDescription'];
+                
+                // Hitung durasi cuti
+                $date1 = new DateTime($tanggal_mulai);
+                $date2 = new DateTime($tanggal_selesai);
+                $interval = $date1->diff($date2);
+                $durasi_cuti = $interval->days + 1;
+                
+                $query = "INSERT INTO cuti (pegawai_id, tanggal_mulai, tanggal_selesai, durasi_cuti, keterangan, status, created_at) 
+                         VALUES (:pegawai_id, :tanggal_mulai, :tanggal_selesai, :durasi_cuti, :keterangan, 'pending', NOW())";
+                
+                $stmt = $pdo->prepare($query);
+                $result = $stmt->execute([
+                    'pegawai_id' => $pegawai_id,
+                    'tanggal_mulai' => $tanggal_mulai,
+                    'tanggal_selesai' => $tanggal_selesai,
+                    'durasi_cuti' => $durasi_cuti,
+                    'keterangan' => $keterangan
+                ]);
+
+                if ($result) {
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => 'Pengajuan cuti berhasil disubmit!'
+                    ]);
+                } else {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Gagal menyimpan pengajuan cuti'
+                    ]);
+                }
+            }
+            exit;
+        } catch (PDOException $e) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Database Error: ' . $e->getMessage()
+            ]);
+            exit;
+        }
+    }
+
+    // Query untuk mengambil data izin
+    $queryIzin = "SELECT i.*, u.nama_lengkap 
+                  FROM izin i 
+                  JOIN pegawai p ON i.pegawai_id = p.id 
+                  JOIN users u ON p.user_id = u.id 
+                  WHERE i.pegawai_id = :pegawai_id 
+                  ORDER BY i.tanggal DESC";
+    $stmtIzin = $pdo->prepare($queryIzin);
+    $stmtIzin->execute(['pegawai_id' => $pegawai_id]);
+    $dataIzin = $stmtIzin->fetchAll(PDO::FETCH_ASSOC);
+
+    // Query untuk mengambil data cuti
+    $queryCuti = "SELECT c.*, u.nama_lengkap 
+                  FROM cuti c 
+                  JOIN pegawai p ON c.pegawai_id = p.id 
+                  JOIN users u ON p.user_id = u.id 
+                  WHERE c.pegawai_id = :pegawai_id 
+                  ORDER BY c.tanggal_mulai DESC";
+    $stmtCuti = $pdo->prepare($queryCuti);
+    $stmtCuti->execute(['pegawai_id' => $pegawai_id]);
+    $dataCuti = $stmtCuti->fetchAll(PDO::FETCH_ASSOC);
+
+} catch (PDOException $e) {
+    die("Error: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>
@@ -165,19 +170,19 @@ $dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
         
         
         <style>
-            .alert {
-    margin-bottom: 1rem;
-    animation: fadeIn 0.5s;
-}
+                        .alert {
+                margin-bottom: 1rem;
+                animation: fadeIn 0.5s;
+            }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
 
-.alert-dismissible .btn-close {
-    padding: 0.75rem 1rem;
-}
+            .alert-dismissible .btn-close {
+                padding: 0.75rem 1rem;
+            }
 
             /* Mengatur font Poppins hanya untuk <strong> di dalam sidebar-heading */
             #sidebar-wrapper .sidebar-heading strong {
@@ -215,77 +220,77 @@ $dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
             }
             </style>
 
-<style>
-    /* Style untuk switch */
-    .switch {
-        position: relative;
-        display: inline-block;
-        width: 60px;
-        height: 34px;
-        margin: 0 10px; /* Menambahkan margin di sekitar switch */
-    }
+        <style>
+            /* Style untuk switch */
+            .switch {
+                position: relative;
+                display: inline-block;
+                width: 60px;
+                height: 34px;
+                margin: 0 10px; /* Menambahkan margin di sekitar switch */
+            }
 
-    .switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
 
-    .slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .4s;
-        border-radius: 34px;
-    }
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: .4s;
+                border-radius: 34px;
+            }
 
-    .slider:before {
-        position: absolute;
-        content: "";
-        height: 26px;
-        width: 26px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        border-radius: 50%;
-        transition: .4s;
-    }
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 26px;
+                width: 26px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                border-radius: 50%;
+                transition: .4s;
+            }
 
-    input:checked + .slider {
-        background-color: #2196F3;
-    }
+            input:checked + .slider {
+                background-color: #2196F3;
+            }
 
-    input:checked + .slider:before {
-        transform: translateX(26px);
-    }
+            input:checked + .slider:before {
+                transform: translateX(26px);
+            }
 
-    .hidden {
-        display: none;
-    }
-</style>
+            .hidden {
+                display: none;
+            }
+        </style>
 
-<style>
-    .btn-izin {
-        background-color: #007bff; /* Warna biru */
-        color: white;
-        transition: background-color 0.3s, color 0.3s;
-    }
-    
-    .btn-cuti {
-        background-color: #6c757d; /* Warna abu-abu */
-        color: white;
-        transition: background-color 0.3s, color 0.3s;
-    }
+        <style>
+            .btn-izin {
+                background-color: #007bff; /* Warna biru */
+                color: white;
+                transition: background-color 0.3s, color 0.3s;
+            }
+            
+            .btn-cuti {
+                background-color: #6c757d; /* Warna abu-abu */
+                color: white;
+                transition: background-color 0.3s, color 0.3s;
+            }
 
-    .btn-active {
-        background-color: #0056b3 !important; /* Warna tombol aktif */
-        color: white !important;
-    }
-</style>
+            .btn-active {
+                background-color: #0056b3 !important; /* Warna tombol aktif */
+                color: white !important;
+            }
+        </style>
 
     </head>
     <body>
@@ -365,7 +370,7 @@ $dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
             <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" id="permitRequestBtn" data-bs-toggle="modal" data-bs-target="#permitRequestModal">Pengajuan Izin</button>
             <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" id="leaveRequestBtn" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">Pengajuan Cuti</button>
         </div>
-        <input type="text" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari riwayat pengajuan...">
+        <input type="text" id="searchDate" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari riwayat pengajuan...">
     </div>
 </div>
 
@@ -391,7 +396,12 @@ $dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                <?php foreach ($dataIzin as $row): ?>
+            <?php if (empty($dataIzin)): ?>
+            <tr>
+                <td colspan="4" class="px-4 py-3 text-center text-gray-500">Tidak ada data izin</td>
+            </tr>
+        <?php else: ?>
+            <?php foreach ($dataIzin as $row): ?>
                 <tr>
                     <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal']); ?></td>
                     <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['jenis_izin']); ?></td>
@@ -402,7 +412,8 @@ $dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
                         </span>
                     </td>
                 </tr>
-                <?php endforeach; ?>
+            <?php endforeach; ?>
+        <?php endif; ?>    
             </tbody>
         </table>
     </div>
@@ -420,7 +431,12 @@ $dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                <?php foreach ($dataCuti as $row): ?>
+            <?php if (empty($dataCuti)): ?>
+            <tr>
+                <td colspan="5" class="px-4 py-3 text-center text-gray-500">Tidak ada data cuti</td>
+            </tr>
+        <?php else: ?>
+            <?php foreach ($dataCuti as $row): ?>
                 <tr>
                     <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_mulai']); ?></td>
                     <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_selesai']); ?></td>
@@ -432,7 +448,8 @@ $dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
                         </span>
                     </td>
                 </tr>
-                <?php endforeach; ?>
+            <?php endforeach; ?>
+            <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -446,31 +463,32 @@ $dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
                 <h5 class="modal-title" id="permitRequestModalLabel">Pengajuan Izin</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+
             <div class="modal-body">
-    <form id="permitRequestForm" method="POST" action="permit.php">
-        <input type="hidden" name="form_type" value="izin">
-        <div class="mb-3">
-            <label for="permitDate" class="form-label">Tanggal</label>
-            <input type="date" class="form-control" id="permitDate" name="permitDate" required>
-        </div>
-        <div class="mb-3">
-            <label for="permitType" class="form-label">Jenis Izin</label>
-            <select class="form-select" id="permitType" name="permitType" required>
-                <option value="" class="placeholder" hidden>Pilih Jenis Izin</option>
-                <option value="sakit">Sakit</option>
-                <option value="keperluan_pribadi">Keperluan Pribadi</option>
-                <option value="lainnya">Lainnya</option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label for="permitDescription" class="form-label">Keterangan</label>
-            <textarea class="form-control" id="permitDescription" name="permitDescription" rows="3" required></textarea>
-        </div>
-        <div class="text-end">
-            <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
-        </div>
-    </form>
-</div>
+                <form id="permitRequestForm" method="POST" action="permit.php">
+                    <input type="hidden" name="form_type" value="izin">
+                    <div class="mb-3">
+                        <label for="permitDate" class="form-label">Tanggal</label>
+                        <input type="date" class="form-control" id="permitDate" name="permitDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="permitType" class="form-label">Jenis Izin</label>
+                        <select class="form-select" id="permitType" name="permitType" required>
+                            <option value="" class="placeholder" hidden>Pilih Jenis Izin</option>
+                            <option value="dinas_luar">Dinas Luar</option>
+                            <option value="keperluan_pribadi">Keperluan Pribadi</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="permitDescription" class="form-label">Keterangan</label>
+                        <textarea class="form-control" id="permitDescription" name="permitDescription" rows="3" required></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -479,79 +497,228 @@ $dataCuti = getEmployeeLeaveData($pdo, $pegawaiId);
 <div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
+
             <div class="modal-header">
                 <h5 class="modal-title" id="leaveRequestModalLabel">Pengajuan Cuti</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-    <form id="leaveRequestForm" method="POST" action="permit.php">
-        <input type="hidden" name="form_type" value="cuti">
-        <div class="mb-3">
-            <label for="leaveStartDate" class="form-label">Tanggal Mulai</label>
-            <input type="date" class="form-control" id="leaveStartDate" name="leaveStartDate" required>
-        </div>
-        <div class="mb-3">
-            <label for="leaveEndDate" class="form-label">Tanggal Selesai</label>
-            <input type="date" class="form-control" id="leaveEndDate" name="leaveEndDate" required>
-        </div>
-        <div class="mb-3">
-            <label for="leaveDescription" class="form-label">Keterangan</label>
-            <textarea class="form-control" id="leaveDescription" name="leaveDescription" rows="3" required></textarea>
-        </div>
-        <div class="text-end">
-            <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
-        </div>
-    </form>
-</div>
+                <form id="leaveRequestForm" method="POST" novalidate>
+                    <input type="hidden" name="form_type" value="cuti">
+                    <div class="mb-3">
+                        <label for="leaveStartDate" class="form-label">Tanggal Mulai</label>
+                        <input type="date" class="form-control" id="leaveStartDate" name="leaveStartDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leaveEndDate" class="form-label">Tanggal Selesai</label>
+                        <input type="date" class="form-control" id="leaveEndDate" name="leaveEndDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leaveDescription" class="form-label">Keterangan</label>
+                        <textarea class="form-control" id="leaveDescription" name="leaveDescription" rows="3" required></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../../assets/js/scripts.js"></script>
-    
+
     <script>
-function toggleTableswitch() {
-    const isChecked = document.getElementById('tableSwitch').checked;
-    const tableLabel = document.getElementById('tableLabel');
-    
-    if (isChecked) {
-        document.getElementById('izinTable').classList.add('hidden');
-        document.getElementById('cutiTable').classList.remove('hidden');
-        tableLabel.textContent = "Riwayat Cuti";
-    } else {
-        document.getElementById('izinTable').classList.remove('hidden');
-        document.getElementById('cutiTable').classList.add('hidden');
-        tableLabel.textContent = "Riwayat Izin";
-    }
-}
+        $(document).ready(function() {
+            // Handle form izin submission
+            $('#permitRequestForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                $.ajax({
+                    type: 'POST',
+                    url: 'permit.php',
+                    data: $(this).serialize(),
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            alert(response.message);
+                            $('#permitModal').modal('hide');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Terjadi kesalahan pada server');
+                    }
+                });
+            });
 
-        // Sidebar toggle functionality
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebarWrapper = document.getElementById('sidebar-wrapper');
+            // Handle form cuti submission
+            $('#leaveRequestForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                if (!validateForm('cuti')) {
+                    return;
+                }
+                
+                $.ajax({
+                    type: 'POST',
+                    url: 'permit.php',
+                    data: $(this).serialize(),
+                    dataType: 'json',
+                    success: function(response) {
+                        console.log('Response:', response);
+                        if (response.status === 'success') {
+                            alert(response.message);
+                            $('#leaveModal').modal('hide');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', error);
+                        console.error('Response:', xhr.responseText);
+                        alert('Terjadi kesalahan pada server');
+                    }
+                });
+            });
 
-        sidebarToggle.addEventListener('click', function () {
-            sidebarWrapper.classList.toggle('collapsed');
+            // Validasi tanggal cuti
+            $('#leaveStartDate, #leaveEndDate').on('change', function() {
+                var startDate = new Date($('#leaveStartDate').val());
+                var endDate = new Date($('#leaveEndDate').val());
+
+                if (startDate > endDate) {
+                    alert('Tanggal selesai tidak boleh lebih awal dari tanggal mulai!');
+                    $('#leaveEndDate').val('');
+                }
+            });
+
+            // Reset form ketika modal ditutup
+            $('#permitModal').on('hidden.bs.modal', function() {
+                $('#permitRequestForm')[0].reset();
+            });
+
+            $('#leaveModal').on('hidden.bs.modal', function() {
+                $('#leaveRequestForm')[0].reset();
+            });
+
+            // Validasi input tanggal tidak boleh kurang dari hari ini
+            var today = new Date().toISOString().split('T')[0];
+            $('#permitDate').attr('min', today);
+            $('#leaveStartDate').attr('min', today);
+            $('#leaveEndDate').attr('min', today);
         });
 
-function showAlert(message, type = 'success') {
-    const alertContainer = document.getElementById('alertContainer');
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.role = 'alert';
-    
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    
-    alertContainer.appendChild(alertDiv);
-    
-    setTimeout(() => {
-        const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
-        alert.close();
-    }, 5000);
-}
+        // Function untuk memformat tanggal
+        function formatDate(date) {
+            var d = new Date(date),
+                month = '' + (d.getMonth() + 1),
+                day = '' + d.getDate(),
+                year = d.getFullYear();
+
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        }
+
+        // Function untuk menghitung durasi hari
+        function calculateDuration(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            return diffDays;
+        }
+
+        // Tambahan validasi untuk form izin
+        $('#permitType').on('change', function() {
+            if ($(this).val() === 'lainnya') {
+                $('#permitDescription').attr('placeholder', 'Mohon jelaskan detail keperluan Anda');
+            } else {
+                $('#permitDescription').attr('placeholder', 'Tambahkan keterangan jika diperlukan');
+            }
+        });
+
+        // Validasi form sebelum submit
+        function validateForm(formType) {
+            if (formType === 'izin') {
+                if (!$('#permitDate').val()) {
+                    alert('Tanggal harus diisi!');
+                    return false;
+                }
+                if (!$('#permitType').val()) {
+                    alert('Jenis izin harus dipilih!');
+                    return false;
+                }
+                if (!$('#permitDescription').val().trim()) {
+                    alert('Keterangan harus diisi!');
+                    return false;
+                }
+            } else if (formType === 'cuti') {
+                if (!$('#leaveStartDate').val()) {
+                    alert('Tanggal mulai harus diisi!');
+                    return false;
+                }
+                if (!$('#leaveEndDate').val()) {
+                    alert('Tanggal selesai harus diisi!');
+                    return false;
+                }
+                if (!$('#leaveDescription').val().trim()) {
+                    alert('Keterangan harus diisi!');
+                    return false;
+                }
+            }
+            return true;
+        }
+        </script>
+
+    <script>
+        function toggleTableswitch() {
+            const isChecked = document.getElementById('tableSwitch').checked;
+            const tableLabel = document.getElementById('tableLabel');
+            
+            if (isChecked) {
+                document.getElementById('izinTable').classList.add('hidden');
+                document.getElementById('cutiTable').classList.remove('hidden');
+                tableLabel.textContent = "Riwayat Cuti";
+            } else {
+                document.getElementById('izinTable').classList.remove('hidden');
+                document.getElementById('cutiTable').classList.add('hidden');
+                tableLabel.textContent = "Riwayat Izin";
+            }
+        }
+
+                // Sidebar toggle functionality
+                const sidebarToggle = document.getElementById('sidebarToggle');
+                const sidebarWrapper = document.getElementById('sidebar-wrapper');
+
+                sidebarToggle.addEventListener('click', function () {
+                    sidebarWrapper.classList.toggle('collapsed');
+                });
+
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.role = 'alert';
+            
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+                alert.close();
+            }, 5000);
+        }
     </script>
     <script>
 document.getElementById('permitRequestForm').addEventListener('submit', function(e) {
@@ -623,5 +790,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchDate');
+    const tableRows = document.querySelectorAll('table tbody tr');
+
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.trim().toLowerCase();
+
+        tableRows.forEach(row => {
+            const dateCell = row.querySelector('td:first-child');
+            if (dateCell) {
+                const date = dateCell.textContent.trim().toLowerCase();
+                if (date.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+    });
+});
+</script>
+
 </body>
 </html>
