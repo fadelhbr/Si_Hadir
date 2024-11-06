@@ -120,14 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
 
         // Insert into jadwal_shift table
         $stmt = $pdo->prepare("
-            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status, maksimal_keterlambatan)
-            VALUES (:pegawai_id, :shift_id, CURRENT_DATE, 'aktif', :maksimal_keterlambatan)
+            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status)
+            VALUES (:pegawai_id, :shift_id, CURRENT_DATE, 'aktif')
         ");
 
         $stmt->execute([
             'pegawai_id' => $pegawaiId,
-            'shift_id' => $_POST['shift_id'],
-            'maksimal_keterlambatan' => $_POST['maksimal_keterlambatan']
+            'shift_id' => $_POST['shift_id']
         ]);
 
         $pdo->commit();
@@ -262,8 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
         // Update shift in jadwal_shift
         $stmt = $pdo->prepare("
             UPDATE jadwal_shift
-            SET shift_id = :shift_id,
-                maksimal_keterlambatan = :maksimal_keterlambatan
+            SET shift_id = :shift_id
             WHERE pegawai_id = (
                 SELECT id
                 FROM pegawai
@@ -271,12 +269,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
             )
             AND tanggal = CURRENT_DATE
         ");
+
         $stmt->execute([
             'shift_id' => $_POST['shift_id'],
-            'maksimal_keterlambatan' => $_POST['maksimal_keterlambatan'],
             'user_id' => $_POST['user_id']
         ]);
-
         $pdo->commit();
         $_SESSION['alert'] = [
             'type' => 'success',
@@ -721,20 +718,6 @@ if (isset($_POST['remove_device'])) {
                                     </select>
                                 </div>
 
-                                <!-- Maksimal Keterlambatan -->
-                                <div class="form-group">
-                                    <label for="maksimal_keterlambatan">Maksimal Keterlambatan</label>
-                                    <select class="form-control" name="maksimal_keterlambatan" required>
-                                        <option value="00:00:00">Tidak boleh telat</option>
-                                        <option value="00:05:00">5 menit</option>
-                                        <option value="00:10:00">10 menit</option>
-                                        <option value="00:20:00">20 menit</option>
-                                        <option value="00:30:00">30 menit</option>
-                                        <option value="01:00:00">1 jam</option>
-                                    </select>
-                                </div>
-
-
                                 <!-- Modal Footer -->
                                 <div class="modal-footer">
                                     <button type="submit" class="btn btn-primary btn-sm">Tambah</button>
@@ -812,19 +795,6 @@ if (isset($_POST['remove_device'])) {
                                 <?php foreach ($shifts as $id => $nama_shift): ?>
                                     <option value="<?= $id ?>"><?= htmlspecialchars($nama_shift) ?></option>
                                 <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <!-- Maksimal Keterlambatan -->
-                        <div class="form-group">
-                            <label for="maksimal_keterlambatan">Maksimal Keterlambatan</label>
-                            <select class="form-control" name="maksimal_keterlambatan" required>
-                                <option value="00:00:00" <?= $user['maksimal_keterlambatan'] == '00:00:00' ? 'selected' : '' ?>>Tidak boleh telat</option>
-                                <option value="00:05:00" <?= $user['maksimal_keterlambatan'] == '00:05:00' ? 'selected' : '' ?>>5 menit</option>
-                                <option value="00:10:00" <?= $user['maksimal_keterlambatan'] == '00:10:00' ? 'selected' : '' ?>>10 menit</option>
-                                <option value="00:20:00" <?= $user['maksimal_keterlambatan'] == '00:20:00' ? 'selected' : '' ?>>20 menit</option>
-                                <option value="00:30:00" <?= $user['maksimal_keterlambatan'] == '00:30:00' ? 'selected' : '' ?>>30 menit</option>
-                                <option value="01:00:00" <?= $user['maksimal_keterlambatan'] == '01:00:00' ? 'selected' : '' ?>>1 jam</option>
                             </select>
                         </div>
 
@@ -959,21 +929,6 @@ if (isset($_POST['remove_device'])) {
                 });
             });
         });
-
-        function validateTime() {
-            let jamInput = document.getElementById("jam");
-            let menitInput = document.getElementById("menit");
-
-            // Ensure values are within valid range
-            jamInput.value = Math.min(Math.max(0, jamInput.value), 23);
-            menitInput.value = Math.min(Math.max(0, menitInput.value), 59);
-
-            // Construct the time string in the correct format
-            let maximalKeterlambatan = `${String(jamInput.value).padStart(2, '0')}:${String(menitInput.value).padStart(2, '0')}:00`;
-
-            // Update the form field with the properly formatted time
-            document.querySelector('input[name="maksimal_keterlambatan"]').value = maximalKeterlambatan;
-        }
 
         // Function to handle edit user
         function editUser(user) {
