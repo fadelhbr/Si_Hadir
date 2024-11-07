@@ -1,5 +1,6 @@
 <?php
 session_start();
+
 require_once '../../../app/auth/auth.php';
 
 // Check if user is logged in
@@ -720,6 +721,8 @@ if (isset($_POST['remove_device'])) {
 
                                 <!-- Modal Footer -->
                                 <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm"
+                                        data-bs-dismiss="modal">Tutup</button>
                                     <button type="submit" class="btn btn-primary btn-sm">Tambah</button>
                                 </div>
                             </form>
@@ -895,7 +898,7 @@ if (isset($_POST['remove_device'])) {
                         <input type="hidden" name="remove_device" value="1">
                         <input type="hidden" name="user_id" id="remove_device_user_id">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-warning">Hapus Device</button>
+                        <button type="submit" class="btn btn-danger">Hapus Device</button>
                     </form>
                 </div>
             </div>
@@ -905,14 +908,12 @@ if (isset($_POST['remove_device'])) {
 
     <!-- Scripts -->
     <script>
-        document.getElementById("jam").addEventListener("input", validateTime);
-        document.getElementById("menit").addEventListener("input", validateTime);
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('searchInput');
             const tableRows = document.querySelectorAll('tbody tr');
 
-            searchInput.addEventListener('input', function () {
-                const searchTerm = this.value.toLowerCase();
+            function performSearch() {
+                const searchTerm = searchInput.value.toLowerCase();
 
                 tableRows.forEach(row => {
                     // Mengambil semua cell dalam row kecuali kolom terakhir (action)
@@ -927,8 +928,38 @@ if (isset($_POST['remove_device'])) {
                     // Tampilkan atau sembunyikan row berdasarkan hasil pencarian
                     row.style.display = matches ? '' : 'none';
                 });
+            }
+
+            // Menambahkan event listener untuk input
+            searchInput.addEventListener('input', performSearch);
+
+            // Menambahkan event listener untuk keyup pada dokumen
+            document.addEventListener('keyup', function (event) {
+                if (event.target === searchInput) {
+                    performSearch();
+                }
+            });
+
+            // Melakukan pencarian awal (jika ada nilai default di input)
+            performSearch();
+        });
+
+        // Event listener untuk DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function () {
+            // Jalankan autoCloseAlert
+            autoCloseAlert();
+
+            // Tambahkan event listener untuk tombol close
+            var closeButtons = document.querySelectorAll('.alert .close');
+            closeButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    closeAlert(this);
+                });
             });
         });
+
+        document.getElementById("jam").addEventListener("input", validateTime);
+        document.getElementById("menit").addEventListener("input", validateTime);
 
         // Function to handle edit user
         function editUser(user) {
@@ -986,6 +1017,32 @@ if (isset($_POST['remove_device'])) {
                 form.submit();
             }
         }
+
+        // Fungsi untuk menutup alert
+        function closeAlert(element) {
+            var alert = element.closest('.alert');
+            alert.style.opacity = '0';
+            setTimeout(function () {
+                alert.style.display = 'none';
+            }, 300);
+        }
+
+        // Fungsi untuk otomatis menghilangkan alert setelah beberapa detik
+        function autoCloseAlert() {
+            var alerts = document.querySelectorAll('.alert'); // Mengambil semua alert
+            alerts.forEach(function (alert) {
+                setTimeout(function () {
+                    alert.style.transition = 'opacity 0.3s ease-in-out';
+                    alert.style.opacity = '0';
+                    setTimeout(function () {
+                        alert.style.display = 'none';
+                    }, 300);
+                }, 2000); // Alert akan hilang setelah 3 detik
+            });
+        }
+
+        
+
         // Prevent form resubmission on page refresh
         if (window.history.replaceState) {
             window.history.replaceState(null, null, window.location.href);

@@ -35,6 +35,13 @@ function checkEmployeeRole($pdo, $userId)
     return $user && $user['role'] === 'karyawan';
 }
 
+function verifyUniqueCode($pdo, $uniqueCode) {
+    $query = "SELECT * FROM qr_code WHERE kode_unik = ?";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$uniqueCode]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
 function getActiveShiftSchedule($pdo, $employeeId, $date)
 {
     $query = "SELECT 
@@ -88,6 +95,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $currentTime = new DateTime();
 
         $pdo->beginTransaction();
+
+        // Verifikasi kode unik terlebih dahulu
+        if (!$uniqueCode) {
+            throw new Exception('Kode unik harus diisi.');
+        }
+
+        // Verifikasi kode unik dengan database
+        $validCode = verifyUniqueCode($pdo, $uniqueCode);
+        if (!$validCode) {
+            throw new Exception('Kode unik tidak valid atau sudah tidak aktif.');
+        }
 
         if (!checkEmployeeRole($pdo, $userId)) {
             throw new Exception('Akses ditolak. Hanya karyawan yang dapat melakukan absensi.');
