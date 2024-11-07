@@ -78,12 +78,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Password Recovery</title>
     <link rel="icon" type="image/x-icon" href="assets/icon/favicon.ico" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -210,13 +212,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 1rem;
             display: none;
         }
-        
+
         .alert-success {
             background-color: #dcfce7;
             color: #166534;
             border: 1px solid #86efac;
         }
-        
+
         .alert-error {
             background-color: #fee2e2;
             color: #991b1b;
@@ -228,11 +230,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header class="header">
@@ -251,7 +259,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="form-group">
                 <label for="confirm_password" class="label">Konfirmasi Password</label>
-                <input type="password" name="confirm_password" id="confirm_password" class="input" required minlength="8">
+                <input type="password" name="confirm_password" id="confirm_password" class="input" required
+                    minlength="8">
             </div>
             <button type="submit" id="submitBtn" class="btn">
                 <i class="fas fa-lock"></i>
@@ -261,74 +270,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-    document.getElementById('recoveryForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const form = this;
-        const submitBtn = document.getElementById('submitBtn');
-        const alert = document.getElementById('alert');
-        
-        // Get password values
-        const newPassword = document.getElementById('new_password').value;
-        const confirmPassword = document.getElementById('confirm_password').value;
-        
-        // Client-side validation
-        if (newPassword.length < 8) {
-            alert.textContent = 'Password minimal 8 karakter';
-            alert.style.display = 'block';
-            alert.className = 'alert alert-error';
-            return;
-        }
-        
-        if (newPassword !== confirmPassword) {
-            alert.textContent = 'Password tidak cocok';
-            alert.style.display = 'block';
-            alert.className = 'alert alert-error';
-            return;
-        }
-        
-        // Disable button and show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Processing...';
-        
-        // Create FormData object
-        const formData = new FormData(form);
-        
-        // Send POST request
-        fetch(window.location.href, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert.textContent = data.message;
-            alert.style.display = 'block';
-            alert.className = 'alert ' + (data.success ? 'alert-success' : 'alert-error');
-            
-            if (data.success) {
-                // Reset form
-                form.reset();
-                // Redirect to login page after successful update
-                setTimeout(() => {
-                    window.location.href = 'login.php';
-                }, 2000);
-            } else {
-                // Re-enable button if there's an error
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-lock"></i> <span>Reset Password</span>';
+        document.getElementById('recoveryForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const form = this;
+            const submitBtn = document.getElementById('submitBtn');
+            const alert = document.getElementById('alert');
+
+            // Get password values
+            const newPassword = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+
+            // Client-side validation
+            if (newPassword.length < 8) {
+                alert.textContent = 'Password minimal 8 karakter';
+                alert.style.display = 'block';
+                alert.className = 'alert alert-error';
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert.textContent = 'Terjadi kesalahan sistem. Silakan coba lagi.';
-            alert.style.display = 'block';
-            alert.className = 'alert alert-error';
-            
-            // Re-enable button
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-lock"></i> <span>Reset Password</span>';
+
+            if (newPassword !== confirmPassword) {
+                alert.textContent = 'Password tidak cocok';
+                alert.style.display = 'block';
+                alert.className = 'alert alert-error';
+                return;
+            }
+
+            // Disable button and show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Processing...';
+
+            // Create FormData object
+            const formData = new FormData(form);
+
+            // Send POST request
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert.textContent = data.message;
+                    alert.style.display = 'block';
+                    alert.className = 'alert ' + (data.success ? 'alert-success' : 'alert-error');
+
+                    if (data.success) {
+                        // Reset form
+                        form.reset();
+                        // Redirect to login page after successful update
+                        setTimeout(() => {
+                            window.location.href = 'login.php';
+                        }, 2000);
+                    } else {
+                        // Re-enable button if there's an error
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-lock"></i> <span>Reset Password</span>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert.textContent = 'Terjadi kesalahan sistem. Silakan coba lagi.';
+                    alert.style.display = 'block';
+                    alert.className = 'alert alert-error';
+
+                    // Re-enable button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-lock"></i> <span>Reset Password</span>';
+                });
         });
-    });
     </script>
 </body>
+
 </html>

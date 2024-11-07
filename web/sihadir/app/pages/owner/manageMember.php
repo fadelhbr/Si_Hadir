@@ -17,7 +17,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
 
     // Set headers to prevent caching
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Cache-dControl: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
 
     header('Location: ../../../login.php');
@@ -128,6 +128,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
         $stmt->execute([
             'pegawai_id' => $pegawaiId,
             'shift_id' => $_POST['shift_id']
+        ]);
+
+        $jadwalShiftId = $pdo->lastInsertId();
+
+        // Insert into absensi table
+        $stmt = $pdo->prepare("
+            INSERT INTO absensi (
+                pegawai_id, 
+                jadwal_shift_id, 
+                waktu_masuk, 
+                waktu_keluar, 
+                kode_unik, 
+                status_kehadiran, 
+                tanggal
+            )
+            VALUES (
+                :pegawai_id, 
+                :jadwal_shift_id, 
+                '00:00:00', 
+                '00:00:00', 
+                '000000', 
+                'alpha', 
+                CURRENT_DATE
+            )
+        ");
+
+        $stmt->execute([
+            'pegawai_id' => $pegawaiId,
+            'jadwal_shift_id' => $jadwalShiftId
         ]);
 
         $pdo->commit();
@@ -301,7 +330,15 @@ if (isset($_POST['delete_user'])) {
         $pegawai = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($pegawai) {
-            // Delete from absensi first (references pegawai)
+            // Delete from izin first (references pegawai)
+            $stmt = $pdo->prepare("DELETE FROM izin WHERE pegawai_id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+
+            // Delete from cuti (references pegawai)
+            $stmt = $pdo->prepare("DELETE FROM cuti WHERE pegawai_id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+
+            // Delete from absensi (references pegawai)
             $stmt = $pdo->prepare("DELETE FROM absensi WHERE pegawai_id = :pegawai_id");
             $stmt->execute(['pegawai_id' => $pegawai['id']]);
 
@@ -1041,7 +1078,7 @@ if (isset($_POST['remove_device'])) {
             });
         }
 
-        
+
 
         // Prevent form resubmission on page refresh
         if (window.history.replaceState) {

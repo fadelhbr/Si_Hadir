@@ -93,11 +93,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Prepare an insert statement
         $sql = "INSERT INTO users (id, username, password, nama_lengkap, email, role, no_telp) VALUES (:id, :username, :password, :nama_lengkap, :email, :role, :no_telp)";
-        
+
         if ($stmt = $pdo->prepare($sql)) {
             // Hash the password
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
+
             // Bind variables to the prepared statement
             $stmt->bindParam(":id", $random_id, PDO::PARAM_INT);
             $stmt->bindParam(":username", $username, PDO::PARAM_STR);
@@ -106,7 +106,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bindParam(":email", $email, PDO::PARAM_STR);
             $stmt->bindParam(":role", $role, PDO::PARAM_STR);
             $stmt->bindParam(":no_telp", $no_telp, PDO::PARAM_STR);
-        
+
             // Execute the statement
             if ($stmt->execute()) {
                 // Destroy session
@@ -129,19 +129,21 @@ unset($pdo);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Si Hadir - Registrasi</title>
     <link rel="icon" type="image/x-icon" href="assets/icon/favicon.ico" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Istok+Web&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Istok+Web&display=swap"
+        rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-        
+
         body {
             font-family: 'Istok Web', sans-serif;
             font-size: 14px;
@@ -152,7 +154,7 @@ unset($pdo);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .register-container {
             background-color: #ffffff;
             border-radius: 25px;
@@ -161,7 +163,7 @@ unset($pdo);
             width: 100%;
             max-width: 400px;
         }
-        
+
         .register-title {
             font-family: 'Poppins', sans-serif;
             font-weight: 700;
@@ -170,18 +172,19 @@ unset($pdo);
             text-align: center;
             margin-bottom: 30px;
         }
-        
+
         .input-group {
             margin-bottom: 20px;
         }
-        
+
         .input-group label {
             display: block;
             margin-bottom: 5px;
             color: #555;
         }
-        
-        .input-group input, .input-group select {
+
+        .input-group input,
+        .input-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -189,12 +192,13 @@ unset($pdo);
             font-size: 14px;
             transition: border-color 0.3s ease;
         }
-        
-        .input-group input:focus, .input-group select:focus {
+
+        .input-group input:focus,
+        .input-group select:focus {
             outline: none;
             border-color: #007bff;
         }
-        
+
         .register-button {
             width: 100%;
             padding: 12px;
@@ -206,16 +210,16 @@ unset($pdo);
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-        
+
         .register-button:hover {
             background-color: #0056b3;
         }
-        
+
         .login-link {
             text-align: center;
             margin-top: 20px;
         }
-        
+
         .login-link a {
             color: #007bff;
             text-decoration: none;
@@ -231,42 +235,52 @@ unset($pdo);
         }
     </style>
 </head>
+
 <body>
     <div class="register-container">
         <h1 class="register-title">Si Hadir</h1>
         <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
             <div class="input-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($username); ?>" class="<?php echo !empty($username_err) ? 'error' : ''; ?>" required>
+                <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($username); ?>"
+                    class="<?php echo !empty($username_err) ? 'error' : ''; ?>" required>
                 <span class="error"><?php echo $username_err; ?></span>
             </div>
             <div class="input-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" class="<?php echo !empty($email_err) ? 'error' : ''; ?>" required>
+                <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>"
+                    class="<?php echo !empty($email_err) ? 'error' : ''; ?>" required>
                 <span class="error"><?php echo $email_err; ?></span>
             </div>
             <div class="input-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" class="<?php echo !empty($password_err) ? 'error' : ''; ?>" required>
+                <input type="password" id="password" name="password"
+                    class="<?php echo !empty($password_err) ? 'error' : ''; ?>" required>
                 <span class="error"><?php echo $password_err; ?></span>
             </div>
             <div class="input-group">
                 <label for="confirm-password">Konfirmasi Password</label>
-                <input type="password" id="confirm-password" name="confirm-password" class="<?php echo !empty($confirm_password_err) ? 'error' : ''; ?>" required>
+                <input type="password" id="confirm-password" name="confirm-password"
+                    class="<?php echo !empty($confirm_password_err) ? 'error' : ''; ?>" required>
                 <span class="error"><?php echo $confirm_password_err; ?></span>
             </div>
             <div class="input-group">
                 <label for="nama_lengkap">Nama Lengkap</label>
-                <input type="text" id="nama_lengkap" name="nama_lengkap" value="<?php echo isset($nama_lengkap) ? htmlspecialchars($nama_lengkap) : ''; ?>" class="<?php echo !empty($nama_lengkap_err) ? 'error' : ''; ?>" required>
+                <input type="text" id="nama_lengkap" name="nama_lengkap"
+                    value="<?php echo isset($nama_lengkap) ? htmlspecialchars($nama_lengkap) : ''; ?>"
+                    class="<?php echo !empty($nama_lengkap_err) ? 'error' : ''; ?>" required>
                 <span class="error"><?php echo isset($nama_lengkap_err) ? $nama_lengkap_err : ''; ?></span>
             </div>
             <div class="input-group">
                 <label for="no_telp">Nomor Telepon</label>
-                <input type="text" id="no_telp" name="no_telp" value="<?php echo isset($no_telp) ? htmlspecialchars($no_telp) : ''; ?>" class="<?php echo !empty($no_telp_err) ? 'error' : ''; ?>" required>
+                <input type="text" id="no_telp" name="no_telp"
+                    value="<?php echo isset($no_telp) ? htmlspecialchars($no_telp) : ''; ?>"
+                    class="<?php echo !empty($no_telp_err) ? 'error' : ''; ?>" required>
                 <span class="error"><?php echo isset($no_telp_err) ? $no_telp_err : ''; ?></span>
             </div>
             <button type="submit" class="register-button">Daftar</button>
         </form>
     </div>
 </body>
+
 </html>

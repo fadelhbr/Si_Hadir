@@ -26,7 +26,8 @@ $error_message = "";
 $show_error = false;
 
 // Browser detection function
-function getBrowser() {
+function getBrowser()
+{
     $userAgent = $_SERVER['HTTP_USER_AGENT'];
     $browser = "Unknown Browser";
     $os = "Unknown OS";
@@ -71,7 +72,8 @@ function getBrowser() {
 }
 
 // Device fingerprinting function
-function getDeviceFingerprint() {
+function getDeviceFingerprint()
+{
     $fingerprint = [];
 
     // Get user agent components
@@ -120,7 +122,8 @@ function getDeviceFingerprint() {
 }
 
 // Function to check if user has any registered devices
-function hasRegisteredDevice($pdo, $user_id) {
+function hasRegisteredDevice($pdo, $user_id)
+{
     $sql = "SELECT COUNT(*) FROM log_akses WHERE user_id = :user_id AND device_hash IS NOT NULL";
     $stmt = $pdo->prepare($sql);
     $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
@@ -129,7 +132,8 @@ function hasRegisteredDevice($pdo, $user_id) {
 }
 
 // Function to verify if device matches registered device
-function isMatchingDevice($pdo, $user_id, $device_hash) {
+function isMatchingDevice($pdo, $user_id, $device_hash)
+{
     $sql = "SELECT device_hash FROM log_akses 
             WHERE user_id = :user_id 
             AND device_hash IS NOT NULL 
@@ -144,7 +148,8 @@ function isMatchingDevice($pdo, $user_id, $device_hash) {
 }
 
 // Function to handle successful login
-function loginUser($pdo, $user, $device_info, $status) {
+function loginUser($pdo, $user, $device_info, $status)
+{
     $_SESSION['loggedin'] = true;
     $_SESSION['username'] = $user['username'];
     $_SESSION['role'] = $user['role'];
@@ -230,7 +235,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
         } else {
             // Prepare a select statement
             $sql = "SELECT id, username, password, role FROM users WHERE username = :username";
-            
+
             try {
                 $stmt = $pdo->prepare($sql);
                 $stmt->bindParam(":username", $username, PDO::PARAM_STR);
@@ -238,7 +243,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
 
                 if ($stmt->rowCount() == 1) {
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                    
+
                     if (password_verify($password, $row['password'])) {
                         if (hasRegisteredDevice($pdo, $row['id'])) {
                             if (!isMatchingDevice($pdo, $row['id'], $device_info['hash'])) {
@@ -477,25 +482,25 @@ unset($pdo);
         </header>
 
         <?php if (!empty($error_message)): ?>
-        <div class="alert" id="error-alert">
-            <?php echo htmlspecialchars($error_message); ?>
-        </div>
-        <script>
-            // Automatically hide the error message after 5 seconds
-            var errorAlert = document.getElementById('error-alert');
-            if (errorAlert) {
-                setTimeout(function() {
-                    errorAlert.style.display = 'none';
-                }, 5000);
-            }
-        </script>
+            <div class="alert" id="error-alert">
+                <?php echo htmlspecialchars($error_message); ?>
+            </div>
+            <script>
+                // Automatically hide the error message after 5 seconds
+                var errorAlert = document.getElementById('error-alert');
+                if (errorAlert) {
+                    setTimeout(function () {
+                        errorAlert.style.display = 'none';
+                    }, 5000);
+                }
+            </script>
         <?php endif; ?>
 
         <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="form">
             <div class="form-group">
                 <label for="username" class="label">Username</label>
-                <input type="text" id="username" name="username" class="input" 
-                       value="<?php echo htmlspecialchars($username); ?>" required>
+                <input type="text" id="username" name="username" class="input"
+                    value="<?php echo htmlspecialchars($username); ?>" required>
             </div>
 
             <div class="form-group">
@@ -510,4 +515,5 @@ unset($pdo);
         </form>
     </div>
 </body>
+
 </html>

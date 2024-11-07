@@ -11,12 +11,14 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Si Hadir - Sistem Informasi Kehadiran</title>
     <link rel="icon" type="image/x-icon" href="assets/icon/favicon.ico" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -66,7 +68,8 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
         .title {
             font-size: 3rem;
             font-weight: 700;
-            color: #1e293b; /* Ganti dengan hitam */
+            color: #1e293b;
+            /* Ganti dengan hitam */
             margin-bottom: 1rem;
         }
 
@@ -199,6 +202,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -224,6 +228,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header class="header">
@@ -266,7 +271,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
         </div>
 
         <div class="cta-section">
-            
+
             <div class="buttons">
                 <a href="register.php" class="btn btn-primary">
                     <i class="fas fa-user-plus"></i>
@@ -284,4 +289,5 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
         </div>
     </div>
 </body>
+
 </html>

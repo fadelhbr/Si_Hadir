@@ -35,7 +35,8 @@ function checkEmployeeRole($pdo, $userId)
     return $user && $user['role'] === 'karyawan';
 }
 
-function verifyUniqueCode($pdo, $uniqueCode) {
+function verifyUniqueCode($pdo, $uniqueCode)
+{
     $query = "SELECT * FROM qr_code WHERE kode_unik = ?";
     $stmt = $pdo->prepare($query);
     $stmt->execute([$uniqueCode]);
@@ -64,6 +65,22 @@ function getActiveShiftSchedule($pdo, $employeeId, $date)
 
 function getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId)
 {
+    // Cek dulu apakah ada record dengan status cuti/izin
+    $checkQuery = "SELECT id, status_kehadiran 
+                  FROM absensi 
+                  WHERE pegawai_id = ? AND DATE(tanggal) = ? 
+                  AND status_kehadiran IN ('cuti', 'izin')";
+
+    $checkStmt = $pdo->prepare($checkQuery);
+    $checkStmt->execute([$employeeId, $date]);
+    $existingLeave = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+    // Jika ditemukan record dengan status cuti/izin, return false
+    if ($existingLeave) {
+        return ['status' => 'leave', 'message' => 'Anda sedang dalam status ' . $existingLeave['status_kehadiran']];
+    }
+
+    // Jika tidak ada status cuti/izin, lanjutkan dengan logika normal
     $query = "SELECT id, waktu_masuk, waktu_keluar, status_kehadiran, jadwal_shift_id, keterangan, kode_unik 
               FROM absensi 
               WHERE pegawai_id = ? AND DATE(tanggal) = ?";
@@ -79,10 +96,13 @@ function getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId)
         $stmt = $pdo->prepare($query);
         $stmt->execute([$employeeId, $date, $shiftId]);
 
-        return getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId);
+        // Ambil record yang baru dibuat
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$employeeId, $date]);
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    return $record;
+    return ['status' => 'success', 'data' => $record];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -131,6 +151,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $attendance = getOrCreateAttendanceRecord($pdo, $employeeId, $currentDate, $shiftSchedule['jadwal_shift_id']);
+
+        // Cek status attendance
+        if ($attendance['status'] === 'leave') {
+            throw new Exception($attendance['message']);
+        }
+
+        $attendance = $attendance['data']; // Ambil data attendance
 
         // Check if both check-in and check-out are already filled
         if ($attendance['waktu_masuk'] != '00:00:00' && $attendance['waktu_keluar'] != '00:00:00') {
