@@ -1,11 +1,6 @@
 <?php
 session_start();
-
 require_once '../../../app/auth/auth.php';
-
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -38,11 +33,11 @@ try {
     $stmtPegawai = $pdo->prepare($queryPegawai);
     $stmtPegawai->execute(['user_id' => $user_id]);
     $pegawaiData = $stmtPegawai->fetch(PDO::FETCH_ASSOC);
-
+    
     if (!$pegawaiData) {
         die("Data pegawai tidak ditemukan");
     }
-
+    
     $pegawai_id = $pegawaiData['pegawai_id'];
 
     // Handle POST requests untuk form submission
@@ -53,10 +48,10 @@ try {
                 $tanggal = $_POST['permitDate'];
                 $jenis_izin = $_POST['permitType'];
                 $keterangan = $_POST['permitDescription'];
-
+                
                 $query = "INSERT INTO izin (pegawai_id, tanggal, jenis_izin, keterangan, status, created_at) 
                          VALUES (:pegawai_id, :tanggal, :jenis_izin, :keterangan, 'pending', NOW())";
-
+                
                 $stmt = $pdo->prepare($query);
                 $result = $stmt->execute([
                     'pegawai_id' => $pegawai_id,
@@ -77,22 +72,22 @@ try {
                     ]);
                 }
             }
-
+            
             // Handle form cuti
             if ($_POST['form_type'] === 'cuti') {
                 $tanggal_mulai = $_POST['leaveStartDate'];
                 $tanggal_selesai = $_POST['leaveEndDate'];
                 $keterangan = $_POST['leaveDescription'];
-
+                
                 // Hitung durasi cuti
                 $date1 = new DateTime($tanggal_mulai);
                 $date2 = new DateTime($tanggal_selesai);
                 $interval = $date1->diff($date2);
                 $durasi_cuti = $interval->days + 1;
-
+                
                 $query = "INSERT INTO cuti (pegawai_id, tanggal_mulai, tanggal_selesai, durasi_cuti, keterangan, status, created_at) 
                          VALUES (:pegawai_id, :tanggal_mulai, :tanggal_selesai, :durasi_cuti, :keterangan, 'pending', NOW())";
-
+                
                 $stmt = $pdo->prepare($query);
                 $result = $stmt->execute([
                     'pegawai_id' => $pegawai_id,
@@ -159,7 +154,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Si Hadir - Absen</title>
+    <title>Si Hadir - Dashboard</title>
     <!-- Favicon-->
     <link rel="icon" type="image/x-icon" href="../../../assets/icon/favicon.ico" />
     <!-- Core theme CSS (includes Bootstrap)-->
@@ -169,152 +164,130 @@ try {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
-
     <style>
-        .alert {
-            margin-bottom: 1rem;
-            animation: fadeIn 0.5s;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
+            .alert {
+                margin-bottom: 1rem;
+                animation: fadeIn 0.5s;
             }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
             }
-        }
 
-        .alert-dismissible .btn-close {
-            padding: 0.75rem 1rem;
-        }
+            .alert-dismissible .btn-close {
+                padding: 0.75rem 1rem;
+            }
 
-        /* Mengatur font Poppins hanya untuk <strong> di dalam sidebar-heading */
-        #sidebar-wrapper .sidebar-heading strong {
-            font-family: 'Poppins', sans-serif;
-            /* Menggunakan font Poppins hanya untuk Si Hadir */
-            font-weight: 900;
-            /* Menebalkan tulisan */
-            font-size: 28px;
-            /* Membesarkan ukuran font */
-        }
-
-        /* Menghilangkan tombol toggle navbar dan memastikan navbar selalu terlihat */
-        .navbar-toggler {
-            display: none;
-        }
-
-        #navbarSupportedContent {
-            display: flex !important;
-        }
-
-        .status-card {
+            /* Mengatur font Poppins hanya untuk <strong> di dalam sidebar-heading */
+            #sidebar-wrapper .sidebar-heading strong {
+                font-family: 'Poppins', sans-serif; /* Menggunakan font Poppins hanya untuk Si Hadir */
+                font-weight: 900; /* Menebalkan tulisan */
+                font-size: 28px;  /* Membesarkan ukuran font */
+            }
+            
+            /* Menghilangkan tombol toggle navbar dan memastikan navbar selalu terlihat */
+            .navbar-toggler {
+                display: none;
+            }
+            
+            #navbarSupportedContent {
+                display: flex !important;
+            }
+            
+            .status-card {
             transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .status-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar-icon {
+            }
+            .status-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .sidebar-icon {
             width: 24px;
             height: 24px;
             margin-right: 10px;
             vertical-align: middle;
-        }
+            }
 
-        .hidden {
-            display: none;
-        }
-    </style>
+            .hidden {
+                display: none;
+            }
+            
+            /* Style untuk switch */
+            .switch {
+                position: relative;
+                display: inline-block;
+                width: 60px;
+                height: 34px;
+                margin: 0 10px; /* Menambahkan margin di sekitar switch */
+            }
 
-    <style>
-        /* Style untuk switch */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-            margin: 0 10px;
-            /* Menambahkan margin di sekitar switch */
-        }
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
 
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: .4s;
+                border-radius: 34px;
+            }
 
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 26px;
+                width: 26px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                border-radius: 50%;
+                transition: .4s;
+            }
 
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            border-radius: 50%;
-            transition: .4s;
-        }
+            input:checked + .slider {
+                background-color: #2196F3;
+            }
 
-        input:checked+.slider {
-            background-color: #2196F3;
-        }
+            input:checked + .slider:before {
+                transform: translateX(26px);
+            }
 
-        input:checked+.slider:before {
-            transform: translateX(26px);
-        }
+            .hidden {
+                display: none;
+            }
+            
+            .btn-izin {
+                background-color: #007bff; /* Warna biru */
+                color: white;
+                transition: background-color 0.3s, color 0.3s;
+            }
+            
+            .btn-cuti {
+                background-color: #6c757d; /* Warna abu-abu */
+                color: white;
+                transition: background-color 0.3s, color 0.3s;
+            }
 
-        .hidden {
-            display: none;
-        }
-    </style>
-
-    <style>
-        .btn-izin {
-            background-color: #007bff;
-            /* Warna biru */
-            color: white;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        .btn-cuti {
-            background-color: #6c757d;
-            /* Warna abu-abu */
-            color: white;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        .btn-active {
-            background-color: #0056b3 !important;
-            /* Warna tombol aktif */
-            color: white !important;
-        }
-    </style>
-
+            .btn-active {
+                background-color: #0056b3 !important; /* Warna tombol aktif */
+                color: white !important;
+            }
+        </style>
 </head>
 
-<body>
-    <?php if (isset($_GET['status'])): ?>
-        <div class="alert <?php echo $_GET['status'] === 'success' ? 'alert-success' : 'alert-danger'; ?> alert-dismissible fade show"
-            role="alert">
-            <?php
+<body style="background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);">
+<?php if (isset($_GET['status'])): ?>
+        <div class="alert <?php echo $_GET['status'] === 'success' ? 'alert-success' : 'alert-danger'; ?> alert-dismissible fade show" role="alert">
+            <?php 
             if ($_GET['status'] === 'success') {
                 echo 'Pengajuan berhasil disubmit!';
             } else {
@@ -345,7 +318,7 @@ try {
                         <path
                             d="M480-120q-138 0-240.5-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm112-192L440-464v-216h80v184l128 128-56 56Z" />
                     </svg>
-                    <span>Riwayat kehadiran</span>
+                    Riwayat Kehadiran
                 </a>
                 <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0"
                     href="permit.php">
@@ -381,9 +354,8 @@ try {
             <div class="container-fluid p-4">
                 <div id="alertContainer">
                     <?php if (isset($_GET['status'])): ?>
-                        <div class="alert <?php echo $_GET['status'] === 'success' ? 'alert-success' : 'alert-danger'; ?> alert-dismissible fade show"
-                            role="alert">
-                            <?php
+                        <div class="alert <?php echo $_GET['status'] === 'success' ? 'alert-success' : 'alert-danger'; ?> alert-dismissible fade show" role="alert">
+                            <?php 
                             if ($_GET['status'] === 'success') {
                                 echo 'Pengajuan berhasil disubmit!';
                             } else {
@@ -395,23 +367,19 @@ try {
                     <?php endif; ?>
                 </div>
                 <h1 class="text-3xl font-semibold mb-4">Cuti & Perizinan</h1>
-                <div
-                    class="flex flex-col md:flex-row items-center justify-between mb-4 space-y-2 md:space-y-0 md:space-x-2">
+                <div class="flex items-center justify-between mb-4">
                     <div class="flex space-x-2">
-                        <!-- Changed to two separate buttons for leave and permit requests -->
-                        <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" id="permitRequestBtn"
-                            data-bs-toggle="modal" data-bs-target="#permitRequestModal">Pengajuan Izin</button>
-                        <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                            id="leaveRequestBtn" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">Pengajuan
-                            Cuti</button>
+                        <button class="bg-blue-500 text-white px-4 py-2 rounded" id="permitRequestBtn" data-bs-toggle="modal" data-bs-target="#permitRequestModal">
+                            Pengajuan Izin
+                        </button>
+                        <button class="bg-green-500 text-white px-4 py-2 rounded" id="leaveRequestBtn" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
+                            Pengajuan Cuti
+                        </button>
                     </div>
-                    <input type="text" id="searchDate" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64"
-                        placeholder="Cari riwayat pengajuan...">
+                    <input type="text" id="searchDate" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari Jadwal">
                 </div>
-            </div>
 
-            <div class="bg-white shadow rounded-lg p-4 mb-4">
-                <!-- Table switch for viewing history -->
+                <div class="bg-white shadow rounded-lg p-4 mb-4">
                 <div class="flex items-center mb-4">
                     <label class="switch">
                         <input type="checkbox" id="tableSwitch" onchange="toggleTableswitch()">
@@ -420,346 +388,311 @@ try {
                     <span id="tableLabel" class="ml-2">Riwayat Izin</span>
                 </div>
 
-                <!-- Permit History Table -->
-                <div id="izinTable" class="table-container">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                    Tanggal</th>
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                    Jenis Izin</th>
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                    Keterangan</th>
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                    Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <?php if (empty($dataIzin)): ?>
-                                <tr>
-                                    <td colspan="4" class="px-4 py-3 text-center text-gray-500">Tidak ada data izin</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($dataIzin as $row): ?>
-                                    <tr>
-                                        <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal']); ?></td>
-                                        <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['jenis_izin']); ?>
-                                        </td>
-                                        <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?>
-                                        </td>
-                                        <td class="px-4 py-3 text-center">
-                                            <span
-                                                class="<?php echo $row['status'] == 'disetujui' ? 'bg-green-500' : ($row['status'] == 'pending' ? 'bg-yellow-500' : 'bg-red-500'); ?> text-white py-1 px-2 rounded">
-                                                <?php echo ucfirst(htmlspecialchars($row['status'])); ?>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+    <!-- IZIN TABEL -->
+    <div id="izinTable" class="table-container">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Tanggal</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Jenis Izin</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Keterangan</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+            <?php if (empty($dataIzin)): ?>
+            <tr>
+                <td colspan="4" class="px-4 py-3 text-center text-gray-500">Tidak ada data izin</td>
+            </tr>
+        <?php else: ?>
+            <?php foreach ($dataIzin as $row): ?>
+                <tr>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['jenis_izin']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="<?php echo $row['status'] == 'disetujui' ? 'bg-green-500' : ($row['status'] == 'pending' ? 'bg-yellow-500' : 'bg-red-500'); ?> text-white py-1 px-2 rounded">
+                            <?php echo ucfirst(htmlspecialchars($row['status'])); ?>
+                        </span>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        <?php endif; ?>    
+            </tbody>
+        </table>
+    </div>
+<!-- Leave History Table -->
+    <div id="cutiTable" class="table-container hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Tanggal Mulai</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Tanggal Selesai</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Durasi Cuti</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Keterangan</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+            <?php if (empty($dataCuti)): ?>
+            <tr>
+                <td colspan="5" class="px-4 py-3 text-center text-gray-500">Tidak ada data cuti</td>
+            </tr>
+        <?php else: ?>
+            <?php foreach ($dataCuti as $row): ?>
+                <tr>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_mulai']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_selesai']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['durasi_cuti']); ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="<?php echo $row['status'] == 'disetujui' ? 'bg-green-500' : ($row['status'] == 'pending' ? 'bg-yellow-500' : 'bg-red-500'); ?> text-white py-1 px-2 rounded">
+                            <?php echo ucfirst(htmlspecialchars($row['status'])); ?>
+                        </span>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
 
-                <!-- Leave History Table -->
-                <div id="cutiTable" class="table-container hidden">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                    Tanggal Mulai</th>
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                    Tanggal Selesai</th>
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                    Durasi Cuti</th>
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                    Keterangan</th>
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                    Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <?php if (empty($dataCuti)): ?>
-                                <tr>
-                                    <td colspan="5" class="px-4 py-3 text-center text-gray-500">Tidak ada data cuti</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($dataCuti as $row): ?>
-                                    <tr>
-                                        <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_mulai']); ?>
-                                        </td>
-                                        <td class="px-4 py-3 text-center">
-                                            <?php echo htmlspecialchars($row['tanggal_selesai']); ?></td>
-                                        <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['durasi_cuti']); ?>
-                                        </td>
-                                        <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?>
-                                        </td>
-                                        <td class="px-4 py-3 text-center">
-                                            <span
-                                                class="<?php echo $row['status'] == 'disetujui' ? 'bg-green-500' : ($row['status'] == 'pending' ? 'bg-yellow-500' : 'bg-red-500'); ?> text-white py-1 px-2 rounded">
-                                                <?php echo ucfirst(htmlspecialchars($row['status'])); ?>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+    <div class="modal fade" id="permitRequestModal" tabindex="-1" aria-labelledby="permitRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="permitRequestModalLabel">Pengajuan Izin</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-
-            <!-- Permit Request Modal -->
-            <div class="modal fade" id="permitRequestModal" tabindex="-1" aria-labelledby="permitRequestModalLabel"
-                aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="permitRequestModalLabel">Pengajuan Izin</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-
-                        <div class="modal-body">
-                            <form id="permitRequestForm" method="POST" action="permit.php">
-                                <input type="hidden" name="form_type" value="izin">
-                                <div class="mb-3">
-                                    <label for="permitDate" class="form-label">Tanggal</label>
-                                    <input type="date" class="form-control" id="permitDate" name="permitDate" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="permitType" class="form-label">Jenis Izin</label>
-                                    <select class="form-select" id="permitType" name="permitType" required>
-                                        <option value="" class="placeholder" hidden>Pilih Jenis Izin</option>
-                                        <option value="dinas_luar">Dinas Luar</option>
-                                        <option value="keperluan_pribadi">Keperluan Pribadi</option>
-                                        <option value="lainnya">Lainnya</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="permitDescription" class="form-label">Keterangan</label>
-                                    <textarea class="form-control" id="permitDescription" name="permitDescription"
-                                        rows="3" required></textarea>
-                                </div>
-                                <div class="text-end">
-                                    <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
-                                </div>
-                            </form>
-                        </div>
+            <div class="modal-body">
+                <form id="permitRequestForm" method="POST" action="schedule.php">
+                    <input type="hidden" name="form_type" value="izin">
+                    <div class="mb-3">
+                        <label for="permitDate" class="form-label">Tanggal</label>
+                        <input type="date" class="form-control" id="permitDate" name="permitDate" required>
                     </div>
-                </div>
-            </div>
-
-            <!-- Leave Request Modal -->
-            <div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel"
-                aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="leaveRequestModalLabel">Pengajuan Cuti</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="leaveRequestForm" method="POST" novalidate>
-                                <input type="hidden" name="form_type" value="cuti">
-                                <div class="mb-3">
-                                    <label for="leaveStartDate" class="form-label">Tanggal Mulai</label>
-                                    <input type="date" class="form-control" id="leaveStartDate" name="leaveStartDate"
-                                        required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="leaveEndDate" class="form-label">Tanggal Selesai</label>
-                                    <input type="date" class="form-control" id="leaveEndDate" name="leaveEndDate"
-                                        required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="leaveDescription" class="form-label">Keterangan</label>
-                                    <textarea class="form-control" id="leaveDescription" name="leaveDescription"
-                                        rows="3" required></textarea>
-                                </div>
-                                <div class="text-end">
-                                    <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
-                                </div>
-                            </form>
-                        </div>
+                    <div class="mb-3">
+                        <label for="permitType" class="form-label">Jenis Izin</label>
+                        <select class="form-select" id="permitType" name="permitType" required>
+                            <option value="" class="placeholder" hidden>Pilih Jenis Izin</option>
+                            <option value="dinas_luar">Dinas Luar</option>
+                            <option value="keperluan_pribadi">Keperluan Pribadi</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
                     </div>
-                </div>
+                    <div class="mb-3">
+                        <label for="permitDescription" class="form-label">Keterangan</label>
+                        <textarea class="form-control" id="permitDescription" name="permitDescription" rows="3" required></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
+                    </div>
+                </form>
             </div>
+        </div>
+    </div>
+</div>
 
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-            <script src="../../../assets/js/scripts.js"></script>
+<!-- Leave Request Modal -->
+<div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
 
-            <script>
-                $(document).ready(function () {
-                    // Handle form izin submission
-                    $('#permitRequestForm').on('submit', function (e) {
-                        e.preventDefault();
+            <div class="modal-header">
+                <h5 class="modal-title" id="leaveRequestModalLabel">Pengajuan Cuti</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="leaveRequestForm" method="POST" novalidate>
+                    <input type="hidden" name="form_type" value="cuti">
+                    <div class="mb-3">
+                        <label for="leaveStartDate" class="form-label">Tanggal Mulai</label>
+                        <input type="date" class="form-control" id="leaveStartDate" name="leaveStartDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leaveEndDate" class="form-label">Tanggal Selesai</label>
+                        <input type="date" class="form-control" id="leaveEndDate" name="leaveEndDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="leaveDescription" class="form-label">Keterangan</label>
+                        <textarea class="form-control" id="leaveDescription" name="leaveDescription" rows="3" required></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Submit Pengajuan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
-                        $.ajax({
-                            type: 'POST',
-                            url: 'permit.php',
-                            data: $(this).serialize(),
-                            dataType: 'json',
-                            success: function (response) {
-                                if (response.status === 'success') {
-                                    alert(response.message);
-                                    $('#permitModal').modal('hide');
-                                    location.reload();
-                                } else {
-                                    alert('Error: ' + response.message);
-                                }
-                            },
-                            error: function () {
-                                alert('Terjadi kesalahan pada server');
-                            }
-                        });
-                    });
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../../assets/js/scripts.js"></script>
 
-                    // Handle form cuti submission
-                    $('#leaveRequestForm').on('submit', function (e) {
-                        e.preventDefault();
-
-                        if (!validateForm('cuti')) {
-                            return;
+    <script>
+        $(document).ready(function() {
+            // Handle form izin submission
+            $('#permitRequestForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                $.ajax({
+                    type: 'POST',
+                    url: 'permit.php',
+                    data: $(this).serialize(),
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            alert(response.message);
+                            $('#permitModal').modal('hide');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
                         }
-
-                        $.ajax({
-                            type: 'POST',
-                            url: 'permit.php',
-                            data: $(this).serialize(),
-                            dataType: 'json',
-                            success: function (response) {
-                                console.log('Response:', response);
-                                if (response.status === 'success') {
-                                    alert(response.message);
-                                    $('#leaveModal').modal('hide');
-                                    location.reload();
-                                } else {
-                                    alert('Error: ' + response.message);
-                                }
-                            },
-                            error: function (xhr, status, error) {
-                                console.error('AJAX Error:', error);
-                                console.error('Response:', xhr.responseText);
-                                alert('Terjadi kesalahan pada server');
-                            }
-                        });
-                    });
-
-                    // Validasi tanggal cuti
-                    $('#leaveStartDate, #leaveEndDate').on('change', function () {
-                        var startDate = new Date($('#leaveStartDate').val());
-                        var endDate = new Date($('#leaveEndDate').val());
-
-                        if (startDate > endDate) {
-                            alert('Tanggal selesai tidak boleh lebih awal dari tanggal mulai!');
-                            $('#leaveEndDate').val('');
-                        }
-                    });
-
-                    // Reset form ketika modal ditutup
-                    $('#permitModal').on('hidden.bs.modal', function () {
-                        $('#permitRequestForm')[0].reset();
-                    });
-
-                    $('#leaveModal').on('hidden.bs.modal', function () {
-                        $('#leaveRequestForm')[0].reset();
-                    });
-
-                    // Validasi input tanggal tidak boleh kurang dari hari ini
-                    var today = new Date().toISOString().split('T')[0];
-                    $('#permitDate').attr('min', today);
-                    $('#leaveStartDate').attr('min', today);
-                    $('#leaveEndDate').attr('min', today);
-                });
-
-                // Function untuk memformat tanggal
-                function formatDate(date) {
-                    var d = new Date(date),
-                        month = '' + (d.getMonth() + 1),
-                        day = '' + d.getDate(),
-                        year = d.getFullYear();
-
-                    if (month.length < 2) month = '0' + month;
-                    if (day.length < 2) day = '0' + day;
-
-                    return [year, month, day].join('-');
-                }
-
-                // Function untuk menghitung durasi hari
-                function calculateDuration(startDate, endDate) {
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    const diffTime = Math.abs(end - start);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                    return diffDays;
-                }
-
-                // Tambahan validasi untuk form izin
-                $('#permitType').on('change', function () {
-                    if ($(this).val() === 'lainnya') {
-                        $('#permitDescription').attr('placeholder', 'Mohon jelaskan detail keperluan Anda');
-                    } else {
-                        $('#permitDescription').attr('placeholder', 'Tambahkan keterangan jika diperlukan');
+                    },
+                    error: function() {
+                        alert('Terjadi kesalahan pada server');
                     }
                 });
+            });
 
-                // Validasi form sebelum submit
-                function validateForm(formType) {
-                    if (formType === 'izin') {
-                        if (!$('#permitDate').val()) {
-                            alert('Tanggal harus diisi!');
-                            return false;
-                        }
-                        if (!$('#permitType').val()) {
-                            alert('Jenis izin harus dipilih!');
-                            return false;
-                        }
-                        if (!$('#permitDescription').val().trim()) {
-                            alert('Keterangan harus diisi!');
-                            return false;
-                        }
-                    } else if (formType === 'cuti') {
-                        if (!$('#leaveStartDate').val()) {
-                            alert('Tanggal mulai harus diisi!');
-                            return false;
-                        }
-                        if (!$('#leaveEndDate').val()) {
-                            alert('Tanggal selesai harus diisi!');
-                            return false;
-                        }
-                        if (!$('#leaveDescription').val().trim()) {
-                            alert('Keterangan harus diisi!');
-                            return false;
-                        }
-                    }
-                    return true;
+            // Handle form cuti submission
+            $('#leaveRequestForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                if (!validateForm('cuti')) {
+                    return;
                 }
-            </script>
-
-            <script>
-                function toggleTableswitch() {
-                    const isChecked = document.getElementById('tableSwitch').checked;
-                    const tableLabel = document.getElementById('tableLabel');
-
-                    if (isChecked) {
-                        document.getElementById('izinTable').classList.add('hidden');
-                        document.getElementById('cutiTable').classList.remove('hidden');
-                        tableLabel.textContent = "Riwayat Cuti";
-                    } else {
-                        document.getElementById('izinTable').classList.remove('hidden');
-                        document.getElementById('cutiTable').classList.add('hidden');
-                        tableLabel.textContent = "Riwayat Izin";
+                
+                $.ajax({
+                    type: 'POST',
+                    url: 'permit.php',
+                    data: $(this).serialize(),
+                    dataType: 'json',
+                    success: function(response) {
+                        console.log('Response:', response);
+                        if (response.status === 'success') {
+                            alert(response.message);
+                            $('#leaveModal').modal('hide');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', error);
+                        console.error('Response:', xhr.responseText);
+                        alert('Terjadi kesalahan pada server');
                     }
+                });
+            });
+
+            // Validasi tanggal cuti
+            $('#leaveStartDate, #leaveEndDate').on('change', function() {
+                var startDate = new Date($('#leaveStartDate').val());
+                var endDate = new Date($('#leaveEndDate').val());
+
+                if (startDate > endDate) {
+                    alert('Tanggal selesai tidak boleh lebih awal dari tanggal mulai!');
+                    $('#leaveEndDate').val('');
                 }
+            });
+
+            // Reset form ketika modal ditutup
+            $('#permitModal').on('hidden.bs.modal', function() {
+                $('#permitRequestForm')[0].reset();
+            });
+
+            $('#leaveModal').on('hidden.bs.modal', function() {
+                $('#leaveRequestForm')[0].reset();
+            });
+
+            // Validasi input tanggal tidak boleh kurang dari hari ini
+            var today = new Date().toISOString().split('T')[0];
+            $('#permitDate').attr('min', today);
+            $('#leaveStartDate').attr('min', today);
+            $('#leaveEndDate').attr('min', today);
+        });
+
+        // Function untuk memformat tanggal
+        function formatDate(date) {
+            var d = new Date(date),
+                month = '' + (d.getMonth() + 1),
+                day = '' + d.getDate(),
+                year = d.getFullYear();
+
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        }
+
+        // Function untuk menghitung durasi hari
+        function calculateDuration(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            return diffDays;
+        }
+
+        // Tambahan validasi untuk form izin
+        $('#permitType').on('change', function() {
+            if ($(this).val() === 'lainnya') {
+                $('#permitDescription').attr('placeholder', 'Mohon jelaskan detail keperluan Anda');
+            } else {
+                $('#permitDescription').attr('placeholder', 'Tambahkan keterangan jika diperlukan');
+            }
+        });
+
+        // Validasi form sebelum submit
+        function validateForm(formType) {
+            if (formType === 'izin') {
+                if (!$('#permitDate').val()) {
+                    alert('Tanggal harus diisi!');
+                    return false;
+                }
+                if (!$('#permitType').val()) {
+                    alert('Jenis izin harus dipilih!');
+                    return false;
+                }
+                if (!$('#permitDescription').val().trim()) {
+                    alert('Keterangan harus diisi!');
+                    return false;
+                }
+            } else if (formType === 'cuti') {
+                if (!$('#leaveStartDate').val()) {
+                    alert('Tanggal mulai harus diisi!');
+                    return false;
+                }
+                if (!$('#leaveEndDate').val()) {
+                    alert('Tanggal selesai harus diisi!');
+                    return false;
+                }
+                if (!$('#leaveDescription').val().trim()) {
+                    alert('Keterangan harus diisi!');
+                    return false;
+                }
+            }
+            return true;
+        }
+        </script>
+
+    <script>
+        function toggleTableswitch() {
+            const isChecked = document.getElementById('tableSwitch').checked;
+            const tableLabel = document.getElementById('tableLabel');
+            
+            if (isChecked) {
+                document.getElementById('izinTable').classList.add('hidden');
+                document.getElementById('cutiTable').classList.remove('hidden');
+                tableLabel.textContent = "Riwayat Cuti";
+            } else {
+                document.getElementById('izinTable').classList.remove('hidden');
+                document.getElementById('cutiTable').classList.add('hidden');
+                tableLabel.textContent = "Riwayat Izin";
+            }
+        }
 
                 // Sidebar toggle functionality
                 const sidebarToggle = document.getElementById('sidebarToggle');
@@ -769,119 +702,117 @@ try {
                     sidebarWrapper.classList.toggle('collapsed');
                 });
 
-                function showAlert(message, type = 'success') {
-                    const alertContainer = document.getElementById('alertContainer');
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-                    alertDiv.role = 'alert';
-
-                    alertDiv.innerHTML = `
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.role = 'alert';
+            
+            alertDiv.innerHTML = `
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+                alert.close();
+            }, 5000);
+        }
+    </script>
+    <script>
+    document.getElementById('permitRequestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('permit.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('permitRequestModal'));
+        modal.hide();
+        
+        showAlert('Pengajuan izin berhasil disubmit!', 'success');
+        
+        // Refresh the page after a short delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
+    });
+});
 
-                    alertContainer.appendChild(alertDiv);
+document.getElementById('leaveRequestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('permit.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('leaveRequestModal'));
+        modal.hide();
+        
+        showAlert('Pengajuan cuti berhasil disubmit!', 'success');
+        
+        // Refresh the page after a short delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
+    });
+});
 
-                    setTimeout(() => {
-                        const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
-                        alert.close();
-                    }, 5000);
+// Handle URL parameters for alerts on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const message = urlParams.get('message');
+    
+    if (status === 'success') {
+        showAlert('Pengajuan berhasil disubmit!', 'success');
+    } else if (status === 'error') {
+        showAlert(`Error: ${message || 'Terjadi kesalahan'}`, 'danger');
+    }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchDate');
+    const tableRows = document.querySelectorAll('table tbody tr');
+
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.trim().toLowerCase();
+
+        tableRows.forEach(row => {
+            const dateCell = row.querySelector('td:first-child');
+            if (dateCell) {
+                const date = dateCell.textContent.trim().toLowerCase();
+                if (date.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
                 }
-            </script>
-            <script>
-                document.getElementById('permitRequestForm').addEventListener('submit', function (e) {
-                    e.preventDefault();
-
-                    const formData = new FormData(this);
-
-                    fetch('permit.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                        .then(response => response.text())
-                        .then(data => {
-                            // Close modal
-                            const modal = bootstrap.Modal.getInstance(document.getElementById('permitRequestModal'));
-                            modal.hide();
-
-                            showAlert('Pengajuan izin berhasil disubmit!', 'success');
-
-                            // Refresh the page after a short delay
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1500);
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
-                        });
-                });
-
-                document.getElementById('leaveRequestForm').addEventListener('submit', function (e) {
-                    e.preventDefault();
-
-                    const formData = new FormData(this);
-
-                    fetch('permit.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                        .then(response => response.text())
-                        .then(data => {
-                            // Close modal
-                            const modal = bootstrap.Modal.getInstance(document.getElementById('leaveRequestModal'));
-                            modal.hide();
-
-                            showAlert('Pengajuan cuti berhasil disubmit!', 'success');
-
-                            // Refresh the page after a short delay
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1500);
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
-                        });
-                });
-
-                // Handle URL parameters for alerts on page load
-                document.addEventListener('DOMContentLoaded', function () {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const status = urlParams.get('status');
-                    const message = urlParams.get('message');
-
-                    if (status === 'success') {
-                        showAlert('Pengajuan berhasil disubmit!', 'success');
-                    } else if (status === 'error') {
-                        showAlert(`Error: ${message || 'Terjadi kesalahan'}`, 'danger');
-                    }
-                });
-            </script>
-
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    const searchInput = document.getElementById('searchDate');
-                    const tableRows = document.querySelectorAll('table tbody tr');
-
-                    searchInput.addEventListener('input', function () {
-                        const searchTerm = this.value.trim().toLowerCase();
-
-                        tableRows.forEach(row => {
-                            const dateCell = row.querySelector('td:first-child');
-                            if (dateCell) {
-                                const date = dateCell.textContent.trim().toLowerCase();
-                                if (date.includes(searchTerm)) {
-                                    row.style.display = '';
-                                } else {
-                                    row.style.display = 'none';
-                                }
-                            }
-                        });
-                    });
-                });
-            </script>
-
+            }
+        });
+    });
+});
+</script>
 </body>
-
 </html>
