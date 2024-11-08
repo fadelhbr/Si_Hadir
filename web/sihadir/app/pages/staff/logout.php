@@ -5,7 +5,8 @@ session_start();
 require_once '../../../app/auth/auth.php';
 
 // Function untuk mencatat error ke file log
-function logError($message) {
+function logError($message)
+{
     $log_file = 'error.log';
     $timestamp = date('Y-m-d H:i:s');
     $log_message = "[$timestamp] $message\n";
@@ -22,7 +23,8 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 date_default_timezone_set('Asia/Jakarta');
 
 // Import the device fingerprinting functions
-function getBrowser() {
+function getBrowser()
+{
     $userAgent = $_SERVER['HTTP_USER_AGENT'];
     $browser = "Unknown Browser";
     $os = "Unknown OS";
@@ -66,48 +68,49 @@ function getBrowser() {
     return "$browser | $os";
 }
 
-function getDeviceFingerprint() {
+function getDeviceFingerprint()
+{
     $fingerprint = [];
-    
+
     // Get user agent components
     $userAgent = $_SERVER['HTTP_USER_AGENT'];
-    
+
     // CPU Architecture and platform
     if (preg_match('/\((.*?)\)/', $userAgent, $matches)) {
         $fingerprint['platform'] = $matches[1];
     }
-    
+
     // Screen resolution and color depth (via JavaScript)
     $fingerprint['screen'] = '<script>document.write(screen.width+"x"+screen.height+"x"+screen.colorDepth);</script>';
-    
+
     // Timezone
     $fingerprint['timezone'] = date_default_timezone_get();
-    
+
     // Available languages
     if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
         $fingerprint['languages'] = $_SERVER['HTTP_ACCEPT_LANGUAGE'];
     }
-    
+
     // Headers that might help identify the device
     $headers = [
         'HTTP_ACCEPT',
         'HTTP_ACCEPT_ENCODING',
         'HTTP_ACCEPT_CHARSET'
     ];
-    
+
     foreach ($headers as $header) {
         if (isset($_SERVER[$header])) {
             $fingerprint[$header] = $_SERVER[$header];
         }
     }
-    
+
     // Check for mobile device indicators
     $fingerprint['is_mobile'] = preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i', $userAgent) ? 'true' : 'false';
-    
+
     // Generate unique device hash
     $deviceString = implode('|', array_filter($fingerprint));
     $deviceHash = hash('sha256', $deviceString);
-    
+
     return [
         'hash' => $deviceHash,
         'details' => json_encode($fingerprint)
@@ -129,16 +132,16 @@ if (isset($_POST['logout']) && $_POST['logout'] == 'yes') {
         if (!isset($_SESSION['id'])) {
             throw new Exception("User ID tidak ditemukan dalam session");
         }
-        
+
         $user_id = $_SESSION['id'];
-        
+
         // Get device information
         $device_info_legacy = getBrowser();
         $device_info = getDeviceFingerprint();
-        
+
         // Start transaction
         $pdo->beginTransaction();
-        
+
         // Generate random ID with verification
         do {
             $random_id = random_int(100000, 999999);
@@ -159,7 +162,7 @@ if (isset($_POST['logout']) && $_POST['logout'] == 'yes') {
         )";
 
         $stmt_log = $pdo->prepare($sql_log);
-        
+
         // Execute dengan explicit parameter binding
         $result = $stmt_log->execute([
             ':random_id' => $random_id,
@@ -169,7 +172,7 @@ if (isset($_POST['logout']) && $_POST['logout'] == 'yes') {
             ':device_hash' => $device_info['hash'],  // Pastikan ini tidak null
             ':device_details' => $device_info['details']  // Pastikan ini tidak null
         ]);
-        
+
         if (!$result) {
             throw new Exception("Gagal mencatat log logout");
         }
@@ -180,7 +183,7 @@ if (isset($_POST['logout']) && $_POST['logout'] == 'yes') {
         // Clear session data
         session_unset();
         session_destroy();
-        
+
         // Clear any output buffers
         while (ob_get_level()) {
             ob_end_clean();
@@ -189,7 +192,7 @@ if (isset($_POST['logout']) && $_POST['logout'] == 'yes') {
         // Redirect to login page
         header("Location: ../../../login.php");
         exit;
-        
+
     } catch (PDOException $e) {
         $pdo->rollBack();
         logError("Database error during logout: " . $e->getMessage());
@@ -213,11 +216,13 @@ if (isset($pdo)) {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Si Hadir - Logout</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Istok+Web&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Istok+Web&display=swap"
+        rel="stylesheet">
     <style>
         /* Add your CSS styling here */
         * {
@@ -265,7 +270,8 @@ if (isset($pdo)) {
             gap: 20px;
         }
 
-        .logout-button, .cancel-button {
+        .logout-button,
+        .cancel-button {
             width: 150px;
             padding: 12px;
             border: none;
@@ -294,27 +300,29 @@ if (isset($pdo)) {
         }
     </style>
 </head>
+
 <body>
 
-<div class="logout-container">
-    <h1 class="logout-title">Konfirmasi</h1>
-    <p class="logout-message">Apakah Anda yakin ingin keluar?</p>
+    <div class="logout-container">
+        <h1 class="logout-title">Konfirmasi</h1>
+        <p class="logout-message">Apakah Anda yakin ingin keluar?</p>
 
-    <?php if (!empty($error_message)): ?>
-        <p style="color: red;"><?php echo $error_message; ?></p>
-    <?php endif; ?>
+        <?php if (!empty($error_message)): ?>
+            <p style="color: red;"><?php echo $error_message; ?></p>
+        <?php endif; ?>
 
-    <div class="button-group">
-        <form action="" method="post">
-            <input type="hidden" name="logout" value="yes">
-            <button type="submit" class="logout-button">Ya, Logout</button>
-        </form>
-        <a href="pengumumanKaryawan.php">
-            <button class="cancel-button">Tidak, Kembali</button>
-        </a>
+        <div class="button-group">
+            <form action="" method="post">
+                <input type="hidden" name="logout" value="yes">
+                <button type="submit" class="logout-button">Ya, Logout</button>
+            </form>
+            <a href="attendance.php">
+                <button class="cancel-button">Tidak, Kembali</button>
+            </a>
+        </div>
     </div>
-</div>
 
 
 </body>
+
 </html>

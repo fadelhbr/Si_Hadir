@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once '../../../app/auth/auth.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
@@ -21,71 +22,117 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
     header('Location: ../../../login.php');
     exit;
 }
+
+
+// Query untuk mengambil data absensi user yang sedang login
+$query = "
+    SELECT 
+        u.nama_lengkap,  -- Mengambil nama dari tabel users
+        s.nama_shift,
+        CONCAT(s.jam_masuk, ' - ', s.jam_keluar) as jadwal_shift,
+        a.waktu_masuk,
+        a.waktu_keluar,
+        a.status_kehadiran,
+        DATE(a.tanggal) as tanggal
+    FROM absensi a
+    JOIN pegawai p ON a.pegawai_id = p.id
+    JOIN users u ON p.user_id = u.id  -- Join dengan tabel users
+    JOIN jadwal_shift js ON a.jadwal_shift_id = js.id
+    JOIN shift s ON js.shift_id = s.id
+    WHERE p.user_id = :user_id
+    ORDER BY a.tanggal DESC
+";
+
+try {
+    $stmt = $pdo->prepare($query);
+    $stmt->execute(['user_id' => $_SESSION['id']]);
+    $attendances = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Database Error: " . $e->getMessage());
+    echo "Terjadi kesalahan saat mengambil data: " . $e->getMessage();
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="description" content="" />
-        <meta name="author" content="" />
-        <title>Si Hadir - Absen</title>
-        <!-- Favicon-->
-        <link rel="icon" type="image/x-icon" href="../../../assets/favicon.ico" />
-        <!-- Core theme CSS (includes Bootstrap)-->
-        <link href="../../../assets/css/styles.css" rel="stylesheet" />
-        <!-- Link Google Fonts untuk Poppins -->
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-        
-        <style>
-            /* Mengatur font Poppins hanya untuk <strong> di dalam sidebar-heading */
-            #sidebar-wrapper .sidebar-heading strong {
-                font-family: 'Poppins', sans-serif; /* Menggunakan font Poppins hanya untuk Si Hadir */
-                font-weight: 900; /* Menebalkan tulisan */
-                font-size: 28px;  /* Membesarkan ukuran font */
-            }
-            
-            /* Menghilangkan tombol toggle navbar dan memastikan navbar selalu terlihat */
-            .navbar-toggler {
-                display: none;
-            }
-            
-            #navbarSupportedContent {
-                display: flex !important;
-            }
-            
-            .sidebar-icon {
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <title>Si Hadir - Dashboard</title>
+    <!-- Favicon-->
+    <link rel="icon" type="image/x-icon" href="../../../assets/icon/favicon.ico" />
+    <!-- Core theme CSS (includes Bootstrap)-->
+    <link href="../../../assets/css/styles.css" rel="stylesheet" />
+    <!-- Link Google Fonts untuk Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        #sidebar-wrapper .sidebar-heading strong {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 900;
+            font-size: 28px;
+        }
+
+        .navbar-toggler {
+            display: none;
+        }
+
+        #navbarSupportedContent {
+            display: flex !important;
+        }
+
+        .status-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-icon {
             width: 24px;
             height: 24px;
             margin-right: 10px;
             vertical-align: middle;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 991.98px) {
+            .navbar-nav {
+                flex-direction: row;
             }
 
-            /* Menyesuaikan tampilan navbar untuk layar kecil */
-            @media (max-width: 991.98px) {
-                .navbar-nav {
-                    flex-direction: row;
-                }
-                
-                .navbar-nav .nav-item {
-                    padding-right: 10px;
-                }
-                
-                .navbar-nav .dropdown-menu {
-                    position: absolute;
-                }
+            .navbar-nav .nav-item {
+                padding-right: 10px;
             }
-        </style>
-        
-    </head>
-    <body>
-        <div class="d-flex" id="wrapper">
-            <!-- Sidebar-->
-            <div class="border-end-0 bg-white" id="sidebar-wrapper">
-                <div class="sidebar-heading border-bottom-0"><strong>Si Hadir</strong></div>
-                <div class="list-group list-group-flush">
-                    <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="attendance.php">
+
+            .navbar-nav .dropdown-menu {
+                position: absolute;
+            }
+        }
+    </style>
+</head>
+
+<body style="background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);">
+    <div class="d-flex" id="wrapper">
+        <!-- Sidebar-->
+        <div class="border-end-0 bg-white" id="sidebar-wrapper">
+            <div class="sidebar-heading border-bottom-0"><strong>Si Hadir</strong></div>
+            <div class="list-group list-group-flush">
+            <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="attendance.php">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
                             <path d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z"/>
                         </svg>
@@ -98,10 +145,10 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                         <span>Riwayat kehadiran</span>
                     </a>
                     <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="permit.php">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
-                            <path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/>
-                        </svg>
-                        Cuti & Perizinan
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
+                                <path d="M160-200v-440 440-15 15Zm0 80q-33 0-56.5-23.5T80-200v-440q0-33 23.5-56.5T160-720h160v-80q0-33 23.5-56.5T400-880h160q33 0 56.5 23.5T640-800v80h160q33 0 56.5 23.5T880-640v171q-18-13-38-22.5T800-508v-132H160v440h283q3 21 9 41t15 39H160Zm240-600h160v-80H400v80ZM720-40q-83 0-141.5-58.5T520-240q0-83 58.5-141.5T720-440q83 0 141.5 58.5T920-240q0 83-58.5 141.5T720-40Zm20-208v-112h-40v128l86 86 28-28-74-74Z"/>
+                            </svg>
+                            Cuti & Perizinan
                     </a>
                     <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="logout.php">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
@@ -109,155 +156,161 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
                         </svg>
                         Log out
                     </a>
-                </div>
             </div>
-            <!-- Page content wrapper-->
-            <div id="page-content-wrapper">
-                <!-- Top navigation-->
-                <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
-                    <div class="container-fluid">
-                        <button class="btn btn-primary" id="sidebarToggle">☰</button>
-                        <div id="navbarSupportedContent">
-                        </div>
-                    </div>
-                </nav>
-                <!-- Page content-->
+        </div>
+        <!-- Page content wrapper-->
+        <div id="page-content-wrapper">
+            <!-- Top navigation-->
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
                 <div class="container-fluid">
-                <h1 class="mt-4">Absen</h1>
-                <div class="attendance-options">
-                    <button id="qr-option" class="btn btn-primary">Absen dengan QR Code</button>
-                    <button id="manual-option" class="btn btn-secondary">Absen Manual / Ijin / Sakit</button>
+                    <button class="btn btn-primary" id="sidebarToggle">☰</button>
+                    <div id="navbarSupportedContent"></div>
                 </div>
-                <div id="qr-reader" style="display: none;">
-                    <video id="qr-video"></video>
-                    <canvas id="qr-canvas"></canvas>
-                    <div id="qr-result"></div>
-                    <button id="start-scan" class="btn btn-primary mt-3">Mulai Scan</button>
-                </div>
-                <div id="manual-form" style="display: none;">
-                    <form action="process_attendance.php" method="POST">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attendance" id="hadir" value="hadir" required>
-                            <label class="form-check-label" for="hadir">Hadir</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attendance" id="ijin" value="ijin">
-                            <label class="form-check-label" for="ijin">Ijin</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="attendance" id="sakit" value="sakit">
-                            <label class="form-check-label" for="sakit">Sakit</label>
-                        </div>
-                        <button type="submit" class="btn btn-primary mt-3">Submit</button>
-                    </form>
+            </nav>
+
+            <!-- Page content-->
+            <div class="container-fluid p-4">
+                <h1 class="text-3xl font-semibold mb-4">Riwayat Kehadiran</h1>
+                <!-- Tabel Kehadiran -->
+                <div id="activityTable" class="bg-white shadow rounded-lg p-4 mb-4">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Tanggal</th>
+                                <th
+                                    class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Jadwal Shift</th>
+                                <th
+                                    class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Waktu Masuk</th>
+                                <th
+                                    class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Waktu Keluar</th>
+                                <th
+                                    class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status Kehadiran</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php if (empty($attendances)): ?>
+                                <tr>
+                                    <td colspan="6" class="text-center">Tidak ada data kehadiran</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($attendances as $attendance): ?>
+                                    <tr>
+                                            <td class="px-6 py-4 text-center text-xm font-medium text-gray-500 uppercase tracking-wider"><?= htmlspecialchars(date('d-m-Y', strtotime($attendance['tanggal']))) ?></td>
+                                            <td class="px-6 py-4 text-center text-xm font-medium text-gray-500 uppercase tracking-wider"><?= htmlspecialchars($attendance['jadwal_shift']) ?></td>
+                                            <td class="px-6 py-4 text-center text-xm font-medium text-gray-500 uppercase tracking-wider"><?= $attendance['waktu_masuk'] ? htmlspecialchars(date('H:i', strtotime($attendance['waktu_masuk']))) : '-' ?></td>
+                                            <td class="px-6 py-4 text-center text-xm font-medium text-gray-500 uppercase tracking-wider"><?= $attendance['waktu_keluar'] ? htmlspecialchars(date('H:i', strtotime($attendance['waktu_keluar']))) : '-' ?></td>
+                                            <td class="px-6 py-4 text-center text-xm font-medium text-gray-500 uppercase tracking-wider">
+                                            <span class="badge rounded-pill <?= getBadgeClass($attendance['status_kehadiran']) ?>">
+                                                <?= htmlspecialchars(getStatusLabel($attendance['status_kehadiran'])) ?>
+                                            </span>
+                                            </td>
+                                        </tr>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../../assets/js/scripts.js"></script>
-    
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="../../../assets/js/scripts.js"></script>
+        
     <script>
-        const qrOption = document.getElementById('qr-option');
-        const manualOption = document.getElementById('manual-option');
-        const qrReader = document.getElementById('qr-reader');
-        const manualForm = document.getElementById('manual-form');
-        const video = document.getElementById('qr-video');
-        const canvas = document.getElementById('qr-canvas');
-        const result = document.getElementById('qr-result');
-        const startScanButton = document.getElementById('start-scan');
 
-        let scanning = false;
+            // Sidebar toggle functionality
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarWrapper = document.getElementById('sidebar-wrapper');
 
-        qrOption.onclick = () => {
-            qrReader.style.display = 'block';
-            manualForm.style.display = 'none';
-        };
-
-        manualOption.onclick = () => {
-            qrReader.style.display = 'none';
-            manualForm.style.display = 'block';
-        };
-
-        startScanButton.onclick = () => {
-            if (scanning) {
-                scanning = false;
-                startScanButton.textContent = 'Mulai Scan';
-                video.srcObject.getTracks().forEach(track => track.stop());
-            } else {
-                startScanning();
-            }
-        };
-
-        function startScanning() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function(stream) {
-                    scanning = true;
-                    startScanButton.textContent = 'Stop Scan';
-                    video.srcObject = stream;
-                    video.setAttribute("playsinline", true);
-                    video.play();
-                    requestAnimationFrame(tick);
-                })
-                .catch(function(err) {
-                    console.error("Error accessing the camera", err);
-                    result.textContent = "Error: " + err.message;
-                });
-        }
-
-        function tick() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
-                canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-                var imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
-                var code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                if (code) {
-                    console.log("QR Code detected", code.data);
-                    result.textContent = "QR Code terdeteksi: " + code.data;
-                    submitAttendance(code.data);
-                    scanning = false;
-                    startScanButton.textContent = 'Mulai Scan';
-                    video.srcObject.getTracks().forEach(track => track.stop());
-                }
-            }
-            if (scanning) {
-                requestAnimationFrame(tick);
-            }
-        }
-
-        function submitAttendance(qrData) {
-            fetch('process_attendance.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'qr_data=' + encodeURIComponent(qrData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    result.textContent = "Absensi berhasil dicatat!";
-                } else {
-                    result.textContent = "Error: " + data.message;
-                }
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                result.textContent = "Terjadi kesalahan saat mengirim data.";
+            sidebarToggle.addEventListener('click', function () {
+                sidebarWrapper.classList.toggle('collapsed');
             });
+
+            <?php
+    // Fungsi untuk menentukan class badge berdasarkan status kehadiran
+    function getBadgeClass($status) {
+        switch ($status) {
+            case 'hadir':
+                return "px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm"; // Hadir Tepat Waktu
+            case 'terlambat':
+                return "px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm"; // Terlambat
+            case 'pulang_dahulu':
+                return "px-3 py-1 bg-yellow-200 text-yellow-700 rounded-full text-sm"; // Pulang Lebih Awal
+            case 'dalam_shift':
+                return "px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm"; // Hadir Tepat Waktu (Dalam Shift)
+            case 'tidak_absen_pulang':
+                return "px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm"; // Tidak Absen Pulang
+            case 'sakit':
+                return "px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"; // Sakit
+            case 'izin':
+                return "px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm"; // Izin
+            case 'alpha':
+                return "px-3 py-1 bg-red-200 text-red-800 rounded-full text-sm"; // Alpha
+            case 'cuti':
+                return "px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"; // Cuti
+            default:
+                return "px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"; // Default
         }
+    }
+    
+    function getStatusLabel($status) {
+        switch ($status) {
+            case 'hadir':
+                return "Hadir";
+            case 'terlambat':
+                return "Terlambat";
+            case 'pulang_dahulu':
+                return "Pulang Lebih Awal";
+            case 'dalam_shift':
+                return "Hadir";
+            case 'tidak_absen_pulang':
+                return "Tidak Absen Pulang";
+            case 'sakit':
+                return "Sakit";
+            case 'izin':
+                return "Izin";
+            case 'alpha':
+                return "Alpha";
+            case 'cuti':
+                return "Cuti";
+            default:
+                return "";
+        }
+    }
+    
+    ?>
 
-        // Sidebar toggle functionality
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebarWrapper = document.getElementById('sidebar-wrapper');
+    // Di bagian script
+    function refreshTable() {
+        location.reload();
+    }
 
-        sidebarToggle.addEventListener('click', function () {
-            sidebarWrapper.classList.toggle('collapsed');
-        });
-    </script>
+    // Refresh setiap 5 menit
+    setInterval(refreshTable, 300000);
+        </script>
+        <style>
+    .badge {
+        padding: 8px 12px;
+        font-size: 12px;
+        border-radius: 4px;
+        text-transform: capitalize;
+    }
+
+    .table th {
+        background-color: #343a40;
+        color: white;
+    }
+
+    .table-responsive {
+        margin-top: 20px;
+    }
+    </style>
 </body>
 </html>

@@ -1,6 +1,8 @@
 <?php
 session_start();
 
+require_once '../../../app/auth/auth.php';
+
 // Check if user is logged in
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header('Location: ../../../login.php');
@@ -21,6 +23,278 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     header('Location: ../../../login.php');
     exit;
 }
+
+// FILTER IZIN #1
+function getFilteredDataIzin($pdo, $status) {
+    if ($status === 'approved') {
+        $sql = "SELECT * FROM perizinan_view WHERE status = 'disetujui'";
+    } elseif ($status === 'rejected') {
+        $sql = "SELECT * FROM perizinan_view WHERE status = 'ditolak'";
+    } else {
+        $sql = "SELECT * FROM perizinan_view WHERE status IN ('disetujui', 'ditolak')";
+    }
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// FILTER IZIN #2
+if (isset($_GET['filter_status'])) {
+    $status = $_GET['filter_status'];
+    
+    // Cek apakah status berasal dari izin atau cuti
+    if (strpos($status, 'izin') !== false) {
+        $dataIzin = getFilteredDataIzin($pdo, str_replace('izin_', '', $status));
+        foreach ($dataIzin as $row) {
+            echo "<tr>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['nama_lengkap']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['tanggal']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['jenis_izin']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['keterangan']) . "</td>";
+            $statusClass = $row['status'] == 'disetujui' ? 'bg-green-500 text-white py-1 px-2 rounded' : 'bg-red-500 text-white py-1 px-2 rounded';
+            echo "<td class='text-center px-4 py-3'><span class='{$statusClass}'>" . ucfirst(htmlspecialchars($row['status'])) . "</span></td>";
+            echo "<td class='px-4 py-3 text-center'><input type='checkbox' class='row-checkbox'></td>";
+            echo "</tr>";
+        }
+    } elseif (strpos($status, 'cuti') !== false) {
+        $dataCuti = getFilteredDataCuti($pdo, str_replace('cuti_', '', $status));
+        foreach ($dataCuti as $row) {
+            echo "<tr>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['nama_staff']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['tanggal_mulai']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['tanggal_selesai']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['durasi_cuti']) . "</td>";
+            echo "<td class='text-center px-4 py-3'>" . htmlspecialchars($row['keterangan']) . "</td>";
+            $statusClass = $row['status'] == 'disetujui' ? 'bg-green-500 text-white py-1 px-2 rounded' : 'bg-red-500 text-white py-1 px-2 rounded';
+            echo "<td class='text-center px-4 py-3'><span class='{$statusClass}'>" . ucfirst(htmlspecialchars($row['status'])) . "</span></td>";
+            echo "<td class='px-4 py-3 text-center'><input type='checkbox' class='row-checkbox'></td>";
+            echo "</tr>";
+        }
+    }
+    exit;
+}
+
+// FILTER CUTI #2
+function getFilteredDataCuti($pdo, $status) {
+    if ($status === 'approved') {
+        $sql = "SELECT * FROM cuti_view WHERE status = 'disetujui'";
+    } elseif ($status === 'rejected') {
+        $sql = "SELECT * FROM cuti_view WHERE status = 'ditolak'";
+    } else {
+        $sql = "SELECT * FROM cuti_view WHERE status IN ('disetujui', 'ditolak')";
+    }
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+// BUTTON CUTI UPDATE STATUS
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_cuti'], $_POST['status'])) {
+    // Proses update status cuti
+    $id_cuti = intval($_POST['id_cuti']);
+    $status_baru = $_POST['status'];
+
+    try {
+        $sql = "UPDATE cuti 
+                SET status = :status, 
+                    updated_at = NOW() 
+                WHERE id = :id";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':status', $status_baru);
+        $stmt->bindParam(':id', $id_cuti, PDO::PARAM_INT);
+        
+        $result = $stmt->execute();
+        
+        if ($result) {
+            echo json_encode([
+                'status' => 'success', 
+                'message' => 'Status cuti berhasil diupdate'
+            ]);
+            exit;
+        } else {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'Gagal update status cuti'
+            ]);
+            exit;
+        }
+    } catch(PDOException $e) {
+        echo json_encode([
+            'status' => 'error', 
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ]);
+        exit;
+    }
+}
+
+// IZIN BUTTON UPDATE STATUS 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && 
+    isset($_POST['id_izin'], $_POST['status'], $_POST['action']) && 
+    $_POST['action'] === 'update_izin') {
+    
+    // Proses update status izin
+    $id_izin = intval($_POST['id_izin']);
+    $status_baru = $_POST['status'];
+
+    try {
+        $sql = "UPDATE izin 
+                SET status = :status, 
+                    updated_at = NOW() 
+                WHERE id = :id";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':status', $status_baru);
+        $stmt->bindParam(':id', $id_izin, PDO::PARAM_INT);
+        
+        $result = $stmt->execute();
+        
+        if ($result) {
+            echo json_encode([
+                'status' => 'success', 
+                'message' => 'Status izin berhasil diupdate'
+            ]);
+            exit;
+        } else {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'Gagal update status izin'
+            ]);
+            exit;
+        }
+    } catch(PDOException $e) {
+        echo json_encode([
+            'status' => 'error', 
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ]);
+        exit;
+    }
+}
+
+// COUNT JUMLAH DATA SECARA REALTIME
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_status') {
+    // Mengambil data pending dan answered dari izin dan cuti
+    $pendingQuery = "
+        SELECT COUNT(*) AS total_pending FROM (
+            SELECT id FROM izin WHERE status = 'pending'
+            UNION ALL
+            SELECT id FROM cuti WHERE status = 'pending'
+        ) AS pending";
+    
+    $answeredQuery = "
+        SELECT COUNT(*) AS total_answered FROM (
+            SELECT id FROM izin WHERE status IN ('disetujui', 'ditolak')
+            UNION ALL
+            SELECT id FROM cuti WHERE status IN ('disetujui', 'ditolak')
+        ) AS answered";
+
+    $totalPending = $pdo->query($pendingQuery)->fetchColumn();
+    $totalAnswered = $pdo->query($answeredQuery)->fetchColumn();
+
+    echo json_encode([
+        'status' => 'success',
+        'total_pending' => $totalPending,
+        'total_answered' => $totalAnswered
+    ]);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_pending_data') {
+    // Mengambil data pending
+    $sql = "SELECT 
+        i.id AS izin_id,
+        u.nama_lengkap AS Nama_Staff,
+        i.tanggal AS tanggal,
+        i.jenis_izin AS jenis_izin,
+        i.keterangan AS keterangan,
+        i.status AS status
+    FROM 
+        izin i
+    LEFT JOIN 
+        pegawai p ON i.pegawai_id = p.id
+    LEFT JOIN 
+        users u ON p.user_id = u.id
+    WHERE 
+        i.status = 'pending'
+    ORDER BY 
+        i.id"; 
+
+    $stmt = $pdo->query($sql); 
+    $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC); 
+
+    echo json_encode([
+        'status' => 'success',
+        'data' => $dataIzin
+    ]);
+    exit; // Hentikan eksekusi script setelah mengembalikan data
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_permit') {
+    ob_clean();
+    ob_start();
+    
+    header('Content-Type: application/json');
+    
+    try {
+        $pdo->beginTransaction();
+        
+        $staffData = json_decode($_POST['staff_data'], true);
+        $tableType = $_POST['table_type'];
+        $successCount = 0;
+        $errors = [];
+
+        foreach ($staffData as $data) {
+            if ($tableType === 'izin') {
+                $stmt = $pdo->prepare("
+                    DELETE i FROM izin i
+                    INNER JOIN pegawai p ON i.pegawai_id = p.id
+                    INNER JOIN users u ON p.user_id = u.id
+                    WHERE u.nama_lengkap = ? AND i.tanggal = ? AND i.jenis_izin = ?
+                ");
+                $result = $stmt->execute([$data['nama'], $data['tanggal'], $data['jenisIzin']]);
+            } else {
+                $stmt = $pdo->prepare("
+                    DELETE c FROM cuti c
+                    INNER JOIN pegawai p ON c.pegawai_id = p.id
+                    INNER JOIN users u ON p.user_id = u.id
+                    WHERE u.nama_lengkap = ? AND c.tanggal_mulai = ? AND c.tanggal_selesai = ?
+                ");
+                $result = $stmt->execute([$data['nama'], $data['tanggalMulai'], $data['tanggalSelesai']]);
+            }
+
+            if ($result) {
+                $successCount++;
+            } else {
+                $errors[] = "Gagal menghapus data untuk: " . $data['nama'];
+            }
+        }
+
+        if ($successCount > 0) {
+            $pdo->commit();
+            echo json_encode([
+                'success' => true,
+                'message' => "$successCount Data berhasil dihapus",
+                'errors' => $errors
+            ]);
+        } else {
+            $pdo->rollBack();
+            echo json_encode([
+                'success' => false,
+                'message' => 'Tidak ada data yang dihapus',
+                'errors' => $errors
+            ]);
+        }
+
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error sistem: ' . $e->getMessage()
+        ]);
+    }
+    
+    exit;
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -64,7 +338,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
                 transform: translateY(-5px);
                 box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
             }
-
+            
             .sidebar-icon {
             width: 24px;
             height: 24px;
@@ -72,21 +346,84 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
             vertical-align: middle;
             }
 
-            /* Menyesuaikan tampilan navbar untuk layar kecil */
-            @media (max-width: 991.98px) {
-                .navbar-nav {
-                    flex-direction: row;
-                }
-                
-                .navbar-nav .nav-item {
-                    padding-right: 10px;
-                }
-                
-                .navbar-nav .dropdown-menu {
-                    position: absolute;
-                }
+            .hidden {
+                display: none;
             }
-        </style>
+            </style>
+
+<style>
+    /* Style untuk switch */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+        margin: 0 10px; /* Menambahkan margin di sekitar switch */
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        border-radius: 50%;
+        transition: .4s;
+    }
+
+    input:checked + .slider {
+        background-color: #2196F3;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+
+<style>
+    .btn-izin {
+        background-color: #007bff; /* Warna biru */
+        color: white;
+        transition: background-color 0.3s, color 0.3s;
+    }
+    
+    .btn-cuti {
+        background-color: #6c757d; /* Warna abu-abu */
+        color: white;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    .btn-active {
+        background-color: #0056b3 !important; /* Warna tombol aktif */
+        color: white !important;
+    }
+</style>
+
+
         
     </head>
     <body class="bg-blue-50">
@@ -144,152 +481,793 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
             <div id="page-content-wrapper">
                 <!-- Top navigation-->
                 <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
-                    <div class="container-fluid">
-                        <button class="btn btn-primary" id="sidebarToggle">☰</button>
-                        <div id="navbarSupportedContent">
-                        </div>
-                    </div>
-                </nav>
-                <!-- Page content-->    
-                <div class="container-fluid p-4">
-                <h1 class="text-3xl font-semibold mb-4">Cuti & Perizinan</h1>
-                <div class="flex items-center justify-between mb-4">
-                <div class="flex space-x-2">
-                    <input type="date" class="border border-gray-300 rounded px-2 py-1" value="2023-11-23">
-                    <select class="border border-gray-300 rounded px-2 py-1">
-                        <option>Semua Jadwal</option>
+    <div class="container-fluid">
+        <button class="btn btn-primary" id="sidebarToggle">☰</button>
+        <div id="navbarSupportedContent">
+        </div>
+    </div>
+</nav>
+<!-- Page content-->    
+<div class="container-fluid p-4">
+    <h1 class="text-3xl font-semibold mb-4">Cuti & Perizinan</h1>
+    <div class="flex flex-col md:flex-row items-center justify-between mb-4 space-y-2 md:space-y-0 md:space-x-2">
+        <div class="flex space-x-2">
+            <button class="bg-blue-600 text-white px-4 py-2 rounded" id="historyToggle" data-bs-toggle="modal" data-bs-target="#approvalModal">Riwayat Persetujuan</button>
+        </div>
+        <input type="text" id="searchInput" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64" placeholder="Cari Nama Staff">
+    </div>
+    
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" id="status-container">
+        <div class="bg-white shadow-50 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
+            <h3 class="text-yellow-500 text-center text-lg font-sans font-bold mt-5">SEDANG DALAM PERMOHONAN</h3>
+            <p id="pending-count" class="text-3xl font-extrabold text-yellow-500 text-center font-mono mt-4">0</p>
+            <canvas id="pendingChart" class="h-20"></canvas>
+        </div>
+        <div class="bg-white shadow-50 p-6 rounded-lg shadow min-w-[300px] h-[200px] flex flex-col justify-center items-center">
+            <h3 class="text-green-500 text-center text-lg font-sans font-bold mt-5">TELAH DIJAWAB</h3>
+            <p id="answered-count" class="text-3xl font-extrabold text-green-500 text-center font-mono mt-4">0</p>
+            <canvas id="answerChart" class="h-20"></canvas>
+        </div>
+    </div>
+
+
+
+    
+    <div class="bg-white shadow rounded-lg p-4 mb-4">
+    <!-- Tombol switch untuk beralih antara tabel -->
+    <div class="flex items-center mb-4">
+        <label class="switch">
+            <input type="checkbox" id="tableSwitch" onchange="toggleTableswitch()">
+            <span class="slider"></span>
+        </label>
+        <span id="tableLabel" class="ml-2">Tabel Izin</span> <!-- Label yang ditampilkan -->
+    </div>
+    <div id="izinTable" class="table-container">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Izin</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php
+                // Mengambil data dari perizinan_view
+                $sql = "SELECT 
+                    i.id AS izin_id,
+                    u.nama_lengkap AS Nama_Staff,
+                    i.tanggal AS tanggal,
+                    i.jenis_izin AS jenis_izin,
+                    i.keterangan AS keterangan,
+                    i.status AS status
+                FROM 
+                    izin i
+                LEFT JOIN 
+                    pegawai p ON i.pegawai_id = p.id
+                LEFT JOIN 
+                    users u ON p.user_id = u.id
+                WHERE 
+                    i.status = 'pending'
+                ORDER BY 
+                    i.id"; 
+
+                $stmt = $pdo->query($sql); 
+                $dataIzin = $stmt->fetchAll(PDO::FETCH_ASSOC); 
+
+
+                foreach ($dataIzin as $row): ?>
+                    <tr>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['Nama_Staff']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['tanggal']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['jenis_izin']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                        </td>
+                        <td class="text-center">
+                        <button class="btn-setuju-izin bg-green-500 text-white py-1 px-2 rounded" 
+                                    data-id="<?php echo $row['izin_id']; ?>"
+                                    data-status="disetujui">DISETUJUI</button>
+                            <button class="btn-tolak-izin bg-red-500 text-white py-1 px-2 rounded" 
+                                    data-id="<?php echo $row['izin_id']; ?>"
+                                    data-status="ditolak">DITOLAK</button>
+                    </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="cutiTable" class="table-container hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Mulai</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Selesai</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Durasi Cuti</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php 
+                $sql = "SELECT 
+                            c.id AS cuti_id,
+                            c.tanggal_mulai,
+                            c.tanggal_selesai,
+                            c.durasi_cuti,
+                            c.keterangan,
+                            u.nama_lengkap
+                        FROM cuti c
+                        JOIN pegawai p ON c.pegawai_id = p.id
+                        JOIN users u ON p.user_id = u.id
+                        WHERE c.status = 'pending'"; 
+
+                $stmt = $pdo->query($sql); 
+                $dataCuti = $stmt->fetchAll(PDO::FETCH_ASSOC); 
+
+                foreach ($dataCuti as $row): 
+                ?>
+                    <tr>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['nama_lengkap']); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo date('d M Y', strtotime($row['tanggal_mulai'])); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo date('d M Y', strtotime($row['tanggal_selesai'])); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['durasi_cuti'] . ' hari'); ?></td>
+                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                        <td class="text-center">
+                            <button class="btn-setuju-cuti bg-green-500 text-white py-1 px-2 rounded" 
+                                    data-id="<?php echo $row['cuti_id']; ?>"
+                                    data-status="disetujui">DISETUJUI</button>
+                            <button class="btn-tolak-cuti bg-red-500 text-white py-1 px-2 rounded" 
+                                    data-id="<?php echo $row['cuti_id']; ?>"
+                                    data-status="ditolak">DITOLAK</button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>            
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- Modal for Approval History -->
+<div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="approvalModalLabel">Riwayat Persetujuan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="tableSelect" class="form-label">Pilih Tabel:</label>
+                    <select id="tableSelect" class="form-select" onchange="toggleTable()" style="margin-bottom: 20px;">
+                        <option value="izin">Tabel Izin</option>
+                        <option value="cuti">Tabel Cuti</option>
                     </select>
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded">Edit Excel Absensi</button>
+                    <label for="approvalFilter" class="form-label">Tampilkan:</label>
+                    <select id="approvalFilter" class="form-select" onchange="filterTable()">
+                        <option value="all">SEMUA</option>
+                        <option value="approved">DISETUJUI</option>
+                        <option value="rejected">DITOLAK</option>
+                    </select>
                 </div>
-                <input type="text" class="border border-gray-300 rounded px-2 py-1" placeholder="Cari nama/email/kode staff">
-            </div>
-                <div class="bg-blue-100 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
-                <p>Jika kamu ingin mendownload data absen, silakan buka sub menu laporan absensi di menu <a href="report.php" class="text-blue-500 underline">Laporan</a>.</p>
-            </div>
-            <div class="grid grid-cols-3 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-gray-600">Pending Requests</h3>
-                    <span class="text-yellow-500 bg-yellow-100 rounded-full px-3 py-1 text-sm">3 New</span>
+
+                <!-- Tombol Select All dan Deselect All -->
+                
+                <div class="mb-3">
+                    <button class="btn btn-primary" onclick="selectAll()">Pilih Semua</button>
+                    <button class="btn btn-secondary" onclick="deselectAll()">Batal Pilih Semua</button>
+                    <button class="btn btn-danger" onclick="confirmDelete()">Hapus Data</button> <!-- Tombol Hapus -->
                 </div>
-                <p class="text-3xl font-bold text-gray-800 mt-2">5</p>
-                <canvas id="pendingChart" class="mt-4 h-20"></canvas>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-gray-600">Approved Today</h3>
-                    <span class="text-green-500 bg-green-100 rounded-full px-3 py-1 text-sm">+2</span>
+
+                <!-- Tabel Izin -->
+                    <div id="izinHistoryTable" class="table-container">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Jenis Izin</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Pilih</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm izinHistoryBody" id="izinHistoryBody">
+                                <?php
+                                $dataIzin = getFilteredDataIzin($pdo, 'all'); // Menampilkan semua data saat halaman pertama kali dimuat
+                                foreach ($dataIzin as $row): ?>
+                                    <tr>
+                                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['nama_lengkap']); ?></td>
+                                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['tanggal']); ?></td>
+                                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['jenis_izin']); ?></td>
+                                        <td class="text-center px-4 py-3"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                                        <td class="text-center px-4 py-3">
+                                            <?php if ($row['status'] == 'disetujui'): ?>
+                                                <span class="bg-green-500 text-white py-1 px-2 rounded">DISETUJUI</span>
+                                            <?php else: ?>
+                                                <span class="bg-red-500 text-white py-1 px-2 rounded">DITOLAK</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <input type="checkbox" class="row-checkbox">
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                    </table>
                 </div>
-                <p class="text-3xl font-bold text-gray-800 mt-2">7</p>
-                <canvas id="approvedChart" class="mt-4 h-20"></canvas>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-gray-600">Team Available</h3>
-                    <span class="text-blue-500 bg-blue-100 rounded-full px-3 py-1 text-sm">85%</span>
+
+                <!-- Tabel Cuti -->
+                <div id="cutiHistoryTable" class="hidden table-container hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Nama Staff</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Mulai</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Tanggal Selesai</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Durasi Cuti</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Keterangan</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider border-r border-gray-200">Pilih</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm cutiHistoryBody" id="cutiHistoryBody">
+                            <?php
+                            // Mengambil data dari cuti_view dengan status disetujui atau ditolak
+                            $dataCuti = getFilteredDataCuti($pdo, 'all'); 
+                            foreach ($dataCuti as $row): ?>
+                                <tr>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['nama_staff']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_mulai']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal_selesai']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['durasi_cuti']); ?></td>
+                                    <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                                    <td class="px-4 py-3 text-center">
+                                    <?php if ($row['status'] == 'disetujui'): ?>
+                                        <span class="bg-green-500 text-white py-1 px-2 rounded">DISETUJUI</span>
+                                    <?php else: ?>
+                                        <span class="bg-red-500 text-white py-1 px-2 rounded">DITOLAK</span>
+                                    <?php endif; ?>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <input type="checkbox" class="row-checkbox">
+                                    <td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
-                <p class="text-3xl font-bold text-gray-800 mt-2">17/20</p>
-                <canvas id="availableChart" class="mt-4 h-20"></canvas>
             </div>
         </div>
-        <div class="bg-white shadow rounded-lg p-4 mb-4">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Staff</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Jadwal</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Masuk</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jam Pulang</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Dina Darius</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Belum Ditentukan</td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">Pending</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm">disetujui</button>
-                            <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm"">ditolak</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Alfina Amalia</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">selesai</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                        <button class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm">disetujui</button>
-                        <button class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm"">ditolak</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Suhada Akbra</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Pagi (08:00 - 12:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">08:15</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Selesai</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">16:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Siang (12:00 - 16:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Absen Pulang</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-blue-500">12:00</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">Tidak Masuk</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-red-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">Diah †</td>
-                        <td class="px-6 py-4 whitespace-nowrap">Jadwal Malam (16:00 - 20:00)</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">Cuti</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-orange-500">-</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Detail</button>
-                            <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded">Jadwal</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            </div>
-        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- UPDATE JUMLAH DATA PENDING, DISETUJUI, DITOLAK SECARA REAL TIME -->
+<script>
+        function fetchStatusData() {
+            $.ajax({
+                url: 'permit.php',  // Menggunakan file yang sama untuk mengolah data
+                method: 'POST',
+                dataType: 'json',
+                data: { action: 'fetch_status' },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#pending-count').text(response.total_pending);
+                        $('#answered-count').text(response.total_answered);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching data:', error);
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            // Memperbarui data setiap 1 detik
+            setInterval(fetchStatusData, 10);
+        });
+    </script>
+
+<!-- Script Izin -->
+<script>
+$(document).ready(function() {
+    $('.btn-setuju-izin, .btn-tolak-izin').click(function() {
+        var $row = $(this).closest('tr');
+        var id_izin = $(this).data('id');
+        var status = $(this).data('status');
+        
+        if(confirm('Apakah Anda yakin ingin ' + status + ' izin ini?')) {
+            $.ajax({
+                url: '',  // Request ke file yang sama
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    id_izin: id_izin,
+                    status: status,
+                    action: 'update_izin'
+                },
+                success: function(response) {
+                    if(response.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            // Hapus baris dari tabel pending
+                            $row.remove();
+
+                            // Ambil data history terbaru dan update tabel
+                            $.ajax({
+                                url: 'permit.php',
+                                method: 'GET',
+                                data: { refresh_history_izin: true },
+                                success: function(historyIzin) {
+                                    // Ekstrak hanya bagian tbody history izin
+                                    var $newHistoryRows = $(historyIzin).find('.izinHistoryBody').html();
+                                    $('.izinHistoryBody').html($newHistoryRows);
+                                },
+                                error: function() {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Kesalahan',
+                                        text: 'Gagal memuat data history izin'
+                                    });
+                                }
+                            });
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Kesalahan',
+                        text: 'Terjadi kesalahan dalam proses update: ' + error
+                    });
+                }
+            });
+        }
+    });
+});
+</script>
+
+
+<!-- JS SCRIPT -->
+    <script>
+    $(document).ready(function() {
+        $('.btn-setuju-cuti, .btn-tolak-cuti').click(function() {
+            var $row = $(this).closest('tr');
+            var id_cuti = $(this).data('id');
+            var status = $(this).data('status');
+            
+            if(confirm('Apakah Anda yakin ingin ' + status + ' cuti ini?')) {
+                $.ajax({
+                    url: '',  // Request ke file yang sama
+                    method: 'POST',
+                    dataType: 'json',
+                    data: {
+                        id_cuti: id_cuti,
+                        status: status
+                    },
+                    success: function(response) {
+                        if(response.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Hapus baris dari tabel pending
+                                $row.remove();
+
+                                // Ambil data history terbaru dan update tabel
+                                $.ajax({
+                                    url: 'permit.php',
+                                    method: 'GET',
+                                    data: { refresh_history_cuti: true },
+                                    success: function(historyCuti) {
+                                        // Ekstrak hanya bagian tbody history
+                                        var $newHistoryRows = $(historyCuti).find('.cutiHistoryBody').html();
+                                        $('.cutiHistoryBody').html($newHistoryRows);
+                                    },
+                                    error: function() {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Kesalahan',
+                                            text: 'Gagal memuat data history'
+                                        });
+                                    }
+                                });
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Kesalahan',
+                            text: 'Terjadi kesalahan dalam proses update: ' + error
+                        });
+                    }
+                });
+            }
+        });
+    });
+    </script>
+
+<!-- PENCARIAN NAMA STAFf -->
+    <script>
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const namaStaff = row.cells[0].textContent.toLowerCase();
+                row.style.display = namaStaff.includes(searchValue) ? '' : 'none';
+            });
+        });
+    </script>
+
+    <!-- JS FILTER TABEL, DEFAULT FILTER DATA "SEMUA" -->
+    <script>
+    function toggleTable() {
+        const selectedTable = document.getElementById('tableSelect').value;
+        const izinTable = document.getElementById('izinHistoryTable');
+        const cutiTable = document.getElementById('cutiHistoryTable');
+        const approvalFilter = document.getElementById('approvalFilter');
+
+        // Mengubah visibilitas berdasarkan tabel yang dipilih
+        if (selectedTable === 'izin') {
+            izinTable.classList.remove('hidden');
+            cutiTable.classList.add('hidden');
+        } else if (selectedTable === 'cuti') {
+            cutiTable.classList.remove('hidden');
+            izinTable.classList.add('hidden');
+        }
+
+        // Reset filter ke "semua" dan trigger event change
+        approvalFilter.value = "all";
+        // Trigger the filter update
+        filterTable();
+    }
+
+    function filterTable() {
+        const approvalStatus = document.getElementById("approvalFilter").value;
+        const selectedTable = document.getElementById("tableSelect").value;
+        const xhr = new XMLHttpRequest();
+
+        // Menentukan kueri filter yang sesuai berdasarkan opsi yang dipilih
+        let filterValue = `${selectedTable}_${approvalStatus}`;
+
+        xhr.open("GET", `?filter_status=${filterValue}`, true);
+        xhr.onload = function () {
+            if (this.status === 200) {
+                // Memperbarui tabel yang sesuai berdasarkan jenis yang dipilih
+                if (selectedTable === 'izin') {
+                    document.getElementById("izinHistoryTable").querySelector("tbody").innerHTML = this.responseText;
+                } else if (selectedTable === 'cuti') {
+                    document.getElementById("cutiHistoryTable").querySelector("tbody").innerHTML = this.responseText;
+                }
+            }
+        };
+        xhr.send();
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Initial table visibility setup
+        toggleTable();
+
+        // Add change event listener to table select
+        const tableSelect = document.getElementById('tableSelect');
+        tableSelect.addEventListener('change', toggleTable);
+
+        // Add change event listener to approval filter
+        const approvalFilter = document.getElementById('approvalFilter');
+        approvalFilter.addEventListener('change', filterTable);
+
+        const approvalModal = document.getElementById('approvalModal');
+        approvalModal.addEventListener('hide.bs.modal', function () {
+            approvalFilter.value = "all";
+        });
+
+        approvalModal.addEventListener('show.bs.modal', function () {
+            // Reset tampilan tabel ke default
+            toggleTable();
+        });
+            
+    });
+    </script>
+
+
+<script>
+    // Fungsi untuk membuka modal "Riwayat Persetujuan" dengan tombol izin sebagai default
+    function openApprovalModal() {
+        // Set tombol "Tabel Izin" sebagai aktif secara default
+        document.getElementById("izinButton").classList.add("btn-active");
+        document.getElementById("cutiButton").classList.remove("btn-active");
+
+        // Menampilkan tabel izin dan menyembunyikan tabel cuti
+        document.getElementById("izinHistoryTable").style.display = "block";
+        document.getElementById("cutiHistoryTable").style.display = "none";
+
+        // Buka modal menggunakan Bootstrap
+        const approvalModal = new bootstrap.Modal(document.getElementById('approvalModal'));
+        approvalModal.show();
+    }
+
+    function showIzinTable() {
+        document.getElementById("cutiButton").classList.remove("btn-active");
+        document.getElementById("izinButton").classList.add("btn-active");
+        
+        document.getElementById("izinHistoryTable").style.display = "block";
+        document.getElementById("cutiHistoryTable").style.display = "none";
+    }
+
+    function showCutiTable() {
+        document.getElementById("izinButton").classList.remove("btn-active");
+        document.getElementById("cutiButton").classList.add("btn-active");
+        
+        document.getElementById("cutiHistoryTable").style.display = "block";
+        document.getElementById("izinHistoryTable").style.display = "none";
+    }
+</script>
+
+<script>
+    function toggleTableswitch() {
+         const isChecked = document.getElementById('tableSwitch').checked;
+        const tableLabel = document.getElementById('tableLabel');
+        
+        // Mengubah label teks sesuai dengan tabel yang aktif
+        if (isChecked) {
+            document.getElementById('izinTable').classList.add('hidden');
+            document.getElementById('cutiTable').classList.remove('hidden');
+            tableLabel.textContent = "Tabel Cuti"; // Ubah label menjadi Tabel Cuti
+        } else {
+            document.getElementById('izinTable').classList.remove('hidden');
+            document.getElementById('cutiTable').classList.add('hidden');
+            tableLabel.textContent = "Tabel Izin"; // Ubah label menjadi Tabel Izin
+        }
+    }
+    </script>
+
+<script>
+function getActiveTable() {
+    // Cek tabel mana yang sedang aktif/visible
+    const izinTable = document.querySelector('#izinHistoryTable');
+    const cutiTable = document.querySelector('#cutiHistoryTable');
+    
+    if (izinTable && !izinTable.classList.contains('hidden')) {
+        return 'izin';
+    } else if (cutiTable && !cutiTable.classList.contains('hidden')) {
+        return 'cuti';
+    }
+    
+    return null;
+}
+
+function selectAll() {
+    const activeTable = getActiveTable();
+    if (activeTable === 'izin') {
+        // Select semua checkbox di tabel izin
+        document.querySelectorAll('#izinHistoryTable .row-checkbox').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    } else if (activeTable === 'cuti') {
+        // Select semua checkbox di tabel cuti
+        document.querySelectorAll('#cutiHistoryTable .row-checkbox').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    }
+}
+
+function deselectAll() {
+    const activeTable = getActiveTable();
+    if (activeTable === 'izin') {
+        // Deselect semua checkbox di tabel izin
+        document.querySelectorAll('#izinHistoryTable .row-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    } else if (activeTable === 'cuti') {
+        // Deselect semua checkbox di tabel cuti
+        document.querySelectorAll('#cutiHistoryTable .row-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+}
+
+// Fungsi untuk menampilkan tabel yang dipilih dan menyembunyikan yang lain
+function showTable(tableType) {
+    const izinTable = document.querySelector('#izinHistoryTable');
+    const cutiTable = document.querySelector('#cutiHistoryTable');
+    
+    if (tableType === 'izin') {
+        izinTable.classList.remove('hidden');
+        cutiTable.classList.add('hidden');
+    } else if (tableType === 'cuti') {
+        izinTable.classList.add('hidden');
+        cutiTable.classList.remove('hidden');
+    }
+    
+    // Reset semua checkbox saat berganti tabel
+    document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+// Event listener untuk menghandle perubahan tabel
+document.addEventListener('DOMContentLoaded', function() {
+    // Tambahkan event listener untuk tombol atau dropdown yang mengubah tabel
+    const tableSelect = document.querySelector('#tableSelect'); // Sesuaikan dengan ID elemen pemilih tabel Anda
+    if (tableSelect) {
+        tableSelect.addEventListener('change', function() {
+            showTable(this.value);
+        });
+    }
+});
+
+function confirmDelete(button) {
+    const isIndividual = button && button.closest;
+    let staffData = [];
+    let rowsToDelete = [];
+
+    // Tentukan tabel mana yang aktif
+    const activeTable = document.querySelector('#izinHistoryTable:not(.hidden)') ? 'izin' : 'cuti';
+
+    if (isIndividual) {
+        const row = button.closest('tr');
+        staffData.push(getRowData(row, activeTable));
+        rowsToDelete.push(row);
+        
+        if (!confirm(`Apakah Anda yakin ingin menghapus data untuk ${staffData[0].nama}?`)) {
+            return;
+        }
+    } else {
+        const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+        
+        if (checkboxes.length === 0) {
+            alert('Silakan pilih data yang ingin dihapus.');
+            return;
+        }
+
+        checkboxes.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            staffData.push(getRowData(row, activeTable));
+            rowsToDelete.push(row);
+        });
+
+        if (!confirm(`Anda yakin ingin menghapus ${checkboxes.length} data yang dipilih?`)) {
+            return;
+        }
+    }
+
+    sendDeleteRequest(staffData, rowsToDelete, activeTable);
+}
+
+function sendDeleteRequest(staffData, rowsToDelete, tableType) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', window.location.href, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    
+    xhr.onload = function() {
+        try {
+            console.log('Response:', xhr.responseText);
+            const response = JSON.parse(xhr.responseText);
+            
+            if (response.success) {
+                // Hapus baris dari tabel tanpa reload halaman
+                rowsToDelete.forEach(row => row.remove());
+                
+                // Reset checkbox "Select All" jika ada
+                const selectAllCheckbox = document.querySelector('#select-all');
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                }
+                
+                // Tampilkan pesan sukses
+                showMessage(response.message, 'success');
+                
+                // Perbarui tampilan atau lakukan operasi lain jika diperlukan
+                updateTableView(tableType);
+            } else {
+                showMessage(response.message, 'error');
+                if (response.errors) {
+                    console.log('Errors:', response.errors);
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showMessage('Terjadi kesalahan dalam pemrosesan. Silakan coba lagi.', 'error');
+        }
+    };
+    
+    xhr.onerror = function() {
+        console.error('Network Error');
+        showMessage('Terjadi kesalahan jaringan. Silakan cek koneksi Anda.', 'error');
+    };
+
+    const data = `action=delete_permit&staff_data=${encodeURIComponent(JSON.stringify(staffData))}&table_type=${tableType}`;
+    console.log('Sending data:', data);
+    xhr.send(data);
+}
+
+
+function updateRowNumbers() {
+    const rows = document.querySelectorAll('table tbody tr');
+    rows.forEach((row, index) => {
+        const numberCell = row.querySelector('td:first-child');
+        if (numberCell) {
+            numberCell.textContent = index + 1;
+        }
+    });
+}
+
+// Tambahkan event listener untuk checkbox individual
+document.addEventListener('DOMContentLoaded', function() {
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const selectAllCheckbox = document.querySelector('#select-all');
+
+    rowCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = 
+                    Array.from(rowCheckboxes).every(cb => cb.checked);
+            }
+        });
+    });
+});
+
+// Fungsi helper untuk mencari baris berdasarkan nama staff
+function findRowByStaffName(name) {
+    const rows = document.querySelectorAll('tr');
+    for (let row of rows) {
+        if (row.cells.length > 0 && row.cells[0].textContent.trim() === name) {
+            return row;
+        }
+    }
+    return null;
+}
+
+function getRowData(row, tableType) {
+    if (tableType === 'izin') {
+        return {
+            nama: row.cells[0].textContent.trim(),
+            tanggal: row.cells[1].textContent.trim(),
+            jenisIzin: row.cells[2].textContent.trim(),
+            type: 'izin'
+        };
+    } else {
+        return {
+            nama: row.cells[0].textContent.trim(),
+            tanggalMulai: row.cells[1].textContent.trim(),
+            tanggalSelesai: row.cells[2].textContent.trim(),
+            type: 'cuti'
+        };
+    }
+}
+</script>
+
+</script>
+
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
