@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_cuti'], $_POST['st
         if ($result) {
             echo json_encode([
                 'status' => 'success', 
-                'message' => 'Status cuti berhasil diupdate'
+                'message' => 'Pengajuan Cuti Berhasil Diperbarui'
             ]);
             exit;
         } else {
@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
         if ($result) {
             echo json_encode([
                 'status' => 'success', 
-                'message' => 'Status izin berhasil diupdate'
+                'message' => 'Pengajuan Izin Berhasil Diperbarui'
             ]);
             exit;
         } else {
@@ -511,8 +511,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </div>
 
 
-
-    
+    <div id="alertContainer"></div>
     <div class="bg-white shadow rounded-lg p-4 mb-4">
     <!-- Tombol switch untuk beralih antara tabel -->
     <div class="flex items-center mb-4">
@@ -773,6 +772,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // Memperbarui data setiap 1 detik
             setInterval(fetchStatusData, 10);
         });
+
     </script>
 
 <!-- Script Izin -->
@@ -795,49 +795,81 @@ $(document).ready(function() {
                 },
                 success: function(response) {
                     if(response.status === 'success') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil',
-                            text: response.message,
-                            timer: 1500,
-                            showConfirmButton: false
-                        }).then(() => {
-                            // Hapus baris dari tabel pending
-                            $row.remove();
+                        showAlert(response.message, 'success');
+                        
+                        // Hapus baris dari tabel pending
+                        $row.remove();
 
-                            // Ambil data history terbaru dan update tabel
-                            $.ajax({
-                                url: 'permit.php',
-                                method: 'GET',
-                                data: { refresh_history_izin: true },
-                                success: function(historyIzin) {
-                                    // Ekstrak hanya bagian tbody history izin
-                                    var $newHistoryRows = $(historyIzin).find('.izinHistoryBody').html();
-                                    $('.izinHistoryBody').html($newHistoryRows);
-                                },
-                                error: function() {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'Kesalahan',
-                                        text: 'Gagal memuat data history izin'
-                                    });
-                                }
-                            });
+                        // Ambil data history terbaru dan update tabel
+                        $.ajax({
+                            url: 'permit.php',
+                            method: 'GET',
+                            data: { refresh_history_izin: true },
+                            success: function(historyIzin) {
+                                var $newHistoryRows = $(historyIzin).find('.izinHistoryBody').html();
+                                $('.izinHistoryBody').html($newHistoryRows);
+                            },
+                            error: function() {
+                                showAlert('Gagal memuat data history izin', 'danger');
+                            }
                         });
                     } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Gagal',
-                            text: response.message
-                        });
+                        showAlert(response.message, 'danger');
                     }
                 },
                 error: function(xhr, status, error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Kesalahan',
-                        text: 'Terjadi kesalahan dalam proses update: ' + error
-                    });
+                    showAlert('Terjadi kesalahan dalam proses update: ' + error, 'danger');
+                }
+            });
+        }
+    });
+});
+</script>
+
+<script>
+$(document).ready(function() {
+    $('.btn-setuju-cuti, .btn-tolak-cuti').click(function() {
+        var $row = $(this).closest('tr');  // Mendapatkan baris tabel
+        var id_cuti = $(this).data('id');  // Mendapatkan ID cuti
+        var status = $(this).data('status');  // Mendapatkan status (setuju/tolak)
+        
+        // Konfirmasi aksi
+        if(confirm('Apakah Anda yakin ingin ' + status + ' cuti ini?')) {
+            $.ajax({
+                url: '',  // Request ke file yang sama atau URL lain sesuai kebutuhan
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    id_cuti: id_cuti,
+                    status: status,
+                    action: 'update_cuti'  // Bisa sesuaikan dengan aksi yang relevan
+                },
+                success: function(response) {
+                    if(response.status === 'success') {
+                        showAlert(response.message, 'success');  // Menampilkan pesan sukses
+                        
+                        // Hapus baris dari tabel pending
+                        $row.remove();
+
+                        // Ambil data history cuti terbaru dan update tabel
+                        $.ajax({
+                            url: 'permit.php',
+                            method: 'GET',
+                            data: { refresh_history_cuti: true },  // Menyesuaikan dengan parameter untuk cuti
+                            success: function(historyCuti) {
+                                var $newHistoryRows = $(historyCuti).find('.cutiHistoryBody').html();
+                                $('.cutiHistoryBody').html($newHistoryRows);  // Update tabel history cuti
+                            },
+                            error: function() {
+                                showAlert('Gagal memuat data history cuti', 'danger');  // Pesan gagal
+                            }
+                        });
+                    } else {
+                        showAlert(response.message, 'danger');  // Pesan error
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showAlert('Terjadi kesalahan dalam proses update: ' + error, 'danger');  // Pesan error
                 }
             });
         }
@@ -846,74 +878,26 @@ $(document).ready(function() {
 </script>
 
 
-<!-- JS SCRIPT -->
-    <script>
-    $(document).ready(function() {
-        $('.btn-setuju-cuti, .btn-tolak-cuti').click(function() {
-            var $row = $(this).closest('tr');
-            var id_cuti = $(this).data('id');
-            var status = $(this).data('status');
+<script>
+function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.role = 'alert';
             
-            if(confirm('Apakah Anda yakin ingin ' + status + ' cuti ini?')) {
-                $.ajax({
-                    url: '',  // Request ke file yang sama
-                    method: 'POST',
-                    dataType: 'json',
-                    data: {
-                        id_cuti: id_cuti,
-                        status: status
-                    },
-                    success: function(response) {
-                        if(response.status === 'success') {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil',
-                                text: response.message,
-                                timer: 1500,
-                                showConfirmButton: false
-                            }).then(() => {
-                                // Hapus baris dari tabel pending
-                                $row.remove();
-
-                                // Ambil data history terbaru dan update tabel
-                                $.ajax({
-                                    url: 'permit.php',
-                                    method: 'GET',
-                                    data: { refresh_history_cuti: true },
-                                    success: function(historyCuti) {
-                                        // Ekstrak hanya bagian tbody history
-                                        var $newHistoryRows = $(historyCuti).find('.cutiHistoryBody').html();
-                                        $('.cutiHistoryBody').html($newHistoryRows);
-                                    },
-                                    error: function() {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'Kesalahan',
-                                            text: 'Gagal memuat data history'
-                                        });
-                                    }
-                                });
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal',
-                                text: response.message
-                            });
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Kesalahan',
-                            text: 'Terjadi kesalahan dalam proses update: ' + error
-                        });
-                    }
-                });
-            }
-        });
-    });
-    </script>
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+                alert.close();
+            }, 5000);
+        }
+</script>
 
 <!-- PENCARIAN NAMA STAFf -->
     <script>
