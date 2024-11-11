@@ -130,35 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             'shift_id' => $_POST['shift_id']
         ]);
 
-        $jadwalShiftId = $pdo->lastInsertId();
-
-        // Insert into absensi table
-        $stmt = $pdo->prepare("
-            INSERT INTO absensi (
-                pegawai_id, 
-                jadwal_shift_id, 
-                waktu_masuk, 
-                waktu_keluar, 
-                kode_unik, 
-                status_kehadiran, 
-                tanggal
-            )
-            VALUES (
-                :pegawai_id, 
-                :jadwal_shift_id, 
-                '00:00:00', 
-                '00:00:00', 
-                '000000', 
-                'alpha', 
-                CURRENT_DATE
-            )
-        ");
-
-        $stmt->execute([
-            'pegawai_id' => $pegawaiId,
-            'jadwal_shift_id' => $jadwalShiftId
-        ]);
-
         $pdo->commit();
         $_SESSION['alert'] = [
             'type' => 'success',
