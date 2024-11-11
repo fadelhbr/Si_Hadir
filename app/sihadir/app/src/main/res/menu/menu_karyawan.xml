@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/fr_beranda"
+        android:icon="@drawable/ic_beranda"
+        android:title="Beranda"/>
+
+    <item
+        android:id="@+id/fr_absen"
+        android:icon="@drawable/ic_absen"
+        android:title="Absen"/>
+
+
+    <item
+        android:id="@+id/fr_riwayatkehadiran"
+        android:icon="@drawable/ic_riwayat"
+        android:title="Riwayat Kehadiran"/>
+
+    <item
+        android:id="@+id/fr_pengaturan"
+        android:icon="@drawable/ic_pengaturan"
+        android:title="Pengaturan"/>
+
+</menu>
