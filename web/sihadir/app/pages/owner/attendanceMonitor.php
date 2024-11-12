@@ -23,6 +23,19 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     exit;
 }
 
+function getEarliestAttendanceDate($pdo) {
+    try {
+        $query = "SELECT MIN(DATE(tanggal)) as earliest_date FROM absensi";
+        $stmt = $pdo->query($query);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['earliest_date'] ?? date('Y-m-d');
+    } catch (PDOException $e) {
+        error_log("Database error in getEarliestAttendanceDate: " . $e->getMessage());
+        return date('Y-m-d');
+    }
+}
+
+
 // Function to get attendance statistics for the selected date and shift
 function getAttendanceStats($pdo, $date, $shift = 'all')
 {
@@ -119,14 +132,17 @@ function getShifts($pdo)
     }
 }
 
-// Input validation
+$earliestDate = getEarliestAttendanceDate($pdo);
+
+// Input validation with earliest date check
 $selectedDate = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
-if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate) || $selectedDate < $earliestDate) {
     $selectedDate = date('Y-m-d');
 }
 
 $searchQuery = isset($_GET['search']) ? trim($_GET['search']) : '';
 $selectedShift = isset($_GET['shift']) ? $_GET['shift'] : 'all';
+
 
 // Get the statistics and records with error handling
 try {
@@ -153,7 +169,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Si Hadir - Dashboard</title>
+    <title>Si Hadir - Monitor Absensi</title>
     <!-- Favicon-->
     <link rel="icon" type="image/x-icon" href="../../../assets/icon/favicon.ico" />
     <!-- Core theme CSS (includes Bootstrap)-->
@@ -306,7 +322,8 @@ try {
                 <form class="flex items-center justify-between mb-4" method="GET">
                     <div class="flex space-x-2">
                         <input type="date" name="date" class="border border-gray-300 rounded px-2 py-1"
-                            value="<?php echo $selectedDate; ?>" onchange="this.form.submit()">
+                            value="<?php echo $selectedDate; ?>" min="<?php echo $earliestDate; ?>" 
+                            max="<?php echo date('Y-m-d'); ?>" onchange="this.form.submit()">
                         <select name="shift" class="border border-gray-300 rounded px-2 py-1"
                             onchange="this.form.submit()">
                             <option value="all" <?php echo ($selectedShift === 'all') ? 'selected' : ''; ?>>Semua Shift
@@ -455,6 +472,25 @@ try {
     <script src="../../../assets/js/scripts.js"></script>
 
     <!-- Custom JS to handle sidebar toggle -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.querySelector('input[name="date"]');
+            const earliestDate = '<?php echo $earliestDate; ?>';
+            const today = new Date().toISOString().split('T')[0];
+
+            // Ensure the date is within valid range when changed
+            dateInput.addEventListener('change', function() {
+                const selectedDate = this.value;
+                if (selectedDate < earliestDate) {
+                    this.value = earliestDate;
+                } else if (selectedDate > today) {
+                    this.value = today;
+                }
+            });
+        });
+    </script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('searchInput');
@@ -510,5 +546,4 @@ try {
         });
     </script>
 </body>
-
 </html>
