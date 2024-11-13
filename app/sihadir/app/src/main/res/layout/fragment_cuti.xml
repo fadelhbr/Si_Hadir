@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    style="@style/SCREEN"
     android:background="#F5F6FA">
 
     <!-- Header Section with Better Styling -->
@@ -15,6 +16,7 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
+            style="@style/SCREEN_TOP"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -22,14 +24,15 @@
 
             <TextView
                 android:id="@+id/txtCutiPerizinan"
+                style="@style/TEXT"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:fontFamily="sans-serif-medium"
                 android:text="Cuti &amp; Perizinan"
-                android:textColor="#1a237e"
+                android:textColor="#F2F2F6"
                 android:textSize="24sp"
-                android:textStyle="bold"
-                android:fontFamily="sans-serif-medium"/>
+                android:textStyle="bold" />
 
             <!-- Summary Cards -->
             <LinearLayout
@@ -42,32 +45,34 @@
                 <androidx.cardview.widget.CardView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="2dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="#E8EAF6"
                         android:orientation="vertical"
-                        android:padding="12dp"
-                        android:background="#E8EAF6">
+                        android:padding="12dp">
 
                         <TextView
+                            style="@style/TEXT"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Sisa Cuti"
-                            android:textSize="14sp"
-                            android:textColor="#5C6BC0"/>
+                            android:textColor="#5C6BC0"
+                            android:textSize="14sp" />
 
                         <TextView
+                            style="@style/TEXT"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="12 Hari"
+                            android:textColor="#283593"
                             android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:textColor="#283593"/>
+                            android:textStyle="bold" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -75,32 +80,34 @@
                 <androidx.cardview.widget.CardView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="8dp"
+                    android:layout_weight="1"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="2dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="#E8F5E9"
                         android:orientation="vertical"
-                        android:padding="12dp"
-                        android:background="#E8F5E9">
+                        android:padding="12dp">
 
                         <TextView
+                            style="@style/TEXT"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Cuti Terpakai"
-                            android:textSize="14sp"
-                            android:textColor="#66BB6A"/>
+                            android:textColor="#66BB6A"
+                            android:textSize="14sp" />
 
                         <TextView
+                            style="@style/TEXT"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="3 Hari"
+                            android:textColor="#2E7D32"
                             android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:textColor="#2E7D32"/>
+                            android:textStyle="bold" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
@@ -112,6 +119,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:padding="16dp"
+        style="@style/SCREEN_TOP"
         app:layout_constraintTop_toBottomOf="@id/headerCard"
         app:layout_constraintBottom_toBottomOf="parent">
 
@@ -133,6 +141,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Riwayat Cuti"
+                    style="@style/TEXT"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="#1a237e"/>
@@ -202,6 +211,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Disetujui"
+                            style="@style/TEXT"
                             android:textAlignment="center"
                             android:textColor="#4CAF50"
                             android:background="@drawable/status_approved_bg"/>
@@ -222,6 +232,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Riwayat Izin"
+                    style="@style/TEXT"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="#1a237e"/>
@@ -290,6 +301,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Disetujui"
+                            style="@style/TEXT"
                             android:textAlignment="center"
                             android:textColor="#4CAF50"
                             android:background="@drawable/status_approved_bg"/>

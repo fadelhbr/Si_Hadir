@@ -34,4 +34,22 @@
     </style>
 
     <style name="Theme.Sihadir" parent="Base.Theme.Sihadir" />
+
+<!--  Light mode  -->
+<!--    Screen background if light mode on -->
+<style name="SCREEN">
+    <item name="android:background">#FFF</item>
+</style>
+
+
+<!--  texts background if light mode on  -->
+    <style name="TEXT">
+        <item name="android:textColor">#000</item>
+    </style>
+
+<!--    button background if light mode on -->
+    <style name="BUTTON">
+        <item name="android:background">@android:color/holo_blue_dark</item>
+        <item name="android:textColor">#FFF</item>
+    </style>
 </resources>
