@@ -59,7 +59,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // Membuat request POST
         Request request = new Request.Builder()
-                .url("http://10.0.2.2/Si_Hadir/web/sihadir/app/api/api_login.php") // Ganti dengan URL API kamu
+                .url("http://192.168.1.8/sihadir/app/api/api_login.php") // Ganti dengan URL API kamu
                 .post(formBody)
                 .build();
 

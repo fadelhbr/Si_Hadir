@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="CalendarViewCustom" parent="ThemeOverlay.Material3.MaterialCalendar">
+        <!-- Customize calendar appearance here -->
+        <item name="android:datePickerStyle">@style/Widget.Material3.MaterialCalendar</item>
+    </style>
+</resources>
