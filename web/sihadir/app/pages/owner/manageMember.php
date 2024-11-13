@@ -24,7 +24,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     exit;
 }
 
-// Tambahkan di bagian atas file setelah koneksi database
 // Fungsi untuk mendapatkan data shift dalam format JSON
 if (isset($_GET['get_shift_details']) && isset($_GET['shift_id'])) {
     $stmt = $pdo->prepare("SELECT jam_masuk, jam_keluar FROM shift WHERE id = ?");
@@ -121,13 +120,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
 
         // Insert into jadwal_shift table
         $stmt = $pdo->prepare("
-            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status)
-            VALUES (:pegawai_id, :shift_id, CURRENT_DATE, 'aktif')
+            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, hari_libur, status)
+            VALUES (:pegawai_id, :shift_id, CURRENT_DATE, :hari_libur, 'aktif')
         ");
 
         $stmt->execute([
             'pegawai_id' => $pegawaiId,
-            'shift_id' => $_POST['shift_id']
+            'shift_id' => $_POST['shift_id'],
+            'hari_libur' => $_POST['hari_libur']
         ]);
 
         $pdo->commit();
@@ -249,124 +249,136 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
         ]);
 
         // Update division
-        $stmt = $pdo->prepare("
-            UPDATE pegawai
-            SET divisi_id = :divisi_id
-            WHERE user_id = :user_id
-        ");
-        $stmt->execute([
-            'divisi_id' => $_POST['divisi_id'],
-            'user_id' => $_POST['user_id']
-        ]);
+                $stmt = $pdo->prepare("
+                    UPDATE pegawai
+                    SET divisi_id = :divisi_id
+                    WHERE user_id = :user_id
+                ");
+                $stmt->execute([
+                    'divisi_id' => $_POST['divisi_id'],
+                    'user_id' => $_POST['user_id']
+                ]);
 
-        // Update shift in jadwal_shift
-        $stmt = $pdo->prepare("
-            UPDATE jadwal_shift
-            SET shift_id = :shift_id
-            WHERE pegawai_id = (
-                SELECT id
-                FROM pegawai
-                WHERE user_id = :user_id
-            )
-            AND tanggal = CURRENT_DATE
-        ");
+                // Update shift in jadwal_shift
+                $stmt = $pdo->prepare("
+    UPDATE jadwal_shift
+    SET shift_id = :shift_id,
+        hari_libur = LOWER(:hari_libur)
+    WHERE pegawai_id = (
+        SELECT id 
+        FROM pegawai
+        WHERE user_id = :user_id
+    )
+    AND tanggal = CURRENT_DATE
+");
 
-        $stmt->execute([
-            'shift_id' => $_POST['shift_id'],
-            'user_id' => $_POST['user_id']
-        ]);
-        $pdo->commit();
-        $_SESSION['alert'] = [
-            'type' => 'success',
-            'message' => 'Member berhasil diupdate!'
-        ];
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        $_SESSION['alert'] = [
-            'type' => 'danger',
-            'message' => 'Gagal mengupdate member: ' . $e->getMessage()
-        ];
-    }
-    header('Location: ' . $_SERVER['PHP_SELF']);
-    exit;
+$validHariLibur = array('senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu');
+                // Ambil nilai hari_libur dari form
+                $hari_libur = strtolower(trim($_POST['edit_hari_libur']));
+
+if (in_array($hari_libur, $validHariLibur)) {
+    $stmt->execute([
+        'shift_id' => $_POST['shift_id'],
+        'hari_libur' => $hari_libur,
+        'user_id' => $_POST['user_id']
+    ]);
+
+    // Commit transaksi jika berhasil
+    $pdo->commit();
+    $_SESSION['alert'] = [
+        'type' => 'success',
+        'message' => 'Member berhasil diupdate!'
+    ];
+} else {
+                    // Berikan pesan error atau batalkan proses update
+                    throw new Exception("Nilai hari libur tidak valid. Nilai yang diterima: '" . $_POST['edit_hari_libur'] . "'. Nilai yang diperbolehkan: " . implode(', ', $validHariLibur));
 }
 
-if (isset($_POST['delete_user'])) {
-    try {
-        $pdo->beginTransaction();
-
-        // Get pegawai_id first since we'll need it for other deletions
-        $stmt = $pdo->prepare("SELECT id FROM pegawai WHERE user_id = :user_id");
-        $stmt->execute(['user_id' => $_POST['user_id']]);
-        $pegawai = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($pegawai) {
-            // Delete from izin first (references pegawai)
-            $stmt = $pdo->prepare("DELETE FROM izin WHERE pegawai_id = :pegawai_id");
-            $stmt->execute(['pegawai_id' => $pegawai['id']]);
-
-            // Delete from cuti (references pegawai)
-            $stmt = $pdo->prepare("DELETE FROM cuti WHERE pegawai_id = :pegawai_id");
-            $stmt->execute(['pegawai_id' => $pegawai['id']]);
-
-            // Delete from absensi (references pegawai)
-            $stmt = $pdo->prepare("DELETE FROM absensi WHERE pegawai_id = :pegawai_id");
-            $stmt->execute(['pegawai_id' => $pegawai['id']]);
-
-            // Delete from jadwal_shift (references pegawai)
-            $stmt = $pdo->prepare("DELETE FROM jadwal_shift WHERE pegawai_id = :pegawai_id");
-            $stmt->execute(['pegawai_id' => $pegawai['id']]);
-
-            // Delete from pegawai (references user)
-            $stmt = $pdo->prepare("DELETE FROM pegawai WHERE id = :pegawai_id");
-            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                $_SESSION['alert'] = [
+                    'type' => 'danger',
+                    'message' => 'Gagal mengupdate member: ' . $e->getMessage()
+                ];
+            }
+            header('Location: ' . $_SERVER['PHP_SELF']);
+            exit;
         }
 
-        // Delete from log_akses (references user)
-        $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
-        $stmt->execute(['user_id' => $_POST['user_id']]);
+        if (isset($_POST['delete_user'])) {
+            try {
+                $pdo->beginTransaction();
 
-        // Finally delete from users
-        $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
-        $stmt->execute(['user_id' => $_POST['user_id']]);
+                // Get pegawai_id first since we'll need it for other deletions
+                $stmt = $pdo->prepare("SELECT id FROM pegawai WHERE user_id = :user_id");
+                $stmt->execute(['user_id' => $_POST['user_id']]);
+                $pegawai = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $pdo->commit();
-        $_SESSION['alert'] = [
-            'type' => 'success',
-            'message' => 'User dan semua data terkait berhasil dihapus!'
-        ];
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        $_SESSION['alert'] = [
-            'type' => 'danger',
-            'message' => 'Gagal menghapus user: ' . $e->getMessage()
-        ];
-    }
-    header('Location: ' . $_SERVER['PHP_SELF']);
-    exit;
-}
+                if ($pegawai) {
+                    // Delete from izin first (references pegawai)
+                    $stmt = $pdo->prepare("DELETE FROM izin WHERE pegawai_id = :pegawai_id");
+                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
 
-// Di bagian remove device
-if (isset($_POST['remove_device'])) {
-    try {
-        $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
-        $stmt->execute(['user_id' => $_POST['user_id']]);
+                    // Delete from cuti (references pegawai)
+                    $stmt = $pdo->prepare("DELETE FROM cuti WHERE pegawai_id = :pegawai_id");
+                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
 
-        $_SESSION['alert'] = [
-            'type' => 'success',
-            'message' => 'Device berhasil dihapus!'
-        ];
-    } catch (PDOException $e) {
-        $_SESSION['alert'] = [
-            'type' => 'danger',
-            'message' => 'Gagal menghapus device: ' . $e->getMessage()
-        ];
-    }
-    header('Location: ' . $_SERVER['PHP_SELF']);
-    exit;
-}
+                    // Delete from absensi (references pegawai)
+                    $stmt = $pdo->prepare("DELETE FROM absensi WHERE pegawai_id = :pegawai_id");
+                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
 
-// Rest of your HTML code remains the same
+                    // Delete from jadwal_shift (references pegawai)
+                    $stmt = $pdo->prepare("DELETE FROM jadwal_shift WHERE pegawai_id = :pegawai_id");
+                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
+
+                    // Delete from pegawai (references user)
+                    $stmt = $pdo->prepare("DELETE FROM pegawai WHERE id = :pegawai_id");
+                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
+                }
+
+                // Delete from log_akses (references user)
+                $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
+                $stmt->execute(['user_id' => $_POST['user_id']]);
+
+                // Finally delete from users
+                $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
+                $stmt->execute(['user_id' => $_POST['user_id']]);
+
+                $pdo->commit();
+                $_SESSION['alert'] = [
+                    'type' => 'success',
+                    'message' => 'User dan semua data terkait berhasil dihapus!'
+                ];
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+                $_SESSION['alert'] = [
+                    'type' => 'danger',
+                    'message' => 'Gagal menghapus user: ' . $e->getMessage()
+                ];
+            }
+            header('Location: ' . $_SERVER['PHP_SELF']);
+            exit;
+        }
+
+        // Di bagian remove device
+        if (isset($_POST['remove_device'])) {
+            try {
+                $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
+                $stmt->execute(['user_id' => $_POST['user_id']]);
+
+                $_SESSION['alert'] = [
+                    'type' => 'success',
+                    'message' => 'Device berhasil dihapus!'
+                ];
+            } catch (PDOException $e) {
+                $_SESSION['alert'] = [
+                    'type' => 'danger',
+                    'message' => 'Gagal menghapus device: ' . $e->getMessage()
+                ];
+            }
+            header('Location: ' . $_SERVER['PHP_SELF']);
+            exit;
+        }
 ?>
 
 <!DOCTYPE html>
@@ -377,7 +389,7 @@ if (isset($_POST['remove_device'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Si Hadir - Dashboard</title>
+    <title>Si Hadir - Manajemen Staff</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Script untuk Bootstrap JS (jika perlu) -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
@@ -654,7 +666,6 @@ if (isset($_POST['remove_device'])) {
                                             </button>
                                         </div>
                                     </td>
-
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -724,6 +735,20 @@ if (isset($_POST['remove_device'])) {
                                         <?php foreach ($divisi_names as $id => $nama): ?>
                                             <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
                                         <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label">Hari Libur</label>
+                                    <select class="form-select form-select-sm" name="hari_libur" id="hari_libur" required>
+                                    <option value="">Pilih Hari</option>
+                                    <option value="senin">Senin</option>
+                                    <option value="selasa">Selasa</option>
+                                    <option value="rabu">Rabu</option>
+                                    <option value="kamis">Kamis</option>
+                                    <option value="jumat">Jumat</option>
+                                    <option value="sabtu">Sabtu</option>
+                                    <option value="minggu">Minggu</option>
                                     </select>
                                 </div>
 
@@ -806,6 +831,20 @@ if (isset($_POST['remove_device'])) {
                                 <?php foreach ($shifts as $id => $nama_shift): ?>
                                     <option value="<?= $id ?>"><?= htmlspecialchars($nama_shift) ?></option>
                                 <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Hari Libur</label>
+                            <select class="form-select form-select-sm" name="edit_hari_libur" id="edit_hari_libur" required>
+                                <option value="">Pilih Hari</option>
+                                <option value="senin">Senin</option>
+                                <option value="selasa">Selasa</option>
+                                <option value="rabu">Rabu</option>
+                                <option value="kamis">Kamis</option>
+                                <option value="jumat">Jumat</option>
+                                <option value="sabtu">Sabtu</option>
+                                <option value="minggu">Minggu</option>
                             </select>
                         </div>
 
@@ -977,7 +1016,6 @@ if (isset($_POST['remove_device'])) {
             document.getElementById('edit_username').value = user.username;
             document.getElementById('edit_no_telp').value = user.no_telp;
             document.getElementById('edit_divisi_id').value = user.divisi_id || '';
-
             // Show the modal
             new bootstrap.Modal(document.getElementById('editMemberModal')).show();
         }
@@ -1049,8 +1087,6 @@ if (isset($_POST['remove_device'])) {
             });
         }
 
-
-
         // Prevent form resubmission on page refresh
         if (window.history.replaceState) {
             window.history.replaceState(null, null, window.location.href);
@@ -1061,5 +1097,4 @@ if (isset($_POST['remove_device'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../../assets/js/scripts.js"></script>
 </body>
-
 </html>

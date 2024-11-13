@@ -1,6 +1,6 @@
 <?php
 // koneksi ke database
-$conn = new mysqli("localhost", "root", "", "hadir");
+$conn = new mysqli("localhost", "root", "", "si_hadir");
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
@@ -12,19 +12,19 @@ $password = $_POST['password'];
 
 // Log username dan password yang diterima
 error_log("Username: $username");
-error_log("Password: $password");
 
-// Query untuk memeriksa login
-$sql = "SELECT * FROM karyawan WHERE username='$username'";
+$sql = "SELECT * FROM users WHERE username='$username'";
 $result = $conn->query($sql);
 
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
-    if ($password === $row['password']) {
+    
+    // Verifikasi password menggunakan password_verify()
+    if (password_verify($password, $row['password'])) {
         echo json_encode([
             "status" => "success",
             "message" => "Login berhasil",
-            "nama" => $row['nama'], // Nama
+            "nama_lengkap" => $row['nama_lengkap'], // Nama
             "role" => $row['role'] // Role 
         ]);
     } else {

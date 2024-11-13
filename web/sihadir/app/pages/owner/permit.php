@@ -304,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <title>Si Hadir - Dashboard</title>
+        <title>Si Hadir - Cuti & Perizinan</title>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="../../../assets/icon/favicon.ico" />
         <!-- Core theme CSS (includes Bootstrap)-->
