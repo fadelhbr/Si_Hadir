@@ -534,68 +534,6 @@ try {
     <script>
         $(document).ready(function() {
             // Handle form izin submission
-            $('#permitRequestForm').on('submit', function(e) {
-                e.preventDefault();
-                
-                $.ajax({
-                    type: 'POST',
-                    url: 'permit.php',
-                    data: $(this).serialize(),
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.status === 'success') {
-                            alert(response.message);
-                            $('#permitModal').modal('hide');
-                            location.reload();
-                        } else {
-                            alert('Error: ' + response.message);
-                        }
-                    },
-                    error: function() {
-                        alert('Terjadi kesalahan pada server');
-                    }
-                });
-            });
-
-            // Handle form cuti submission
-            $('#leaveRequestForm').on('submit', function(e) {
-                e.preventDefault();
-                
-                // Validasi tanggal mulai dan akhir
-                var startDate = new Date($('#leaveStartDate').val());
-                var endDate = new Date($('#leaveEndDate').val());
-                if (startDate > endDate) {
-                    alert('Tanggal selesai tidak boleh lebih awal dari tanggal mulai!');
-                    return;
-                }
-
-                // Validasi form lainnya
-                if (!validateForm('cuti')) {
-                    return;
-                }
-                
-                $.ajax({
-                    type: 'POST',
-                    url: 'permit.php',
-                    data: $(this).serialize(),
-                    dataType: 'json',
-                    success: function(response) {
-                        console.log('Response:', response);
-                        if (response.status === 'success') {
-                            alert(response.message);
-                            $('#leaveModal').modal('hide');
-                            location.reload();
-                        } else {
-                            alert('Error: ' + response.message);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('AJAX Error:', error);
-                        console.error('Response:', xhr.responseText);
-                        alert('Terjadi kesalahan pada server');
-                    }
-                });
-            });
 
             // Validasi tanggal cuti
             $('#leaveStartDate, #leaveEndDate').on('change blur', function() {
@@ -750,15 +688,14 @@ try {
         method: 'POST',
         body: formData
     })
-    .then(response => response.text())
+    .then(response => response.json()) // Ubah ke json()
     .then(data => {
-        // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('permitRequestModal'));
         modal.hide();
         
-        showAlert('Pengajuan izin berhasil disubmit!', 'success');
+        showAlert(data.message || 'Pengajuan izin berhasil disubmit!', data.status === 'success' ? 'success' : 'danger');
         
-        // Refresh the page after a short delay
+        // Tambah delay sebelum reload
         setTimeout(() => {
             window.location.reload();
         }, 1500);
@@ -778,15 +715,14 @@ document.getElementById('leaveRequestForm').addEventListener('submit', function(
         method: 'POST',
         body: formData
     })
-    .then(response => response.text())
+    .then(response => response.json()) // Ubah ke json()
     .then(data => {
-        // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('leaveRequestModal'));
         modal.hide();
         
-        showAlert('Pengajuan cuti berhasil disubmit!', 'success');
+        showAlert(data.message || 'Pengajuan cuti berhasil disubmit!', data.status === 'success' ? 'success' : 'danger');
         
-        // Refresh the page after a short delay
+        // Tambah delay sebelum reload
         setTimeout(() => {
             window.location.reload();
         }, 1500);
