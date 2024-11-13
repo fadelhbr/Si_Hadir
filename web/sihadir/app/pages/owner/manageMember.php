@@ -46,12 +46,10 @@ $shifts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Get users with their division names (excluding owner role)
 $stmt = $pdo->prepare("
-    SELECT u.*, p.divisi_id, d.nama_divisi, s.id as shift_id, s.nama_shift
+    SELECT DISTINCT u.*, p.divisi_id, d.nama_divisi 
     FROM users u 
     LEFT JOIN pegawai p ON u.id = p.user_id 
     LEFT JOIN divisi d ON p.divisi_id = d.id
-    LEFT JOIN jadwal_shift js ON p.id = js.pegawai_id
-    LEFT JOIN shift s ON js.shift_id = s.id
     WHERE u.role != 'owner'
 ");
 $stmt->execute();
@@ -105,29 +103,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
 
         $userId = $pdo->lastInsertId();
 
-        // Insert into pegawai table
+        // Validate hari_libur
+        $validHariLibur = array('senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu');
+        $hari_libur = strtolower(trim($_POST['hari_libur']));
+
+        if (!in_array($hari_libur, $validHariLibur)) {
+            throw new Exception("Nilai hari libur tidak valid. Nilai yang diperbolehkan: " . implode(', ', $validHariLibur));
+        }
+
+        // Insert into pegawai table with hari_libur
         $stmt = $pdo->prepare("
-            INSERT INTO pegawai (user_id, divisi_id, status_aktif)
-            VALUES (:user_id, :divisi_id, 'aktif')
+            INSERT INTO pegawai (user_id, divisi_id, hari_libur, status_aktif)
+            VALUES (:user_id, :divisi_id, :hari_libur, 'aktif')
         ");
 
         $stmt->execute([
             'user_id' => $userId,
-            'divisi_id' => $_POST['divisi_id']
+            'divisi_id' => $_POST['divisi_id'],
+            'hari_libur' => $hari_libur
         ]);
 
         $pegawaiId = $pdo->lastInsertId();
 
-        // Insert into jadwal_shift table
+        // Insert into jadwal_shift table (without hari_libur)
         $stmt = $pdo->prepare("
-            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, hari_libur, status)
-            VALUES (:pegawai_id, :shift_id, CURRENT_DATE, :hari_libur, 'aktif')
+            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status)
+            VALUES (:pegawai_id, :shift_id, CURRENT_DATE, 'aktif')
         ");
 
         $stmt->execute([
             'pegawai_id' => $pegawaiId,
-            'shift_id' => $_POST['shift_id'],
-            'hari_libur' => $_POST['hari_libur']
+            'shift_id' => $_POST['shift_id']
         ]);
 
         $pdo->commit();
@@ -233,13 +239,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
 
         // Update user table
         $stmt = $pdo->prepare("
-            UPDATE users
-            SET nama_lengkap = :nama_lengkap,
-                email = :email,
-                username = :username,
-                no_telp = :no_telp
-            WHERE id = :user_id
-        ");
+         UPDATE users
+         SET nama_lengkap = :nama_lengkap,
+             email = :email,
+             username = :username,
+             no_telp = :no_telp
+         WHERE id = :user_id
+     ");
         $stmt->execute([
             'nama_lengkap' => $_POST['nama_lengkap'],
             'email' => $_POST['email'],
@@ -248,137 +254,135 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
             'user_id' => $_POST['user_id']
         ]);
 
-        // Update division
-                $stmt = $pdo->prepare("
-                    UPDATE pegawai
-                    SET divisi_id = :divisi_id
-                    WHERE user_id = :user_id
-                ");
-                $stmt->execute([
-                    'divisi_id' => $_POST['divisi_id'],
-                    'user_id' => $_POST['user_id']
-                ]);
+        // Validate hari_libur
+        $validHariLibur = array('senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu');
+        $hari_libur = strtolower(trim($_POST['edit_hari_libur']));
 
-                // Update shift in jadwal_shift
-                $stmt = $pdo->prepare("
-    UPDATE jadwal_shift
-    SET shift_id = :shift_id,
-        hari_libur = LOWER(:hari_libur)
-    WHERE pegawai_id = (
-        SELECT id 
-        FROM pegawai
-        WHERE user_id = :user_id
-    )
-    AND tanggal = CURRENT_DATE
-");
+        if (!in_array($hari_libur, $validHariLibur)) {
+            throw new Exception("Nilai hari libur tidak valid. Nilai yang diperbolehkan: " . implode(', ', $validHariLibur));
+        }
 
-$validHariLibur = array('senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu');
-                // Ambil nilai hari_libur dari form
-                $hari_libur = strtolower(trim($_POST['edit_hari_libur']));
+        // Update pegawai table with hari_libur
+        $stmt = $pdo->prepare("
+         UPDATE pegawai
+         SET divisi_id = :divisi_id,
+             hari_libur = :hari_libur
+         WHERE user_id = :user_id
+     ");
+        $stmt->execute([
+            'divisi_id' => $_POST['divisi_id'],
+            'hari_libur' => $hari_libur,
+            'user_id' => $_POST['user_id']
+        ]);
 
-if (in_array($hari_libur, $validHariLibur)) {
-    $stmt->execute([
-        'shift_id' => $_POST['shift_id'],
-        'hari_libur' => $hari_libur,
-        'user_id' => $_POST['user_id']
-    ]);
+        // Update shift in jadwal_shift (without hari_libur)
+        $stmt = $pdo->prepare("
+         UPDATE jadwal_shift
+         SET shift_id = :shift_id
+         WHERE pegawai_id = (
+             SELECT id 
+             FROM pegawai
+             WHERE user_id = :user_id
+         )
+         AND tanggal = CURRENT_DATE
+     ");
 
-    // Commit transaksi jika berhasil
-    $pdo->commit();
-    $_SESSION['alert'] = [
-        'type' => 'success',
-        'message' => 'Member berhasil diupdate!'
-    ];
-} else {
-                    // Berikan pesan error atau batalkan proses update
-                    throw new Exception("Nilai hari libur tidak valid. Nilai yang diterima: '" . $_POST['edit_hari_libur'] . "'. Nilai yang diperbolehkan: " . implode(', ', $validHariLibur));
+        $stmt->execute([
+            'shift_id' => $_POST['shift_id'],
+            'user_id' => $_POST['user_id']
+        ]);
+
+        $pdo->commit();
+        $_SESSION['alert'] = [
+            'type' => 'success',
+            'message' => 'Member berhasil diupdate!'
+        ];
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $_SESSION['alert'] = [
+            'type' => 'danger',
+            'message' => 'Gagal mengupdate member: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
 }
 
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                $_SESSION['alert'] = [
-                    'type' => 'danger',
-                    'message' => 'Gagal mengupdate member: ' . $e->getMessage()
-                ];
-            }
-            header('Location: ' . $_SERVER['PHP_SELF']);
-            exit;
+
+if (isset($_POST['delete_user'])) {
+    try {
+        $pdo->beginTransaction();
+
+        // Get pegawai_id first since we'll need it for other deletions
+        $stmt = $pdo->prepare("SELECT id FROM pegawai WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $_POST['user_id']]);
+        $pegawai = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($pegawai) {
+            // Delete from izin first (references pegawai)
+            $stmt = $pdo->prepare("DELETE FROM izin WHERE pegawai_id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+
+            // Delete from cuti (references pegawai)
+            $stmt = $pdo->prepare("DELETE FROM cuti WHERE pegawai_id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+
+            // Delete from absensi (references pegawai)
+            $stmt = $pdo->prepare("DELETE FROM absensi WHERE pegawai_id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+
+            // Delete from jadwal_shift (references pegawai)
+            $stmt = $pdo->prepare("DELETE FROM jadwal_shift WHERE pegawai_id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
+
+            // Delete from pegawai (references user)
+            $stmt = $pdo->prepare("DELETE FROM pegawai WHERE id = :pegawai_id");
+            $stmt->execute(['pegawai_id' => $pegawai['id']]);
         }
 
-        if (isset($_POST['delete_user'])) {
-            try {
-                $pdo->beginTransaction();
+        // Delete from log_akses (references user)
+        $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $_POST['user_id']]);
 
-                // Get pegawai_id first since we'll need it for other deletions
-                $stmt = $pdo->prepare("SELECT id FROM pegawai WHERE user_id = :user_id");
-                $stmt->execute(['user_id' => $_POST['user_id']]);
-                $pegawai = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Finally delete from users
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
+        $stmt->execute(['user_id' => $_POST['user_id']]);
 
-                if ($pegawai) {
-                    // Delete from izin first (references pegawai)
-                    $stmt = $pdo->prepare("DELETE FROM izin WHERE pegawai_id = :pegawai_id");
-                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
+        $pdo->commit();
+        $_SESSION['alert'] = [
+            'type' => 'success',
+            'message' => 'User dan semua data terkait berhasil dihapus!'
+        ];
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        $_SESSION['alert'] = [
+            'type' => 'danger',
+            'message' => 'Gagal menghapus user: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
 
-                    // Delete from cuti (references pegawai)
-                    $stmt = $pdo->prepare("DELETE FROM cuti WHERE pegawai_id = :pegawai_id");
-                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
+// Di bagian remove device
+if (isset($_POST['remove_device'])) {
+    try {
+        $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $_POST['user_id']]);
 
-                    // Delete from absensi (references pegawai)
-                    $stmt = $pdo->prepare("DELETE FROM absensi WHERE pegawai_id = :pegawai_id");
-                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
-
-                    // Delete from jadwal_shift (references pegawai)
-                    $stmt = $pdo->prepare("DELETE FROM jadwal_shift WHERE pegawai_id = :pegawai_id");
-                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
-
-                    // Delete from pegawai (references user)
-                    $stmt = $pdo->prepare("DELETE FROM pegawai WHERE id = :pegawai_id");
-                    $stmt->execute(['pegawai_id' => $pegawai['id']]);
-                }
-
-                // Delete from log_akses (references user)
-                $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
-                $stmt->execute(['user_id' => $_POST['user_id']]);
-
-                // Finally delete from users
-                $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
-                $stmt->execute(['user_id' => $_POST['user_id']]);
-
-                $pdo->commit();
-                $_SESSION['alert'] = [
-                    'type' => 'success',
-                    'message' => 'User dan semua data terkait berhasil dihapus!'
-                ];
-            } catch (PDOException $e) {
-                $pdo->rollBack();
-                $_SESSION['alert'] = [
-                    'type' => 'danger',
-                    'message' => 'Gagal menghapus user: ' . $e->getMessage()
-                ];
-            }
-            header('Location: ' . $_SERVER['PHP_SELF']);
-            exit;
-        }
-
-        // Di bagian remove device
-        if (isset($_POST['remove_device'])) {
-            try {
-                $stmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = :user_id");
-                $stmt->execute(['user_id' => $_POST['user_id']]);
-
-                $_SESSION['alert'] = [
-                    'type' => 'success',
-                    'message' => 'Device berhasil dihapus!'
-                ];
-            } catch (PDOException $e) {
-                $_SESSION['alert'] = [
-                    'type' => 'danger',
-                    'message' => 'Gagal menghapus device: ' . $e->getMessage()
-                ];
-            }
-            header('Location: ' . $_SERVER['PHP_SELF']);
-            exit;
-        }
+        $_SESSION['alert'] = [
+            'type' => 'success',
+            'message' => 'Device berhasil dihapus!'
+        ];
+    } catch (PDOException $e) {
+        $_SESSION['alert'] = [
+            'type' => 'danger',
+            'message' => 'Gagal menghapus device: ' . $e->getMessage()
+        ];
+    }
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -740,15 +744,16 @@ if (in_array($hari_libur, $validHariLibur)) {
 
                                 <div class="mb-2">
                                     <label class="form-label">Hari Libur</label>
-                                    <select class="form-select form-select-sm" name="hari_libur" id="hari_libur" required>
-                                    <option value="">Pilih Hari</option>
-                                    <option value="senin">Senin</option>
-                                    <option value="selasa">Selasa</option>
-                                    <option value="rabu">Rabu</option>
-                                    <option value="kamis">Kamis</option>
-                                    <option value="jumat">Jumat</option>
-                                    <option value="sabtu">Sabtu</option>
-                                    <option value="minggu">Minggu</option>
+                                    <select class="form-select form-select-sm" name="hari_libur" id="hari_libur"
+                                        required>
+                                        <option value="">Pilih Hari</option>
+                                        <option value="senin">Senin</option>
+                                        <option value="selasa">Selasa</option>
+                                        <option value="rabu">Rabu</option>
+                                        <option value="kamis">Kamis</option>
+                                        <option value="jumat">Jumat</option>
+                                        <option value="sabtu">Sabtu</option>
+                                        <option value="minggu">Minggu</option>
                                     </select>
                                 </div>
 
@@ -836,7 +841,8 @@ if (in_array($hari_libur, $validHariLibur)) {
 
                         <div class="mb-2">
                             <label class="form-label">Hari Libur</label>
-                            <select class="form-select form-select-sm" name="edit_hari_libur" id="edit_hari_libur" required>
+                            <select class="form-select form-select-sm" name="edit_hari_libur" id="edit_hari_libur"
+                                required>
                                 <option value="">Pilih Hari</option>
                                 <option value="senin">Senin</option>
                                 <option value="selasa">Selasa</option>
@@ -1097,4 +1103,5 @@ if (in_array($hari_libur, $validHariLibur)) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../../assets/js/scripts.js"></script>
 </body>
+
 </html>
