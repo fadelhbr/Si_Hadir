@@ -23,7 +23,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     exit;
 }
 
-function getEarliestAttendanceDate($pdo) {
+function getEarliestAttendanceDate($pdo)
+{
     try {
         $query = "SELECT MIN(DATE(tanggal)) as earliest_date FROM absensi";
         $stmt = $pdo->query($query);
@@ -322,7 +323,7 @@ try {
                 <form class="flex items-center justify-between mb-4" method="GET">
                     <div class="flex space-x-2">
                         <input type="date" name="date" class="border border-gray-300 rounded px-2 py-1"
-                            value="<?php echo $selectedDate; ?>" min="<?php echo $earliestDate; ?>" 
+                            value="<?php echo $selectedDate; ?>" min="<?php echo $earliestDate; ?>"
                             max="<?php echo date('Y-m-d'); ?>" onchange="this.form.submit()">
                         <select name="shift" class="border border-gray-300 rounded px-2 py-1"
                             onchange="this.form.submit()">
@@ -429,6 +430,10 @@ try {
                                                 $statusKehadiran = "Tidak Masuk";
                                                 $statusClass = "px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm";
                                                 break;
+                                            case 'libur':
+                                                $statusKehadiran = "Libur";
+                                                $statusClass = "px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm";
+                                                break;
                                             case 'izin':
                                                 $statusKehadiran = "Izin";
                                                 $statusClass = "px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm";
@@ -474,13 +479,13 @@ try {
     <!-- Custom JS to handle sidebar toggle -->
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const dateInput = document.querySelector('input[name="date"]');
             const earliestDate = '<?php echo $earliestDate; ?>';
             const today = new Date().toISOString().split('T')[0];
 
             // Ensure the date is within valid range when changed
-            dateInput.addEventListener('change', function() {
+            dateInput.addEventListener('change', function () {
                 const selectedDate = this.value;
                 if (selectedDate < earliestDate) {
                     this.value = earliestDate;
@@ -546,4 +551,5 @@ try {
         });
     </script>
 </body>
+
 </html>
