@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 14, 2024 at 07:43 PM
+-- Generation Time: Nov 14, 2024 at 09:12 PM
 -- Server version: 8.0.40-0ubuntu0.22.04.1
 -- PHP Version: 8.1.2-1ubuntu2.19
 
@@ -34,6 +34,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
     DECLARE curr_hari_libur VARCHAR(10);
     DECLARE status_kehadiran VARCHAR(10) DEFAULT 'alpha';
     DECLARE hari_ini VARCHAR(10);
+    DECLARE tanggal_hari_ini DATE;
 
     -- Cursor untuk mengambil semua pegawai yang aktif beserta hari liburnya
     DECLARE cur_employees CURSOR FOR 
@@ -48,22 +49,25 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
     -- Set timezone ke Asia/Jakarta (GMT+7)
     SET time_zone = '+07:00';
 
+    -- Mendapatkan tanggal hari ini
+    SET tanggal_hari_ini = CURRENT_DATE();
+
     -- Update status tidak_absen_pulang untuk kemarin jika ada entri
     IF EXISTS (
         SELECT 1 
         FROM absensi 
-        WHERE DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00') - INTERVAL 1 DAY)
+        WHERE DATE(tanggal) = DATE(tanggal_hari_ini - INTERVAL 1 DAY)
     ) THEN
         UPDATE absensi 
         SET status_kehadiran = 'tidak_absen_pulang'
-        WHERE DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00') - INTERVAL 1 DAY)
+        WHERE DATE(tanggal) = DATE(tanggal_hari_ini - INTERVAL 1 DAY)
         AND waktu_masuk != '00:00:00'
         AND waktu_keluar = '00:00:00';
     END IF;
 
     -- Mendapatkan nama hari ini dalam bahasa Indonesia
     SET hari_ini = LOWER(
-        CASE DAYOFWEEK(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
+        CASE DAYOFWEEK(tanggal_hari_ini)
             WHEN 1 THEN 'minggu'
             WHEN 2 THEN 'senin'
             WHEN 3 THEN 'selasa'
@@ -92,7 +96,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
             SELECT 1 
             FROM jadwal_shift 
             WHERE pegawai_id = curr_pegawai_id 
-            AND tanggal = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
+            AND tanggal = tanggal_hari_ini
         ) THEN
             -- Mengambil shift_id terakhir yang aktif untuk pegawai ini
             SELECT shift_id INTO curr_shift_id 
@@ -106,7 +110,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
             VALUES (
                 curr_pegawai_id, 
                 IFNULL(curr_shift_id, 1),
-                DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00')), 
+                tanggal_hari_ini, 
                 'aktif'
             );
 
@@ -117,13 +121,12 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
             IF curr_jadwal_id IS NULL THEN
                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Gagal membuat record jadwal_shift.';
             END IF;
-
         ELSE
             -- Mengambil jadwal_shift id yang ada untuk hari ini
-            SELECT id, shift_id INTO curr_jadwal_id, curr_shift_id
+            SELECT id, shift_id INTO curr_jadwal_id, curr_shift_ID
             FROM jadwal_shift 
             WHERE pegawai_id = curr_pegawai_id 
-            AND tanggal = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
+            AND tanggal = tanggal_hari_ini
             AND status = 'aktif' 
             LIMIT 1;
         END IF;
@@ -140,7 +143,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
                 SELECT 1 
                 FROM izin 
                 WHERE pegawai_id = curr_pegawai_id 
-                AND tanggal = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
+                AND tanggal = tanggal_hari_ini
                 AND status = 'disetujui'
             ) THEN
                 SET status_kehadiran = 'izin';
@@ -149,25 +152,25 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
                 SELECT 1 
                 FROM cuti 
                 WHERE pegawai_id = curr_pegawai_id 
-                AND DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00')) BETWEEN tanggal_mulai AND tanggal_selesai 
+                AND tanggal_hari_ini BETWEEN tanggal_mulai AND tanggal_selesai 
                 AND status = 'disetujui'
             ) THEN
                 SET status_kehadiran = 'cuti';
             END IF;
         END IF;
 
-        -- Cek apakah sudah ada record absensi untuk hari ini dan jika ada, apakah perlu diupdate
+        -- Cek apakah sudah ada record absensi untuk hari ini
         IF EXISTS (
             SELECT 1 
             FROM absensi 
             WHERE pegawai_id = curr_pegawai_id 
-            AND DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
+            AND DATE(tanggal) = tanggal_hari_ini
         ) THEN
-            -- Hanya update jika record masih default (waktu 00:00:00 dan status alpha)
+            -- Update record absensi jika ada
             UPDATE absensi 
             SET status_kehadiran = status_kehadiran 
             WHERE pegawai_id = curr_pegawai_id 
-            AND DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
+            AND DATE(tanggal) = tanggal_hari_ini
             AND waktu_masuk = '00:00:00'
             AND waktu_keluar = '00:00:00'
             AND status_kehadiran = 'alpha';
@@ -188,7 +191,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
                 '00:00:00', 
                 '000000', 
                 status_kehadiran, 
-                DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
+                tanggal_hari_ini
             );
         END IF;
 
@@ -197,6 +200,20 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
     -- Menutup cursor
     CLOSE cur_employees;
 
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()  BEGIN
+    -- Nonaktifkan pemeriksaan foreign key terlebih dahulu
+    SET FOREIGN_KEY_CHECKS = 0;
+
+    -- Kosongkan tabel absensi
+    TRUNCATE TABLE absensi;
+
+    -- Kosongkan tabel log_akses
+    TRUNCATE TABLE log_akses;
+
+    -- Aktifkan kembali pemeriksaan foreign key
+    SET FOREIGN_KEY_CHECKS = 1;
 END$$
 
 DELIMITER ;
@@ -684,7 +701,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=546942;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `cuti`
@@ -708,13 +725,13 @@ ALTER TABLE `izin`
 -- AUTO_INCREMENT for table `jadwal_shift`
 --
 ALTER TABLE `jadwal_shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=144;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `log_akses`
 --
 ALTER TABLE `log_akses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=770958;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=985787;
 
 --
 -- AUTO_INCREMENT for table `pegawai`
@@ -726,19 +743,19 @@ ALTER TABLE `pegawai`
 -- AUTO_INCREMENT for table `qr_code`
 --
 ALTER TABLE `qr_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=119;
 
 --
 -- AUTO_INCREMENT for table `shift`
 --
 ALTER TABLE `shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75580;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75581;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992313;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992318;
 
 --
 -- Constraints for dumped tables
@@ -789,6 +806,10 @@ DELIMITER $$
 --
 CREATE DEFINER=`root`@`localhost` EVENT `auto_insert_absensi_event` ON SCHEDULE EVERY 10 SECOND STARTS '2024-11-07 16:54:05' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
     CALL auto_insert_absensi();
+END$$
+
+CREATE DEFINER=`root`@`localhost` EVENT `auto_clear_database` ON SCHEDULE EVERY 1 YEAR STARTS '2024-11-07 16:54:05' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
+    CALL reset_database_table();
 END$$
 
 DELIMITER ;
