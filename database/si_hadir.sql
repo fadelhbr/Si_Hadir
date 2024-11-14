@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 14, 2024 at 06:38 AM
+-- Generation Time: Nov 14, 2024 at 07:43 PM
 -- Server version: 8.0.40-0ubuntu0.22.04.1
 -- PHP Version: 8.1.2-1ubuntu2.19
 
@@ -48,12 +48,18 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
     -- Set timezone ke Asia/Jakarta (GMT+7)
     SET time_zone = '+07:00';
 
-    -- Update status tidak_absen_pulang untuk kemarin (dengan timezone yang benar)
-    UPDATE absensi 
-    SET status_kehadiran = 'tidak_absen_pulang'
-    WHERE DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00') - INTERVAL 1 DAY)
-    AND waktu_masuk != '00:00:00'
-    AND waktu_keluar = '00:00:00';
+    -- Update status tidak_absen_pulang untuk kemarin jika ada entri
+    IF EXISTS (
+        SELECT 1 
+        FROM absensi 
+        WHERE DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00') - INTERVAL 1 DAY)
+    ) THEN
+        UPDATE absensi 
+        SET status_kehadiran = 'tidak_absen_pulang'
+        WHERE DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00') - INTERVAL 1 DAY)
+        AND waktu_masuk != '00:00:00'
+        AND waktu_keluar = '00:00:00';
+    END IF;
 
     -- Mendapatkan nama hari ini dalam bahasa Indonesia
     SET hari_ini = LOWER(
@@ -150,14 +156,23 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
             END IF;
         END IF;
 
-        -- Memeriksa apakah record absensi sudah ada untuk hari ini
-        IF NOT EXISTS (
+        -- Cek apakah sudah ada record absensi untuk hari ini dan jika ada, apakah perlu diupdate
+        IF EXISTS (
             SELECT 1 
             FROM absensi 
             WHERE pegawai_id = curr_pegawai_id 
             AND DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
         ) THEN
-            -- Menyisipkan record absensi baru
+            -- Hanya update jika record masih default (waktu 00:00:00 dan status alpha)
+            UPDATE absensi 
+            SET status_kehadiran = status_kehadiran 
+            WHERE pegawai_id = curr_pegawai_id 
+            AND DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
+            AND waktu_masuk = '00:00:00'
+            AND waktu_keluar = '00:00:00'
+            AND status_kehadiran = 'alpha';
+        ELSE
+            -- Insert record baru jika belum ada
             INSERT INTO absensi (
                 pegawai_id, 
                 jadwal_shift_id, 
@@ -175,12 +190,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
                 status_kehadiran, 
                 DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'))
             );
-        ELSE
-            -- Update status_kehadiran jika record sudah ada
-            UPDATE absensi 
-            SET status_kehadiran = status_kehadiran 
-            WHERE pegawai_id = curr_pegawai_id 
-            AND DATE(tanggal) = DATE(CONVERT_TZ(NOW(), '+00:00', '+07:00'));
         END IF;
 
     END LOOP;
@@ -188,22 +197,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
     -- Menutup cursor
     CLOSE cur_employees;
 
-END$$
-
---
--- Functions
---
-CREATE DEFINER=`root`@`localhost` FUNCTION `generate_random_code` () RETURNS CHAR(6) CHARSET utf8mb4 COLLATE utf8mb4_general_ci BEGIN
-    DECLARE chars VARCHAR(62) DEFAULT 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    DECLARE result CHAR(6) DEFAULT '';
-    DECLARE i INT DEFAULT 0;
-    
-    WHILE i < 6 DO
-        SET result = CONCAT(result, SUBSTRING(chars, FLOOR(1 + RAND() * 62), 1));
-        SET i = i + 1;
-    END WHILE;
-    
-    RETURN result;
 END$$
 
 DELIMITER ;
@@ -537,6 +530,7 @@ CREATE TABLE `users` (
   `username` varchar(50) COLLATE utf8mb4_bin NOT NULL,
   `password` varchar(255) COLLATE utf8mb4_bin NOT NULL,
   `nama_lengkap` varchar(100) COLLATE utf8mb4_bin NOT NULL,
+  `jenis_kelamin` enum('laki','perempuan') COLLATE utf8mb4_bin NOT NULL,
   `email` varchar(100) COLLATE utf8mb4_bin NOT NULL,
   `role` enum('owner','karyawan') COLLATE utf8mb4_bin NOT NULL,
   `no_telp` varchar(15) COLLATE utf8mb4_bin DEFAULT NULL,
@@ -690,7 +684,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=546931;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=546942;
 
 --
 -- AUTO_INCREMENT for table `cuti`
@@ -717,6 +711,12 @@ ALTER TABLE `jadwal_shift`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=144;
 
 --
+-- AUTO_INCREMENT for table `log_akses`
+--
+ALTER TABLE `log_akses`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=770958;
+
+--
 -- AUTO_INCREMENT for table `pegawai`
 --
 ALTER TABLE `pegawai`
@@ -726,19 +726,19 @@ ALTER TABLE `pegawai`
 -- AUTO_INCREMENT for table `qr_code`
 --
 ALTER TABLE `qr_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=113;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117;
 
 --
 -- AUTO_INCREMENT for table `shift`
 --
 ALTER TABLE `shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75579;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75580;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992311;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992313;
 
 --
 -- Constraints for dumped tables
