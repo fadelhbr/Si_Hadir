@@ -273,7 +273,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
         <div class="cta-section">
 
             <div class="buttons">
-                <a href="register.php" class="btn btn-primary">
+                <a href="agreement.php" class="btn btn-primary">
                     <i class="fas fa-user-plus"></i>
                     Daftar Sebagai Owner
                 </a>
