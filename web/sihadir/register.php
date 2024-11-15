@@ -88,6 +88,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $no_telp_err = "Mohon masukkan nomor telepon.";
     } else {
         $no_telp = trim($_POST["no_telp"]);
+        if (!preg_match('/^[0-9]+$/', $no_telp)) {
+            $no_telp_err = "Nomor telepon hanya boleh mengandung angka.";
+        }
     }
 
     // Validate role
@@ -358,11 +361,13 @@ unset($pdo);
 
                 <div class="input-group <?php echo !empty($no_telp_err) ? 'error' : ''; ?>">
                     <label for="no_telp">Nomor Telepon</label>
-                    <input type="tel" id="no_telp" name="no_telp"
+                    <input type="text" id="no_telp" name="no_telp"
+                        pattern="[0-9]+" maxlength="15"
                         value="<?php echo isset($_POST['no_telp']) ? htmlspecialchars($_POST['no_telp']) : ''; ?>"
-                        required>
+                        required oninput="validateNoTelp(this)">
+                        <span id="error-message" style="display: none; color: red; font-size: 12px; margin-top: 5px;"></span>
                     <?php if (!empty($no_telp_err)): ?>
-                        <span class="error-message"><?php echo $no_telp_err; ?></span>
+                        <span class="error-message" style="color: red;"><?php echo $no_telp_err; ?></span>
                     <?php endif; ?>
                 </div>
             </div>
@@ -387,8 +392,6 @@ unset($pdo);
                     <?php endif; ?>
                 </div>
             </div>
-
-
 
             <div class="form-grid">
                 <div class="input-group <?php echo !empty($password_err) ? 'error' : ''; ?>">
@@ -417,6 +420,20 @@ unset($pdo);
             </button>
         </form>
     </div>
-</body>
 
+    <!-- ALERT KOLOM NOMOR TELPON (HANYA BERISI ANGKA) -->
+    <script>
+        function validateNoTelp(input) {
+            const errorMessage = document.getElementById('error-message');
+            if (/[^0-9]/.test(input.value)) {
+                errorMessage.style.display = 'inline';
+                errorMessage.textContent = "Nomor telepon hanya boleh mengandung angka.";
+                input.value = input.value.replace(/[^0-9]/g, '');
+            } else {
+                errorMessage.style.display = 'none';
+            }
+        }
+    </script>
+
+</body>
 </html>
