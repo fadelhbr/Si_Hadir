@@ -35,30 +35,16 @@ use PhpOffice\PhpSpreadsheet\Style\Font;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
 
-$start_date = isset($_POST['start_date']) ? $_POST['start_date'] : null;
-$end_date = isset($_POST['end_date']) ? $_POST['end_date'] : null;
+$start_date = isset($_POST['start_date']) ? $_POST['start_date'] : '';
+$end_date = isset($_POST['end_date']) ? $_POST['end_date'] : '';
 
 if (!empty($start_date) && !empty($end_date)) {
-    // Pengecekan format tanggal
-    if (!DateTime::createFromFormat('Y-m-d', $start_date) || !DateTime::createFromFormat('Y-m-d', $end_date)) {
-        die('Invalid date format. Please use YYYY-MM-DD.');
-    }
-
-    // Menambahkan waktu ke tanggal
-    $start_date_with_time = $start_date . ' 00:00:00';
-    $end_date_with_time = $end_date . ' 23:59:59';
-
-    // Menyiapkan query dengan filter tanggal
     $stmt = $pdo->prepare("
         SELECT 
             u.nama_lengkap AS nama_staff,
-            u.jenis_kelamin AS jenis_kelamin,
-            a.tanggal AS tanggal_absen,
             SUM(CASE WHEN a.status_kehadiran = 'hadir' THEN 1 ELSE 0 END) AS hadir,
-            SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
             SUM(CASE WHEN a.status_kehadiran = 'terlambat' THEN 1 ELSE 0 END) AS terlambat,
             SUM(CASE WHEN a.status_kehadiran = 'sakit' THEN 1 ELSE 0 END) AS sakit,
-            SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
             SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
         FROM 
             absensi a
@@ -67,26 +53,24 @@ if (!empty($start_date) && !empty($end_date)) {
         JOIN 
             users u ON p.user_id = u.id
         WHERE 
-            a.tanggal BETWEEN :start_date AND :end_date  -- Menggunakan kolom tanggal untuk filter
+            a.waktu_masuk BETWEEN :start_date AND :end_date
         GROUP BY 
-            u.id, a.tanggal, a.status_kehadiran  -- Mengelompokkan berdasarkan tanggal dan status
+            u.id
         ORDER BY 
-            a.tanggal ASC, u.nama_lengkap ASC;
+            u.nama_lengkap ASC;
     ");
-
-    // Mengikat parameter tanggal ke query
-    $stmt->bindParam(':start_date', $start_date_with_time);
-    $stmt->bindParam(':end_date', $end_date_with_time);
+    $stmt->bindParam(':start_date', $start_date);
+    $stmt->bindParam(':end_date', $end_date);
+    $stmt->execute();
+    $attendanceDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    // Menyiapkan query tanpa filter tanggal
+    // Query default jika belum ada filter
     $stmt = $pdo->prepare("
         SELECT 
             u.nama_lengkap AS nama_staff,
-            u.jenis_kelamin AS jenis_kelamin,
             SUM(CASE WHEN a.status_kehadiran = 'hadir' THEN 1 ELSE 0 END) AS hadir,
-            SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
+            SUM(CASE WHEN a.status_kehadiran = 'terlambat' THEN 1 ELSE 0 END) AS terlambat,
             SUM(CASE WHEN a.status_kehadiran = 'sakit' THEN 1 ELSE 0 END) AS sakit,
-            SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
             SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
         FROM 
             absensi a
@@ -99,14 +83,9 @@ if (!empty($start_date) && !empty($end_date)) {
         ORDER BY 
             u.nama_lengkap ASC;
     ");
+    $stmt->execute();
+    $attendanceDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-
-// Eksekusi query setelah disiapkan
-$stmt->execute();
-
-// Mengambil hasil query
-$attendanceDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 
 //PDF
 if (isset($_GET['action'])) {
@@ -143,7 +122,7 @@ if (isset($_GET['action'])) {
                 th, td {
                     border: 1px solid #000;
                     padding: 8px;
-                    text-align: center;
+                    text-align: left;
                 }
                 th {
                     background-color: #f2f2f2;
@@ -155,13 +134,10 @@ if (isset($_GET['action'])) {
             <table>
                 <thead>
                     <tr>
-                        <th>No.</th>
-                        <th>Nama Karyawan</th>
-                        <th>Jenis Kelamin</th>
+                        <th>Karyawan</th>
                         <th>Hadir</th>
-                        <th>Alpha</th>
+                        <th>Terlambat</th>
                         <th>Sakit</th>
-                        <th>Cuti</th>
                         <th>Izin</th>
                     </tr>
                 </thead>
@@ -169,21 +145,17 @@ if (isset($_GET['action'])) {
 
         // Assuming $attendanceDetails is an array containing your data
         if (!empty($attendanceDetails)) {
-            $no = 1; 
             foreach ($attendanceDetails as $detail) {
-                $html .= '<tr class="text-center">';
-                $html .= '<td class="text-center">' . $no++ . '</td>';
-                $html .= '<td class="text-center">' . htmlspecialchars($detail['nama_staff']) . '</td>';
-                $html .= '<td class="text-center">' . htmlspecialchars($detail['jenis_kelamin']) . '</td>';
-                $html .= '<td class="text-center">' . htmlspecialchars($detail['hadir']) . '</td>';
-                $html .= '<td class="text-center">' . htmlspecialchars($detail['alpha']) . '</td>';
-                $html .= '<td class="text-center">' . htmlspecialchars($detail['sakit']) . '</td>';
-                $html .= '<td class="text-center">' . htmlspecialchars($detail['cuti']) . '</td>';
-                $html .= '<td class="text-center">' . htmlspecialchars($detail['izin']) . '</td>';
+                $html .= '<tr>';
+                $html .= '<td>' . htmlspecialchars($detail['nama_staff']) . '</td>';
+                $html .= '<td>' . htmlspecialchars($detail['hadir']) . '</td>';
+                $html .= '<td>' . htmlspecialchars($detail['terlambat']) . '</td>';
+                $html .= '<td>' . htmlspecialchars($detail['sakit']) . '</td>';
+                $html .= '<td>' . htmlspecialchars($detail['izin']) . '</td>';
                 $html .= '</tr>';
             }
         } else {
-            $html .= '<tr><td colspan="8" style="text-align: center;">Tidak ada data absensi karyawan</td></tr>';
+            $html .= '<tr><td colspan="5" style="text-align: center;">Tidak ada data absensi karyawan</td></tr>';
         }
 
         $html .= '
@@ -211,22 +183,18 @@ if (isset($_GET['action'])) {
         $sheet = $spreadsheet->getActiveSheet();
 
         // Menambahkan header
-        $headers = ['No.', 'Nama Karyawan', 'Jenis Kelamin', 'Hadir', 'Alpha', 'Sakit', 'Cuti', 'Izin'];
+        $headers = ['Karyawan', 'Hadir', 'Terlambat', 'Sakit', 'Izin'];
         $sheet->fromArray($headers, NULL, 'A1');
 
         // Menambahkan data
         if (!empty($attendanceDetails)) {
             $row = 2; // Mulai dari baris kedua
-            $no = 1;
             foreach ($attendanceDetails as $detail) {
                 $sheet->fromArray([
-                    $no++,
                     htmlspecialchars($detail['nama_staff']),
-                    htmlspecialchars($detail['jenis_kelamin']),
                     htmlspecialchars($detail['hadir']),
-                    htmlspecialchars($detail['alpha']),
+                    htmlspecialchars($detail['terlambat']),
                     htmlspecialchars($detail['sakit']),
-                    htmlspecialchars($detail['cuti']),
                     htmlspecialchars($detail['izin']),
                 ], NULL, 'A' . $row++);
             }
@@ -236,23 +204,23 @@ if (isset($_GET['action'])) {
         }
 
         // Mengatur format header
-        $headerRange = 'A1:H1'; // Ubah ke (A-Z)1 untuk kolom
+        $headerRange = 'A1:E1'; // Ubah ke E1 untuk lima kolom
         $sheet->getStyle($headerRange)->getFont()->setBold(true);
         $sheet->getStyle($headerRange)->getFont()->getColor()->setRGB(Color::COLOR_WHITE);
         $sheet->getStyle($headerRange)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
         $sheet->getStyle($headerRange)->getFill()->getStartColor()->setRGB('4F81BD');
 
         // Mengatur lebar kolom
-        foreach (range('A', 'H') as $column) {
+        foreach (range('A', 'E') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
         // Mengatur perataan teks
-        $sheet->getStyle('A1:H' . ($row - 1))
+        $sheet->getStyle('A1:E' . ($row - 1))
             ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Menambahkan border
-        $sheet->getStyle('A1:H' . ($row - 1))
+        $sheet->getStyle('A1:E' . ($row - 1))
             ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)
             ->getColor()->setARGB(Color::COLOR_BLACK);
 
@@ -277,7 +245,7 @@ if (isset($_GET['action'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Si Hadir - Laporan</title>
+    <title>Si Hadir - Dashboard</title>
     <!-- Favicon-->
     <link rel="icon" type="image/x-icon" href="../../../assets/icon/favicon.ico" />
     <!-- Core theme CSS (includes Bootstrap)-->
@@ -522,26 +490,19 @@ if (isset($_GET['action'])) {
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th
-                                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Nama Karyawan</th>
                                         <th
-                                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Jenis Kelamin</th>
-                                        <th
-                                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Hadir</th>
                                         <th
-                                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Alpha</th>
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Terlambat</th>
                                         <th
-                                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Sakit</th>
                                         <th
-                                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Cuti</th>
-
-                                        <th
-                                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Izin</th>
                                     </tr>
                                 </thead>
@@ -550,13 +511,11 @@ if (isset($_GET['action'])) {
                                     if (!empty($attendanceDetails)) {
                                         foreach ($attendanceDetails as $detail) {
                                             echo "<tr>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['nama_staff']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars(ucwords($detail['jenis_kelamin'])) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['hadir']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['alpha']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['sakit']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['cuti']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['izin']) . "</td>";
+                                            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['nama_staff']) . "</td>";
+                                            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['hadir']) . "</td>";
+                                            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['terlambat']) . "</td>";
+                                            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['sakit']) . "</td>";
+                                            echo "<td class='px-6 py-4 whitespace-nowrap'>" . htmlspecialchars($detail['izin']) . "</td>";
                                             echo "</tr>";
                                         }
                                     } else {
@@ -568,7 +527,18 @@ if (isset($_GET['action'])) {
                         </div>
                         <div class="px-6 py-4 border-t border-gray-200">
                             <div class="flex justify-between items-center">
-                        </div>
+                                <div class="text-sm text-gray-500">
+                                    Showing 1 to 3 of 50 entries
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Previous</button>
+                                    <button
+                                        class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600">1</button>
+                                    <button class="px-3 py-1 border rounded-md hover:bg-gray-50">2</button>
+                                    <button class="px-3 py-1 border rounded-md hover:bg-gray-50">3</button>
+                                    <button class="px-3 py-1 border rounded-md hover:bg-gray-50">Next</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

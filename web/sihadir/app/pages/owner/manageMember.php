@@ -44,24 +44,14 @@ $stmt = $pdo->prepare("SELECT id, nama_shift FROM shift");
 $stmt->execute();
 $shifts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-$jenis_kelamin_options = [
-    'laki-laki' => 'Laki-laki',
-    'perempuan' => 'Perempuan'
-];
-
 // Get users with their division names (excluding owner role)
 $stmt = $pdo->prepare("
-    SELECT DISTINCT u.*, p.divisi_id, p.hari_libur, d.nama_divisi,
-    js.shift_id, s.nama_shift
+    SELECT DISTINCT u.*, p.divisi_id, d.nama_divisi 
     FROM users u 
     LEFT JOIN pegawai p ON u.id = p.user_id 
     LEFT JOIN divisi d ON p.divisi_id = d.id
-    LEFT JOIN jadwal_shift js ON p.id = js.pegawai_id
-    LEFT JOIN shift s ON js.shift_id = s.id
     WHERE u.role != 'owner'
-    AND (js.tanggal = CURRENT_DATE OR js.tanggal IS NULL)
 ");
-
 $stmt->execute();
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -99,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
 
         // Insert into users table
         $stmt = $pdo->prepare("
-            INSERT INTO users (nama_lengkap, email, username, jenis_kelamin, password, no_telp, role)
-            VALUES (:nama_lengkap, :email, :username, :jenis_kelamin, :password, :no_telp, 'karyawan')
+            INSERT INTO users (nama_lengkap, email, username, password, no_telp, role)
+            VALUES (:nama_lengkap, :email, :username, :password, :no_telp, 'karyawan')
         ");
 
         $stmt->execute([
@@ -108,8 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             'email' => $_POST['email'],
             'username' => $_POST['username'],
             'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
-            'no_telp' => $_POST['no_telp'],
-            'jenis_kelamin' => $_POST['jenis_kelamin']
+            'no_telp' => $_POST['no_telp']
         ]);
 
         $userId = $pdo->lastInsertId();
@@ -254,17 +243,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
          SET nama_lengkap = :nama_lengkap,
              email = :email,
              username = :username,
-             jenis_kelamin = :jenis_kelamin,
              no_telp = :no_telp
          WHERE id = :user_id
-        ");
-
+     ");
         $stmt->execute([
             'nama_lengkap' => $_POST['nama_lengkap'],
             'email' => $_POST['email'],
             'username' => $_POST['username'],
             'no_telp' => $_POST['no_telp'],
-            'jenis_kelamin' => $_POST['jenis_kelamin'],
             'user_id' => $_POST['user_id']
         ]);
 
@@ -282,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
          SET divisi_id = :divisi_id,
              hari_libur = :hari_libur
          WHERE user_id = :user_id
-        ");
+     ");
         $stmt->execute([
             'divisi_id' => $_POST['divisi_id'],
             'hari_libur' => $hari_libur,
@@ -652,10 +638,6 @@ if (isset($_POST['remove_device'])) {
                                     No Telepon</th>
                                 <th
                                     class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Hari Libur</th>
-
-                                <th
-                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Action</th>
                             </tr>
                         </thead>
@@ -670,9 +652,6 @@ if (isset($_POST['remove_device'])) {
                                         <?= htmlspecialchars($user['nama_divisi'] ?? '-') ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['no_telp']) ?></td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?= htmlspecialchars($user['hari_libur'] ?? '-') ?>
-                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex space-x-2 justify-center">
                                             <button onclick="editUser(<?= htmlspecialchars(json_encode($user)) ?>)"
@@ -722,16 +701,6 @@ if (isset($_POST['remove_device'])) {
                                     <input type="text" class="form-control form-control-sm" name="username" required>
                                 </div>
 
-                                <div class="mb-2">
-                                    <label class="form-label">Jenis Kelamin</label>
-                                    <select name="jenis_kelamin" id="jenis_kelamin" class="form-control form-select" required>
-                                        <option value="">Pilih Jenis Kelamin</option>
-                                        <?php foreach ($jenis_kelamin_options as $value => $label): ?>
-                                            <option value="<?= $value ?>"><?= htmlspecialchars($label) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-
                                 <!-- Email -->
                                 <div class="mb-2">
                                     <label class="form-label">Email</label>
@@ -754,7 +723,7 @@ if (isset($_POST['remove_device'])) {
                                 <!-- Shift -->
                                 <div class="form-group">
                                     <label>Shift</label>
-                                    <select name="shift_id" id="shift_id" class="form-control form-select" required>
+                                    <select name="shift_id" id="shift_id" class="form-control" required>
                                         <option value="">Pilih Shift</option>
                                         <?php foreach ($shifts as $id => $nama_shift): ?>
                                             <option value="<?= $id ?>"><?= htmlspecialchars($nama_shift) ?></option>
@@ -765,7 +734,7 @@ if (isset($_POST['remove_device'])) {
                                 <!-- Divisi -->
                                 <div class="mb-2">
                                     <label class="form-label">Divisi</label>
-                                    <select class="form-control form-select" name="divisi_id" required>
+                                    <select class="form-select form-select-sm" name="divisi_id" required>
                                         <option value="">Pilih Divisi</option>
                                         <?php foreach ($divisi_names as $id => $nama): ?>
                                             <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
@@ -775,7 +744,7 @@ if (isset($_POST['remove_device'])) {
 
                                 <div class="mb-2">
                                     <label class="form-label">Hari Libur</label>
-                                    <select class="form-control form-select" name="hari_libur" id="hari_libur"
+                                    <select class="form-select form-select-sm" name="hari_libur" id="hari_libur"
                                         required>
                                         <option value="">Pilih Hari</option>
                                         <option value="senin">Senin</option>
@@ -821,27 +790,17 @@ if (isset($_POST['remove_device'])) {
                                 id="edit_nama_lengkap" required>
                         </div>
 
-                        <!-- Username -->
-                        <div class="mb-2">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control form-control-sm" name="username" id="edit_username"
-                                required>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="form-label">Jenis Kelamin</label>
-                            <select class="form-control form-select" name="jenis_kelamin" id="edit_jenis_kelamin">
-                                <option value="">Pilih Jenis Kelamin</option>
-                                <?php foreach ($jenis_kelamin_options as $value => $label): ?>
-                                            <option value="<?= $value ?>"><?= htmlspecialchars($label) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
                         <!-- Email -->
                         <div class="mb-2">
                             <label class="form-label">Email</label>
                             <input type="email" class="form-control form-control-sm" name="email" id="edit_email"
+                                required>
+                        </div>
+
+                        <!-- Username -->
+                        <div class="mb-2">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control form-control-sm" name="username" id="edit_username"
                                 required>
                         </div>
 
@@ -861,7 +820,7 @@ if (isset($_POST['remove_device'])) {
                         <!-- Divisi -->
                         <div class="mb-2">
                             <label class="form-label">Divisi</label>
-                            <select class="form-control form-select" name="divisi_id" id="edit_divisi_id" required>
+                            <select class="form-select form-select-sm" name="divisi_id" id="edit_divisi_id" required>
                                 <option value="">Pilih Divisi</option>
                                 <?php foreach ($divisi_names as $id => $nama): ?>
                                     <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
@@ -872,7 +831,7 @@ if (isset($_POST['remove_device'])) {
                         <!-- Shift -->
                         <div class="form-group">
                             <label>Shift</label>
-                            <select name="shift_id" id="edit_shift_id" class="form-control form-select" required>
+                            <select name="shift_id" id="shift_id" class="form-control" required>
                                 <option value="">Pilih Shift</option>
                                 <?php foreach ($shifts as $id => $nama_shift): ?>
                                     <option value="<?= $id ?>"><?= htmlspecialchars($nama_shift) ?></option>
@@ -882,7 +841,7 @@ if (isset($_POST['remove_device'])) {
 
                         <div class="mb-2">
                             <label class="form-label">Hari Libur</label>
-                            <select class="form-control form-select" name="edit_hari_libur" id="edit_hari_libur"
+                            <select class="form-select form-select-sm" name="edit_hari_libur" id="edit_hari_libur"
                                 required>
                                 <option value="">Pilih Hari</option>
                                 <option value="senin">Senin</option>
@@ -1061,11 +1020,8 @@ if (isset($_POST['remove_device'])) {
             document.getElementById('edit_nama_lengkap').value = user.nama_lengkap;
             document.getElementById('edit_email').value = user.email;
             document.getElementById('edit_username').value = user.username;
-            document.getElementById('edit_jenis_kelamin').value = user.jenis_kelamin;
             document.getElementById('edit_no_telp').value = user.no_telp;
             document.getElementById('edit_divisi_id').value = user.divisi_id || '';
-            document.getElementById('edit_shift_id').value = user.shift_id || '';
-            document.getElementById('edit_hari_libur').value = user.hari_libur || '';
             // Show the modal
             new bootstrap.Modal(document.getElementById('editMemberModal')).show();
         }
