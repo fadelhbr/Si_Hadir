@@ -24,7 +24,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     exit;
 }
 
-// Tambahkan di bagian atas file setelah koneksi database
 // Fungsi untuk mendapatkan data shift dalam format JSON
 if (isset($_GET['get_shift_details']) && isset($_GET['shift_id'])) {
     $stmt = $pdo->prepare("SELECT jam_masuk, jam_keluar FROM shift WHERE id = ?");
@@ -45,16 +44,24 @@ $stmt = $pdo->prepare("SELECT id, nama_shift FROM shift");
 $stmt->execute();
 $shifts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
+$jenis_kelamin_options = [
+    'laki-laki' => 'Laki-laki',
+    'perempuan' => 'Perempuan'
+];
+
 // Get users with their division names (excluding owner role)
 $stmt = $pdo->prepare("
-    SELECT u.*, p.divisi_id, d.nama_divisi, s.id as shift_id, s.nama_shift
+    SELECT DISTINCT u.*, p.divisi_id, p.hari_libur, d.nama_divisi,
+    js.shift_id, s.nama_shift
     FROM users u 
     LEFT JOIN pegawai p ON u.id = p.user_id 
     LEFT JOIN divisi d ON p.divisi_id = d.id
     LEFT JOIN jadwal_shift js ON p.id = js.pegawai_id
     LEFT JOIN shift s ON js.shift_id = s.id
     WHERE u.role != 'owner'
+    AND (js.tanggal = CURRENT_DATE OR js.tanggal IS NULL)
 ");
+
 $stmt->execute();
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -92,8 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
 
         // Insert into users table
         $stmt = $pdo->prepare("
-            INSERT INTO users (nama_lengkap, email, username, password, no_telp, role)
-            VALUES (:nama_lengkap, :email, :username, :password, :no_telp, 'karyawan')
+            INSERT INTO users (nama_lengkap, email, username, jenis_kelamin, password, no_telp, role)
+            VALUES (:nama_lengkap, :email, :username, :jenis_kelamin, :password, :no_telp, 'karyawan')
         ");
 
         $stmt->execute([
@@ -101,25 +108,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             'email' => $_POST['email'],
             'username' => $_POST['username'],
             'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
-            'no_telp' => $_POST['no_telp']
+            'no_telp' => $_POST['no_telp'],
+            'jenis_kelamin' => $_POST['jenis_kelamin']
         ]);
 
         $userId = $pdo->lastInsertId();
 
-        // Insert into pegawai table
+        // Validate hari_libur
+        $validHariLibur = array('senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu');
+        $hari_libur = strtolower(trim($_POST['hari_libur']));
+
+        if (!in_array($hari_libur, $validHariLibur)) {
+            throw new Exception("Nilai hari libur tidak valid. Nilai yang diperbolehkan: " . implode(', ', $validHariLibur));
+        }
+
+        // Insert into pegawai table with hari_libur
         $stmt = $pdo->prepare("
-            INSERT INTO pegawai (user_id, divisi_id, status_aktif)
-            VALUES (:user_id, :divisi_id, 'aktif')
+            INSERT INTO pegawai (user_id, divisi_id, hari_libur, status_aktif)
+            VALUES (:user_id, :divisi_id, :hari_libur, 'aktif')
         ");
 
         $stmt->execute([
             'user_id' => $userId,
-            'divisi_id' => $_POST['divisi_id']
+            'divisi_id' => $_POST['divisi_id'],
+            'hari_libur' => $hari_libur
         ]);
 
         $pegawaiId = $pdo->lastInsertId();
 
-        // Insert into jadwal_shift table
+        // Insert into jadwal_shift table (without hari_libur)
         $stmt = $pdo->prepare("
             INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status)
             VALUES (:pegawai_id, :shift_id, CURRENT_DATE, 'aktif')
@@ -128,35 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
         $stmt->execute([
             'pegawai_id' => $pegawaiId,
             'shift_id' => $_POST['shift_id']
-        ]);
-
-        $jadwalShiftId = $pdo->lastInsertId();
-
-        // Insert into absensi table
-        $stmt = $pdo->prepare("
-            INSERT INTO absensi (
-                pegawai_id, 
-                jadwal_shift_id, 
-                waktu_masuk, 
-                waktu_keluar, 
-                kode_unik, 
-                status_kehadiran, 
-                tanggal
-            )
-            VALUES (
-                :pegawai_id, 
-                :jadwal_shift_id, 
-                '00:00:00', 
-                '00:00:00', 
-                '000000', 
-                'alpha', 
-                CURRENT_DATE
-            )
-        ");
-
-        $stmt->execute([
-            'pegawai_id' => $pegawaiId,
-            'jadwal_shift_id' => $jadwalShiftId
         ]);
 
         $pdo->commit();
@@ -262,48 +250,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
 
         // Update user table
         $stmt = $pdo->prepare("
-            UPDATE users
-            SET nama_lengkap = :nama_lengkap,
-                email = :email,
-                username = :username,
-                no_telp = :no_telp
-            WHERE id = :user_id
+         UPDATE users
+         SET nama_lengkap = :nama_lengkap,
+             email = :email,
+             username = :username,
+             jenis_kelamin = :jenis_kelamin,
+             no_telp = :no_telp
+         WHERE id = :user_id
         ");
+
         $stmt->execute([
             'nama_lengkap' => $_POST['nama_lengkap'],
             'email' => $_POST['email'],
             'username' => $_POST['username'],
             'no_telp' => $_POST['no_telp'],
+            'jenis_kelamin' => $_POST['jenis_kelamin'],
             'user_id' => $_POST['user_id']
         ]);
 
-        // Update division
+        // Validate hari_libur
+        $validHariLibur = array('senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu');
+        $hari_libur = strtolower(trim($_POST['edit_hari_libur']));
+
+        if (!in_array($hari_libur, $validHariLibur)) {
+            throw new Exception("Nilai hari libur tidak valid. Nilai yang diperbolehkan: " . implode(', ', $validHariLibur));
+        }
+
+        // Update pegawai table with hari_libur
         $stmt = $pdo->prepare("
-            UPDATE pegawai
-            SET divisi_id = :divisi_id
-            WHERE user_id = :user_id
+         UPDATE pegawai
+         SET divisi_id = :divisi_id,
+             hari_libur = :hari_libur
+         WHERE user_id = :user_id
         ");
         $stmt->execute([
             'divisi_id' => $_POST['divisi_id'],
+            'hari_libur' => $hari_libur,
             'user_id' => $_POST['user_id']
         ]);
 
-        // Update shift in jadwal_shift
+        // Update shift in jadwal_shift (without hari_libur)
         $stmt = $pdo->prepare("
-            UPDATE jadwal_shift
-            SET shift_id = :shift_id
-            WHERE pegawai_id = (
-                SELECT id
-                FROM pegawai
-                WHERE user_id = :user_id
-            )
-            AND tanggal = CURRENT_DATE
-        ");
+         UPDATE jadwal_shift
+         SET shift_id = :shift_id
+         WHERE pegawai_id = (
+             SELECT id 
+             FROM pegawai
+             WHERE user_id = :user_id
+         )
+         AND tanggal = CURRENT_DATE
+     ");
 
         $stmt->execute([
             'shift_id' => $_POST['shift_id'],
             'user_id' => $_POST['user_id']
         ]);
+
         $pdo->commit();
         $_SESSION['alert'] = [
             'type' => 'success',
@@ -319,6 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
 }
+
 
 if (isset($_POST['delete_user'])) {
     try {
@@ -394,8 +397,6 @@ if (isset($_POST['remove_device'])) {
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
 }
-
-// Rest of your HTML code remains the same
 ?>
 
 <!DOCTYPE html>
@@ -406,7 +407,7 @@ if (isset($_POST['remove_device'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Si Hadir - Dashboard</title>
+    <title>Si Hadir - Manajemen Staff</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Script untuk Bootstrap JS (jika perlu) -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
@@ -651,6 +652,10 @@ if (isset($_POST['remove_device'])) {
                                     No Telepon</th>
                                 <th
                                     class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Hari Libur</th>
+
+                                <th
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Action</th>
                             </tr>
                         </thead>
@@ -665,6 +670,9 @@ if (isset($_POST['remove_device'])) {
                                         <?= htmlspecialchars($user['nama_divisi'] ?? '-') ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap"><?= htmlspecialchars($user['no_telp']) ?></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <?= htmlspecialchars($user['hari_libur'] ?? '-') ?>
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex space-x-2 justify-center">
                                             <button onclick="editUser(<?= htmlspecialchars(json_encode($user)) ?>)"
@@ -683,7 +691,6 @@ if (isset($_POST['remove_device'])) {
                                             </button>
                                         </div>
                                     </td>
-
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -715,6 +722,16 @@ if (isset($_POST['remove_device'])) {
                                     <input type="text" class="form-control form-control-sm" name="username" required>
                                 </div>
 
+                                <div class="mb-2">
+                                    <label class="form-label">Jenis Kelamin</label>
+                                    <select name="jenis_kelamin" id="jenis_kelamin" class="form-control form-select" required>
+                                        <option value="">Pilih Jenis Kelamin</option>
+                                        <?php foreach ($jenis_kelamin_options as $value => $label): ?>
+                                            <option value="<?= $value ?>"><?= htmlspecialchars($label) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
                                 <!-- Email -->
                                 <div class="mb-2">
                                     <label class="form-label">Email</label>
@@ -731,13 +748,13 @@ if (isset($_POST['remove_device'])) {
                                 <!-- No Telepon -->
                                 <div class="mb-2">
                                     <label class="form-label">No Telepon</label>
-                                    <input type="text" class="form-control form-control-sm" name="no_telp" required>
+                                    <input type="text" class="form-control form-control-sm" name="no_telp" id="add_no_telp" required>
                                 </div>
 
                                 <!-- Shift -->
                                 <div class="form-group">
                                     <label>Shift</label>
-                                    <select name="shift_id" id="shift_id" class="form-control" required>
+                                    <select name="shift_id" id="shift_id" class="form-control form-select" required>
                                         <option value="">Pilih Shift</option>
                                         <?php foreach ($shifts as $id => $nama_shift): ?>
                                             <option value="<?= $id ?>"><?= htmlspecialchars($nama_shift) ?></option>
@@ -748,11 +765,26 @@ if (isset($_POST['remove_device'])) {
                                 <!-- Divisi -->
                                 <div class="mb-2">
                                     <label class="form-label">Divisi</label>
-                                    <select class="form-select form-select-sm" name="divisi_id" required>
+                                    <select class="form-control form-select" name="divisi_id" required>
                                         <option value="">Pilih Divisi</option>
                                         <?php foreach ($divisi_names as $id => $nama): ?>
                                             <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
                                         <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label">Hari Libur</label>
+                                    <select class="form-control form-select" name="hari_libur" id="hari_libur"
+                                        required>
+                                        <option value="">Pilih Hari</option>
+                                        <option value="senin">Senin</option>
+                                        <option value="selasa">Selasa</option>
+                                        <option value="rabu">Rabu</option>
+                                        <option value="kamis">Kamis</option>
+                                        <option value="jumat">Jumat</option>
+                                        <option value="sabtu">Sabtu</option>
+                                        <option value="minggu">Minggu</option>
                                     </select>
                                 </div>
 
@@ -789,17 +821,27 @@ if (isset($_POST['remove_device'])) {
                                 id="edit_nama_lengkap" required>
                         </div>
 
-                        <!-- Email -->
-                        <div class="mb-2">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control form-control-sm" name="email" id="edit_email"
-                                required>
-                        </div>
-
                         <!-- Username -->
                         <div class="mb-2">
                             <label class="form-label">Username</label>
                             <input type="text" class="form-control form-control-sm" name="username" id="edit_username"
+                                required>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Jenis Kelamin</label>
+                            <select class="form-control form-select" name="jenis_kelamin" id="edit_jenis_kelamin">
+                                <option value="">Pilih Jenis Kelamin</option>
+                                <?php foreach ($jenis_kelamin_options as $value => $label): ?>
+                                            <option value="<?= $value ?>"><?= htmlspecialchars($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-2">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control form-control-sm" name="email" id="edit_email"
                                 required>
                         </div>
 
@@ -813,13 +855,13 @@ if (isset($_POST['remove_device'])) {
                         <div class="mb-2">
                             <label class="form-label">No Telepon</label>
                             <input type="text" class="form-control form-control-sm" name="no_telp" id="edit_no_telp"
-                                required>
+                            required>
                         </div>
 
                         <!-- Divisi -->
                         <div class="mb-2">
                             <label class="form-label">Divisi</label>
-                            <select class="form-select form-select-sm" name="divisi_id" id="edit_divisi_id" required>
+                            <select class="form-control form-select" name="divisi_id" id="edit_divisi_id" required>
                                 <option value="">Pilih Divisi</option>
                                 <?php foreach ($divisi_names as $id => $nama): ?>
                                     <option value="<?= $id ?>"><?= htmlspecialchars($nama) ?></option>
@@ -830,11 +872,26 @@ if (isset($_POST['remove_device'])) {
                         <!-- Shift -->
                         <div class="form-group">
                             <label>Shift</label>
-                            <select name="shift_id" id="shift_id" class="form-control" required>
+                            <select name="shift_id" id="edit_shift_id" class="form-control form-select" required>
                                 <option value="">Pilih Shift</option>
                                 <?php foreach ($shifts as $id => $nama_shift): ?>
                                     <option value="<?= $id ?>"><?= htmlspecialchars($nama_shift) ?></option>
                                 <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Hari Libur</label>
+                            <select class="form-control form-select" name="edit_hari_libur" id="edit_hari_libur"
+                                required>
+                                <option value="">Pilih Hari</option>
+                                <option value="senin">Senin</option>
+                                <option value="selasa">Selasa</option>
+                                <option value="rabu">Rabu</option>
+                                <option value="kamis">Kamis</option>
+                                <option value="jumat">Jumat</option>
+                                <option value="sabtu">Sabtu</option>
+                                <option value="minggu">Minggu</option>
                             </select>
                         </div>
 
@@ -1004,9 +1061,11 @@ if (isset($_POST['remove_device'])) {
             document.getElementById('edit_nama_lengkap').value = user.nama_lengkap;
             document.getElementById('edit_email').value = user.email;
             document.getElementById('edit_username').value = user.username;
+            document.getElementById('edit_jenis_kelamin').value = user.jenis_kelamin;
             document.getElementById('edit_no_telp').value = user.no_telp;
             document.getElementById('edit_divisi_id').value = user.divisi_id || '';
-
+            document.getElementById('edit_shift_id').value = user.shift_id || '';
+            document.getElementById('edit_hari_libur').value = user.hari_libur || '';
             // Show the modal
             new bootstrap.Modal(document.getElementById('editMemberModal')).show();
         }
@@ -1078,12 +1137,29 @@ if (isset($_POST['remove_device'])) {
             });
         }
 
-
-
         // Prevent form resubmission on page refresh
         if (window.history.replaceState) {
             window.history.replaceState(null, null, window.location.href);
         }
+    </script>
+
+    <!-- ALERT INPUT ANGKA DI KOLOM NO TELEPON -->
+    <script>
+        // Fungsi untuk menangani validasi input hanya angka
+        function validatePhoneInput(inputId) {
+            const inputElement = document.getElementById(inputId);
+            
+            inputElement.addEventListener('input', function () {
+                if (/\D/.test(this.value)) { // Jika ada karakter non-angka
+                    alert("Nomor telepon hanya boleh mengandung angka.");
+                    this.value = this.value.replace(/\D/g, ''); // Hapus karakter non-angka
+                }
+            });
+        }
+
+        // Terapkan validasi untuk kedua input
+        validatePhoneInput('edit_no_telp');
+        validatePhoneInput('add_no_telp');
     </script>
 
     <!-- Bootstrap and other scripts -->

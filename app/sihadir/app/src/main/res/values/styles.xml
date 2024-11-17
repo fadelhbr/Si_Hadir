@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="CalendarViewCustom" parent="ThemeOverlay.Material3.MaterialCalendar">
+        <!-- Customize calendar appearance here -->
+        <item name="android:datePickerStyle">@style/Widget.Material3.MaterialCalendar</item>
+    </style>
+    <style name="TableHeaderStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:textColor">#455A64</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="TableContentStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:textColor">#455A64</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+</resources>

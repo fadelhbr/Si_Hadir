@@ -22,9 +22,25 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
     exit;
 }
 
+//database connection pdo
 require_once '../../../app/auth/auth.php';
 
-date_default_timezone_set('Asia/Jakarta'); // Change to your relevant timezone
+date_default_timezone_set('Asia/Jakarta');
+
+function checkHolidayStatus($pdo, $employeeId, $date)
+{
+    $query = "SELECT status_kehadiran 
+              FROM absensi 
+              WHERE pegawai_id = ? 
+              AND DATE(tanggal) = ? 
+              AND status_kehadiran = 'libur'";
+
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$employeeId, $date]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    return $result !== false; // Return true if holiday record exists
+}
 
 function checkEmployeeRole($pdo, $userId)
 {
@@ -65,22 +81,25 @@ function getActiveShiftSchedule($pdo, $employeeId, $date)
 
 function getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId)
 {
-    // Cek dulu apakah ada record dengan status cuti/izin
+    // Check for leave/holiday status first
     $checkQuery = "SELECT id, status_kehadiran 
                   FROM absensi 
                   WHERE pegawai_id = ? AND DATE(tanggal) = ? 
-                  AND status_kehadiran IN ('cuti', 'izin')";
+                  AND status_kehadiran IN ('cuti', 'izin', 'libur')";
 
     $checkStmt = $pdo->prepare($checkQuery);
     $checkStmt->execute([$employeeId, $date]);
     $existingLeave = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
-    // Jika ditemukan record dengan status cuti/izin, return false
+    // If found record with leave/holiday status, return false
     if ($existingLeave) {
-        return ['status' => 'leave', 'message' => 'Anda sedang dalam status ' . $existingLeave['status_kehadiran']];
+        return [
+            'status' => 'unavailable', 
+            'message' => 'Anda tidak dapat melakukan absensi karena status ' . $existingLeave['status_kehadiran']
+        ];
     }
 
-    // Jika tidak ada status cuti/izin, lanjutkan dengan logika normal
+    // Continue with normal logic
     $query = "SELECT id, waktu_masuk, waktu_keluar, status_kehadiran, jadwal_shift_id, keterangan, kode_unik 
               FROM absensi 
               WHERE pegawai_id = ? AND DATE(tanggal) = ?";
@@ -96,8 +115,10 @@ function getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId)
         $stmt = $pdo->prepare($query);
         $stmt->execute([$employeeId, $date, $shiftId]);
 
-        // Ambil record yang baru dibuat
-        $stmt = $pdo->prepare($query);
+        // Get the newly created record
+        $stmt = $pdo->prepare("SELECT id, waktu_masuk, waktu_keluar, status_kehadiran, jadwal_shift_id, keterangan, kode_unik 
+                              FROM absensi 
+                              WHERE pegawai_id = ? AND DATE(tanggal) = ?");
         $stmt->execute([$employeeId, $date]);
         $record = $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -114,23 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $currentDate = date('Y-m-d');
         $currentTime = new DateTime();
 
-        $pdo->beginTransaction();
-
-        // Verifikasi kode unik terlebih dahulu
-        if (!$uniqueCode) {
-            throw new Exception('Kode unik harus diisi.');
-        }
-
-        // Verifikasi kode unik dengan database
-        $validCode = verifyUniqueCode($pdo, $uniqueCode);
-        if (!$validCode) {
-            throw new Exception('Kode unik tidak valid atau sudah tidak aktif.');
-        }
-
-        if (!checkEmployeeRole($pdo, $userId)) {
-            throw new Exception('Akses ditolak. Hanya karyawan yang dapat melakukan absensi.');
-        }
-
+        // Get employee data before starting transaction
         $stmt = $pdo->prepare("SELECT id, status_aktif FROM pegawai WHERE user_id = ?");
         $stmt->execute([$userId]);
         $employee = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -143,6 +148,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Status pegawai tidak aktif.');
         }
 
+        // Check holiday status before starting transaction
+        if (checkHolidayStatus($pdo, $employee['id'], $currentDate)) {
+            throw new Exception('Anda tidak dapat melakukan absensi pada hari libur.');
+        }
+
+        $pdo->beginTransaction();
+
+        // Verify unique code
+        if (!$uniqueCode) {
+            throw new Exception('Kode unik harus diisi.');
+        }
+
+        $validCode = verifyUniqueCode($pdo, $uniqueCode);
+        if (!$validCode) {
+            throw new Exception('Kode unik tidak valid atau sudah tidak aktif.');
+        }
+
+        if (!checkEmployeeRole($pdo, $userId)) {
+            throw new Exception('Akses ditolak. Hanya karyawan yang dapat melakukan absensi.');
+        }
+
         $employeeId = $employee['id'];
         $shiftSchedule = getActiveShiftSchedule($pdo, $employeeId, $currentDate);
 
@@ -152,12 +178,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $attendance = getOrCreateAttendanceRecord($pdo, $employeeId, $currentDate, $shiftSchedule['jadwal_shift_id']);
 
-        // Cek status attendance
-        if ($attendance['status'] === 'leave') {
+        // Check attendance status
+        if ($attendance['status'] === 'unavailable') {
             throw new Exception($attendance['message']);
         }
 
-        $attendance = $attendance['data']; // Ambil data attendance
+        $attendance = $attendance['data'];
 
         // Check if both check-in and check-out are already filled
         if ($attendance['waktu_masuk'] != '00:00:00' && $attendance['waktu_keluar'] != '00:00:00') {
@@ -546,7 +572,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <path
                             d="M480-120q-138 0-240.5-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm112-192L440-464v-216h80v184l128 128-56 56Z" />
                     </svg>
-                    <span>Riwayat kehadiran</span>
+                    <span>Riwayat Kehadiran</span>
                 </a>
                 <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0"
                     href="permit.php">

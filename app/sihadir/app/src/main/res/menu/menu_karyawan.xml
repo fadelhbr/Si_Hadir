@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/home"
+        android:title="Home"
+        android:icon="@drawable/ic_beranda"/>
+
+    <item
+        android:id="@+id/shorts"
+        android:title="Shorts"
+        android:icon="@drawable/ic_absen"/>
+
+    <item
+        android:id="@+id/fab"
+        android:title=""
+        android:enabled="false"/>
+
+    <item
+        android:id="@+id/subscriptions"
+        android:title="Subscriptions"
+        android:icon="@drawable/ic_dashboard"/>
+
+    <item
+        android:id="@+id/library"
+        android:title="Library"
+        android:icon="@drawable/ic_member"/>
+
+</menu>

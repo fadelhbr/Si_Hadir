@@ -154,7 +154,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Si Hadir - Dashboard</title>
+    <title>Si Hadir - Cuti & Perizinan</title>
     <!-- Favicon-->
     <link rel="icon" type="image/x-icon" href="../../../assets/icon/favicon.ico" />
     <!-- Core theme CSS (includes Bootstrap)-->
@@ -162,6 +162,7 @@ try {
     <!-- Link Google Fonts untuk Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
     <style>
@@ -533,64 +534,14 @@ try {
     <script>
         $(document).ready(function() {
             // Handle form izin submission
-            $('#permitRequestForm').on('submit', function(e) {
-                e.preventDefault();
-                
-                $.ajax({
-                    type: 'POST',
-                    url: 'permit.php',
-                    data: $(this).serialize(),
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.status === 'success') {
-                            alert(response.message);
-                            $('#permitModal').modal('hide');
-                            location.reload();
-                        } else {
-                            alert('Error: ' + response.message);
-                        }
-                    },
-                    error: function() {
-                        alert('Terjadi kesalahan pada server');
-                    }
-                });
-            });
-
-            // Handle form cuti submission
-            $('#leaveRequestForm').on('submit', function(e) {
-                e.preventDefault();
-                
-                if (!validateForm('cuti')) {
-                    return;
-                }
-                
-                $.ajax({
-                    type: 'POST',
-                    url: 'permit.php',
-                    data: $(this).serialize(),
-                    dataType: 'json',
-                    success: function(response) {
-                        console.log('Response:', response);
-                        if (response.status === 'success') {
-                            alert(response.message);
-                            $('#leaveModal').modal('hide');
-                            location.reload();
-                        } else {
-                            alert('Error: ' + response.message);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('AJAX Error:', error);
-                        console.error('Response:', xhr.responseText);
-                        alert('Terjadi kesalahan pada server');
-                    }
-                });
-            });
 
             // Validasi tanggal cuti
-            $('#leaveStartDate, #leaveEndDate').on('change', function() {
+            $('#leaveStartDate, #leaveEndDate').on('change blur', function() {
                 var startDate = new Date($('#leaveStartDate').val());
                 var endDate = new Date($('#leaveEndDate').val());
+
+                console.log("Validasi perubahan tanggal - Start Date:", startDate);
+                console.log("Validasi perubahan tanggal - End Date:", endDate);
 
                 if (startDate > endDate) {
                     alert('Tanggal selesai tidak boleh lebih awal dari tanggal mulai!');
@@ -631,8 +582,14 @@ try {
         function calculateDuration(startDate, endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
-            const diffTime = Math.abs(end - start);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+            // Pastikan tanggal akhir tidak lebih awal dari tanggal awal
+            if (end < start) {
+                return 0;
+            }
+
+            const diffTime = end.getTime() - start.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
             return diffDays;
         }
 
@@ -731,15 +688,14 @@ try {
         method: 'POST',
         body: formData
     })
-    .then(response => response.text())
+    .then(response => response.json()) // Ubah ke json()
     .then(data => {
-        // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('permitRequestModal'));
         modal.hide();
         
-        showAlert('Pengajuan izin berhasil disubmit!', 'success');
+        showAlert(data.message || 'Pengajuan izin berhasil disubmit!', data.status === 'success' ? 'success' : 'danger');
         
-        // Refresh the page after a short delay
+        // Tambah delay sebelum reload
         setTimeout(() => {
             window.location.reload();
         }, 1500);
@@ -759,15 +715,14 @@ document.getElementById('leaveRequestForm').addEventListener('submit', function(
         method: 'POST',
         body: formData
     })
-    .then(response => response.text())
+    .then(response => response.json()) // Ubah ke json()
     .then(data => {
-        // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('leaveRequestModal'));
         modal.hide();
         
-        showAlert('Pengajuan cuti berhasil disubmit!', 'success');
+        showAlert(data.message || 'Pengajuan cuti berhasil disubmit!', data.status === 'success' ? 'success' : 'danger');
         
-        // Refresh the page after a short delay
+        // Tambah delay sebelum reload
         setTimeout(() => {
             window.location.reload();
         }, 1500);
