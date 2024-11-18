@@ -748,7 +748,7 @@ if (isset($_POST['remove_device'])) {
                                 <!-- No Telepon -->
                                 <div class="mb-2">
                                     <label class="form-label">No Telepon</label>
-                                    <input type="text" class="form-control form-control-sm" name="no_telp" required>
+                                    <input type="text" class="form-control form-control-sm" name="no_telp" id="add_no_telp" required>
                                 </div>
 
                                 <!-- Shift -->
@@ -855,7 +855,7 @@ if (isset($_POST['remove_device'])) {
                         <div class="mb-2">
                             <label class="form-label">No Telepon</label>
                             <input type="text" class="form-control form-control-sm" name="no_telp" id="edit_no_telp"
-                                required>
+                            required>
                         </div>
 
                         <!-- Divisi -->
@@ -1141,6 +1141,25 @@ if (isset($_POST['remove_device'])) {
         if (window.history.replaceState) {
             window.history.replaceState(null, null, window.location.href);
         }
+    </script>
+
+    <!-- ALERT INPUT ANGKA DI KOLOM NO TELEPON -->
+    <script>
+        // Fungsi untuk menangani validasi input hanya angka
+        function validatePhoneInput(inputId) {
+            const inputElement = document.getElementById(inputId);
+            
+            inputElement.addEventListener('input', function () {
+                if (/\D/.test(this.value)) { // Jika ada karakter non-angka
+                    alert("Nomor telepon hanya boleh mengandung angka.");
+                    this.value = this.value.replace(/\D/g, ''); // Hapus karakter non-angka
+                }
+            });
+        }
+
+        // Terapkan validasi untuk kedua input
+        validatePhoneInput('edit_no_telp');
+        validatePhoneInput('add_no_telp');
     </script>
 
     <!-- Bootstrap and other scripts -->

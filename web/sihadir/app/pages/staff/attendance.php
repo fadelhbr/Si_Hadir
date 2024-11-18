@@ -22,6 +22,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
     exit;
 }
 
+//database connection pdo
 require_once '../../../app/auth/auth.php';
 
 date_default_timezone_set('Asia/Jakarta');
