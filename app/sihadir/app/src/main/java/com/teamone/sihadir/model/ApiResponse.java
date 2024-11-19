@@ -42,21 +42,17 @@ public class ApiResponse {
         return nama_lengkap;
     }
 
-    public void setNama_lengkap(String nama_lengkap) {
+    public void setNama_lengkap(){
+
         this.nama_lengkap = nama_lengkap;
     }
 
-    public void setRole(String role) {
-        this.role = role;
+    public String getRole(){
+        return  role;
     }
-
 
     public  void setRole(){
         this.role = role;
-    }
-
-    public String getRole() {
-        return null;
     }
 }
 

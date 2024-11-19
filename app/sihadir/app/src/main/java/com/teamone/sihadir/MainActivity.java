@@ -26,13 +26,7 @@ import com.teamone.sihadir.fragment.BerandaFragment;
 import com.teamone.sihadir.fragment.AbsenFragment;
 import com.teamone.sihadir.fragment.PengaturanFragment;
 
-<<<<<<< Updated upstream
 import java.util.Scanner;
-=======
-
-import android.view.View;
-import android.widget.Button;
->>>>>>> Stashed changes
 
 public class MainActivity extends AppCompatActivity implements NavigationBarView.OnItemSelectedListener {
 
@@ -62,24 +56,14 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
             getWindow().setAttributes(layoutParams);
         }
 
-<<<<<<< Updated upstream
         scanButton1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Scanner();
-=======
-        // Menangani klik pada leaveRequestButton
-        Button leaveRequestButton = findViewById(R.id.leaveRequestButton);
-        leaveRequestButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                loadFragment(new Fragment());
->>>>>>> Stashed changes
             }
         });
     }
 
-<<<<<<< Updated upstream
     private void Scanner() {
         ScanOptions options = new ScanOptions();
         options.setPrompt("Volume up to flash on");
@@ -117,21 +101,10 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
             }
         }
         return 0; // Return 0 jika tidak menemukan mode yang sesuai
-=======
-    private int findPreferredDisplayMode(float v) {
-        return 0;
->>>>>>> Stashed changes
     }
 
     private boolean loadFragment(Fragment fragment) {
-        if (fragment != null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container, fragment) // Ganti dengan ID container fragment Anda
-                    .addToBackStack(null)
-                    .commit();
-            return true;
-        }
+
         return false;
     }
 
@@ -140,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
         Fragment fragment = null;
         String nama_lengkap = getIntent().getStringExtra("nama_lengkap");
         String role = getIntent().getStringExtra("role");
+
 
         return loadFragment(fragment); // Load selected fragment
     }

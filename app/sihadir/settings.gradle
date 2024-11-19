@@ -10,7 +10,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-    }
+
+        } // Gunakan versi terbaru
+
+
 }
 rootProject.name = "sihadir"
 include ':app'
