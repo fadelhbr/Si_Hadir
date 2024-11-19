@@ -45,7 +45,7 @@ $stmt->execute();
 $shifts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 $jenis_kelamin_options = [
-    'laki-laki' => 'Laki-laki',
+    'laki' => 'Laki-laki',
     'perempuan' => 'Perempuan'
 ];
 
@@ -724,7 +724,8 @@ if (isset($_POST['remove_device'])) {
 
                                 <div class="mb-2">
                                     <label class="form-label">Jenis Kelamin</label>
-                                    <select name="jenis_kelamin" id="jenis_kelamin" class="form-control form-select" required>
+                                    <select name="jenis_kelamin" id="jenis_kelamin" class="form-control form-select"
+                                        required>
                                         <option value="">Pilih Jenis Kelamin</option>
                                         <?php foreach ($jenis_kelamin_options as $value => $label): ?>
                                             <option value="<?= $value ?>"><?= htmlspecialchars($label) ?></option>
@@ -748,7 +749,8 @@ if (isset($_POST['remove_device'])) {
                                 <!-- No Telepon -->
                                 <div class="mb-2">
                                     <label class="form-label">No Telepon</label>
-                                    <input type="text" class="form-control form-control-sm" name="no_telp" id="add_no_telp" required>
+                                    <input type="text" class="form-control form-control-sm" name="no_telp"
+                                        id="add_no_telp" required>
                                 </div>
 
                                 <!-- Shift -->
@@ -775,8 +777,7 @@ if (isset($_POST['remove_device'])) {
 
                                 <div class="mb-2">
                                     <label class="form-label">Hari Libur</label>
-                                    <select class="form-control form-select" name="hari_libur" id="hari_libur"
-                                        required>
+                                    <select class="form-control form-select" name="hari_libur" id="hari_libur" required>
                                         <option value="">Pilih Hari</option>
                                         <option value="senin">Senin</option>
                                         <option value="selasa">Selasa</option>
@@ -833,7 +834,7 @@ if (isset($_POST['remove_device'])) {
                             <select class="form-control form-select" name="jenis_kelamin" id="edit_jenis_kelamin">
                                 <option value="">Pilih Jenis Kelamin</option>
                                 <?php foreach ($jenis_kelamin_options as $value => $label): ?>
-                                            <option value="<?= $value ?>"><?= htmlspecialchars($label) ?></option>
+                                    <option value="<?= $value ?>"><?= htmlspecialchars($label) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -855,7 +856,7 @@ if (isset($_POST['remove_device'])) {
                         <div class="mb-2">
                             <label class="form-label">No Telepon</label>
                             <input type="text" class="form-control form-control-sm" name="no_telp" id="edit_no_telp"
-                            required>
+                                required>
                         </div>
 
                         <!-- Divisi -->
@@ -1148,7 +1149,7 @@ if (isset($_POST['remove_device'])) {
         // Fungsi untuk menangani validasi input hanya angka
         function validatePhoneInput(inputId) {
             const inputElement = document.getElementById(inputId);
-            
+
             inputElement.addEventListener('input', function () {
                 if (/\D/.test(this.value)) { // Jika ada karakter non-angka
                     alert("Nomor telepon hanya boleh mengandung angka.");

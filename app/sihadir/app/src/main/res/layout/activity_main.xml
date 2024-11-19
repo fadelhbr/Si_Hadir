@@ -137,8 +137,8 @@
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/scanButton"
                                 style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="56dp"
-                                android:layout_height="56dp"
+                                android:layout_width="55dp"
+                                android:layout_height="wrap_content"
                                 android:layout_marginStart="12dp"
                                 android:insetTop="0dp"
                                 android:insetBottom="0dp"

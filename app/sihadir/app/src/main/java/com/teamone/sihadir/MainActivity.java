@@ -1,16 +1,24 @@
 package com.teamone.sihadir;
 
+import android.app.DatePickerDialog;
+import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanOptions;
 import com.teamone.sihadir.fragment.RiwayatFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
@@ -18,13 +26,20 @@ import com.teamone.sihadir.fragment.BerandaFragment;
 import com.teamone.sihadir.fragment.AbsenFragment;
 import com.teamone.sihadir.fragment.PengaturanFragment;
 
+import java.util.Scanner;
+
 public class MainActivity extends AppCompatActivity implements NavigationBarView.OnItemSelectedListener {
+
+
+    private Button scanButton1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        scanButton1 = findViewById(R.id.scanButton);
         // Ambil data nama dari intent
         String nama_lengkap = getIntent().getStringExtra("nama_lengkap");
         String role = getIntent().getStringExtra("role");
@@ -40,7 +55,37 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
             layoutParams.preferredDisplayModeId = findPreferredDisplayMode(120f);
             getWindow().setAttributes(layoutParams);
         }
+
+        scanButton1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Scanner();
+            }
+        });
     }
+
+    private void Scanner() {
+        ScanOptions options = new ScanOptions();
+        options.setPrompt("Volume up to flash on");
+        options.setBeepEnabled(true);
+        options.setOrientationLocked(true);
+        options.setCaptureActivity(StartScan.class);
+        Launcher.launch(options);
+    }
+
+    ActivityResultLauncher<ScanOptions> Launcher = registerForActivityResult(new ScanContract(), result -> {
+        if (result.getContents() != null ){
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setTitle("QR-SCANNER RESULT");
+            builder.setMessage(result.getContents());
+            builder.setPositiveButton("oke", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            }).show();
+        }
+    });
 
     // Method untuk mencari mode display yang sesuai
     private int findPreferredDisplayMode(float targetRefreshRate) {
@@ -72,4 +117,6 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
 
         return loadFragment(fragment); // Load selected fragment
     }
+
+
 }

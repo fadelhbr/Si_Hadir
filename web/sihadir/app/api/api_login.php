@@ -1,140 +1,141 @@
 <?php
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+require_once '../auth/auth.php';
 
 header('Content-Type: application/json');
-require_once '../auth/auth.php'; // Pastikan path ini benar
-
-// Set timezone
-date_default_timezone_set('Asia/Jakarta');
-
-// CORS headers
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-try {
-    // Get JSON input
-    $json = file_get_contents('php://input');
-    if (!$json) {
-        throw new Exception('No input received');
+// Fungsi untuk mendapatkan sidik jari perangkat
+function getDeviceFingerprint()
+{
+    $fingerprint = [];
+
+    // User Agent
+    $userAgent = $_SERVER['HTTP_USER_AGENT'];
+
+    // Platform
+    if (preg_match('/\((.*?)\)/', $userAgent, $matches)) {
+        $fingerprint['platform'] = $matches[1];
     }
 
-    $data = json_decode($json, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        throw new Exception('Invalid JSON: ' . json_last_error_msg());
-    }
+    // Hash perangkat unik
+    $deviceString = implode('|', array_filter($fingerprint));
+    $deviceHash = hash('sha256', $deviceString);
 
-    // Validate input
-    if (!isset($data['username']) || !isset($data['password'])) {
-        throw new Exception('Username and password are required');
-    }
+    return $deviceHash;
+}
 
-    // Get and sanitize inputs
-    $username = trim($data['username']);
-    $password = trim($data['password']);
-    $deviceId = isset($data['device_id']) ? trim($data['device_id']) : 'unknown';
-
-    // Simple device info
-    $deviceInfo = [
-        'hash' => hash('sha256', $deviceId . time()),
-        'details' => json_encode([
-            'device_id' => $deviceId,
-            'timestamp' => time()
-        ])
-    ];
-
-    // Check database connection
-    if (!isset($pdo)) {
-        throw new Exception('Database connection not established');
-    }
-
-    // Prepare SQL statement
-    $sql = "SELECT id, username, password, role FROM users WHERE username = :username AND role = 'karyawan'";
+// Fungsi untuk memeriksa apakah pengguna memiliki perangkat yang terdaftar
+function hasRegisteredDevice($pdo, $user_id)
+{
+    $sql = "SELECT COUNT(*) FROM log_akses WHERE user_id = :user_id";
     $stmt = $pdo->prepare($sql);
-    
-    if (!$stmt) {
-        throw new Exception('Failed to prepare statement');
-    }
+    $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchColumn() > 0;
+}
 
-    $stmt->bindParam(":username", $username, PDO::PARAM_STR);
+// Fungsi untuk memeriksa kecocokan perangkat
+function isMatchingDevice($pdo, $user_id, $device_hash)
+{
+    $sql = "SELECT device_hash FROM log_akses 
+            WHERE user_id = :user_id 
+            AND device_hash IS NOT NULL 
+            ORDER BY waktu ASC LIMIT 1";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
     $stmt->execute();
 
-    if ($stmt->rowCount() == 1) {
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $registeredHash = $stmt->fetchColumn();
+    return $registeredHash && $device_hash === $registeredHash;
+}
 
-        if (password_verify($password, $user['password'])) {
-            // Log access
-            $randomId = random_int(100000, 999999);
-            $sql_log = "INSERT INTO log_akses (id, user_id, waktu, ip_address, device_info, device_hash, device_details, status) 
-                       VALUES (:random_id, :user_id, NOW(), :ip_address, :device_info, :device_hash, :device_details, :status)";
+// Handler untuk permintaan POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $data = json_decode(file_get_contents('php://input'), true);
 
-            $stmt_log = $pdo->prepare($sql_log);
-            $stmt_log->execute([
-                ':random_id' => $randomId,
-                ':user_id' => $user['id'],
-                ':ip_address' => $_SERVER['REMOTE_ADDR'],
-                ':device_info' => 'Mobile App',
-                ':device_hash' => $deviceInfo['hash'],
-                ':device_details' => $deviceInfo['details'],
-                ':status' => 'mobile_login'
-            ]);
+    if (isset($data['username']) && isset($data['password'])) {
+        $username = $data['username'];
+        $password = $data['password'];
+        $device_hash = getDeviceFingerprint();
 
-            // Create simple token
-            $token = base64_encode(json_encode([
-                'user_id' => $user['id'],
-                'username' => $user['username'],
-                'role' => $user['role'],
-                'exp' => time() + 3600
-            ]));
+        try {
+            // Validasi pengguna dengan role karyawan
+            $stmt = $pdo->prepare("SELECT id, username, password, role FROM users 
+                                   WHERE username = :username AND role = 'karyawan'");
+            $stmt->bindParam(':username', $username);
+            $stmt->execute();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Success response
-            echo json_encode([
-                'status' => 'success',
-                'message' => 'Login successful',
-                'data' => [
-                    'token' => $token,
-                    'user' => [
-                        'id' => $user['id'],
-                        'username' => $user['username'],
-                        'role' => $user['role']
-                    ]
-                ]
-            ]);
-        } else {
-            http_response_code(401);
+            if ($user) {
+                if (password_verify($password, $user['password'])) {
+                    // Periksa apakah perangkat sudah pernah terdaftar untuk user ini
+                    $isFirstLogin = !hasRegisteredDevice($pdo, $user['id']);
+                    $deviceMatches = $isFirstLogin || isMatchingDevice($pdo, $user['id'], $device_hash);
+
+                    if (!$deviceMatches) {
+                        echo json_encode([
+                            'status' => 'error',
+                            'message' => 'Perangkat tidak dikenal. Mohon gunakan perangkat yang sudah terdaftar atau hubungi owner.'
+                        ]);
+                        exit;
+                    }
+
+                    // Status log akses
+                    $logStatus = $isFirstLogin ? 'first_registration' : 'login';
+
+                    // Masukkan log ke database
+                    $log_stmt = $pdo->prepare("INSERT INTO log_akses 
+                        (user_id, waktu, ip_address, device_info, status, device_hash, device_details) 
+                        VALUES (:user_id, NOW(), :ip_address, :device_info, :status, :device_hash, :device_details)");
+                    $log_stmt->execute([
+                        'user_id' => $user['id'],
+                        'ip_address' => $_SERVER['REMOTE_ADDR'],
+                        'device_info' => 'android mobile app sihadir',
+                        'status' => $logStatus,
+                        'device_hash' => $device_hash,
+                        'device_details' => null // Jika device details tidak digunakan, set null
+                    ]);
+
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => 'Login berhasil',
+                        'user' => [
+                            'id' => $user['id'],
+                            'username' => $user['username'],
+                            'role' => $user['role']
+                        ]
+                    ]);
+                } else {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Password salah'
+                    ]);
+                }
+            } else {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Username tidak ditemukan'
+                ]);
+            }
+        } catch (PDOException $e) {
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Invalid credentials'
+                'message' => 'Kesalahan server: ' . $e->getMessage()
             ]);
         }
     } else {
-        http_response_code(401);
         echo json_encode([
             'status' => 'error',
-            'message' => 'Invalid credentials'
+            'message' => 'Username dan password diperlukan'
         ]);
     }
-
-} catch (PDOException $e) {
-    http_response_code(500);
+} else {
     echo json_encode([
         'status' => 'error',
-        'message' => 'Database error',
-        'debug' => $e->getMessage() // Hapus ini di production
+        'message' => 'Metode tidak diizinkan'
     ]);
-    error_log("Login API PDO Error: " . $e->getMessage());
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Server error',
-        'debug' => $e->getMessage() // Hapus ini di production
-    ]);
-    error_log("Login API Error: " . $e->getMessage());
 }
-
-// Close the connection
-unset($pdo);
+?>
