@@ -121,15 +121,17 @@
 
                             <com.google.android.material.textfield.TextInputLayout
                                 android:layout_width="0dp"
-                                android:layout_height="wrap_content"
+                                android:layout_height="55dp"
                                 android:layout_weight="1"
+                                android:layout_marginEnd="12dp"
                                 android:hint="Masukkan Kode Absensi"
-                                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                                app:shapeAppearanceOverlay="@style/CustomTextInputCornerRadius">
 
                                 <com.google.android.material.textfield.TextInputEditText
                                     android:id="@+id/codeInput"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
+                                    android:layout_width="270dp"
+                                    android:layout_height="47dp"
                                     android:gravity="center"
                                     android:inputType="text" />
                             </com.google.android.material.textfield.TextInputLayout>
@@ -137,9 +139,8 @@
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/scanButton"
                                 style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="55dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
+                                android:layout_width="47dp"
+                                android:layout_height="47dp"
                                 android:insetTop="0dp"
                                 android:insetBottom="0dp"
                                 app:cornerRadius="16dp"

@@ -8,9 +8,9 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
-// Check if the user role is employee and access type is local
+// Check if the user role is employee and access type is external
 if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan' || 
-    !isset($_SESSION['access_type']) || $_SESSION['access_type'] !== 'local') {
+    !isset($_SESSION['access_type']) || $_SESSION['access_type'] !== 'external') {
     // Unset session variables and destroy session
     session_unset();
     session_destroy();
@@ -133,12 +133,6 @@ try {
         <div class="border-end-0 bg-white" id="sidebar-wrapper">
             <div class="sidebar-heading border-bottom-0"><strong>Si Hadir</strong></div>
             <div class="list-group list-group-flush">
-            <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="attendance.php">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="sidebar-icon" fill="#6c757d">
-                            <path d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z"/>
-                        </svg>
-                        Absen
-                    </a>
                     <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0" href="attendanceHistory.php" style="display: flex; align-items: center;">
                         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#6c757d" style="margin-right: 8px;">
                             <path d="M480-120q-138 0-240.5-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm112-192L440-464v-216h80v184l128 128-56 56Z"/>

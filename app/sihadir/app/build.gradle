@@ -39,6 +39,9 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
+    // buat shared preferences :)
+    implementation 'androidx.preference:preference:1.2.0'
+
     // Dependency untuk SwipeRefreshLayout dan Gson
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("com.google.code.gson:gson:2.8.9")
@@ -48,7 +51,6 @@ dependencies {
 
     // ML Kit Barcode Scanning
     implementation 'com.google.mlkit:barcode-scanning:17.0.3'
-
 
     // Material Components
     implementation("com.google.android.material:material:1.7.0") // Hanya menggunakan versi terbaru
