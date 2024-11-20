@@ -462,6 +462,7 @@ try {
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <?php echo $record['waktu_keluar'] ? date('H:i', strtotime($record['waktu_keluar'])) : '-'; ?>
                                     </td>
+                                </script>
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>
