@@ -40,7 +40,7 @@ $earliest_date_query = $pdo->query("
 ");
 $earliest_date_result = $earliest_date_query->fetch(PDO::FETCH_ASSOC);
 $minDate = $earliest_date_result['earliest_date'] ? date('Y-m-d', strtotime($earliest_date_result['earliest_date'])) : date('Y-m-d');
-
+$today = date('Y-m-d');
 $start_date = isset($_POST['start_date']) ? $_POST['start_date'] : null;
 $end_date = isset($_POST['end_date']) ? $_POST['end_date'] : null;
 
@@ -120,6 +120,7 @@ if (isset($_GET['action'])) {
     
     // Prepare the query based on date range
     if (!empty($start_date) && !empty($end_date)) {
+        echo "Tanggal mulai dan tanggal akhir harus diisi!";
         $start_date_with_time = $start_date . ' 00:00:00';
         $end_date_with_time = $end_date . ' 23:59:59';
         
@@ -251,12 +252,12 @@ if (isset($_GET['action'])) {
     
         // Add title and date range if available
         $sheet->setCellValue('A1', 'LAPORAN ABSENSI KARYAWAN');
-        $sheet->mergeCells('A1:H1');
+        $sheet->mergeCells('A1:G1');
         
         $currentRow = 2;
         if (!empty($start_date) && !empty($end_date)) {
             $sheet->setCellValue('A2', 'Periode: ' . date('d/m/Y', strtotime($start_date)) . ' - ' . date('d/m/Y', strtotime($end_date)));
-            $sheet->mergeCells('A2:H2');
+            $sheet->mergeCells('A2:G2');
             $currentRow = 3;
         }
     
@@ -283,13 +284,13 @@ if (isset($_GET['action'])) {
         } else {
             $dataRow = $currentRow + 1;
             $sheet->setCellValue('A' . $dataRow, 'Tidak Ada Data Absensi Karyawan');
-            $sheet->mergeCells('A' . $dataRow . ':H' . $dataRow);
+            $sheet->mergeCells('A' . $dataRow . ':G' . $dataRow);
             $lastRow = $dataRow;
         }
     
         // Style the Excel file
         // Header style
-        $headerRange = 'A' . $currentRow . ':H' . $currentRow;
+        $headerRange = 'A' . $currentRow . ':G' . $currentRow;
         $sheet->getStyle($headerRange)->getFont()->setBold(true);
         $sheet->getStyle($headerRange)->getFont()->getColor()->setRGB(Color::COLOR_WHITE);
         $sheet->getStyle($headerRange)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
@@ -303,16 +304,16 @@ if (isset($_GET['action'])) {
         }
     
         // Auto-size columns
-        foreach (range('A', 'H') as $column) {
+        foreach (range('A', 'G') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
     
         // Set alignment for all data cells
-        $sheet->getStyle('A' . $currentRow . ':H' . $lastRow)->getAlignment()
+        $sheet->getStyle('A' . $currentRow . ':G' . $lastRow)->getAlignment()
               ->setHorizontal(Alignment::HORIZONTAL_CENTER);
     
         // Add borders to all cells
-        $sheet->getStyle('A' . $currentRow . ':H' . $lastRow)->getBorders()
+        $sheet->getStyle('A' . $currentRow . ':G' . $lastRow)->getBorders()
               ->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
     
         // Set headers for download
@@ -532,12 +533,12 @@ if (isset($_GET['action'])) {
                     <div class="flex justify-between items-center mb-6">
                         <h1 class="text-3xl font-semibold">Rekap Absensi Karyawan</h1>
                         <div class="flex gap-4">
-                            <a href="?action=print&start_date=<?php echo isset($start_date) ? $start_date : ''; ?>&end_date=<?php echo isset($end_date) ? $end_date : '';?>">
+                            <a href="#" onclick="downloadPDF()">
                                 <button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
                                     Download PDF
                                 </button>
                             </a>
-                            <a href="?action=excel&start_date=<?php echo isset($start_date) ? $start_date : ''; ?>&end_date=<?php echo isset($end_date) ? $end_date : ''; ?>">
+                            <a href="#" onclick="downloadExcel()">
                                 <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
                                     Download Excel
                                 </button>
@@ -555,8 +556,9 @@ if (isset($_GET['action'])) {
                                            id="start_date"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                                         min="<?php echo $minDate; ?>" 
-                                        max="<?php echo isset($end_date) ? $end_date : ''; ?>"
-                                        value="<?php echo isset($start_date) ? $start_date : ''; ?>">
+                                        max="<?php echo isset($_POST['end_date']) ? $_POST['end_date'] : $today; ?>"
+                                        value="<?php echo isset($_POST['start_date']) ? $_POST['start_date'] : ''; ?>">
+
                                 </div>
                                 <div>
                                     <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir:</label>
@@ -736,6 +738,33 @@ if (isset($_GET['action'])) {
                 endDateInput.addEventListener('input', () => validateDateInput(endDateInput));
             </script>
 
-    </body>
+            <script>
+                function downloadPDF() {
+                    // Mendapatkan nilai start_date dan end_date
+                    var startDate = "<?php echo isset($start_date) ? $start_date : ''; ?>";
+                    var endDate = "<?php echo isset($end_date) ? $end_date : ''; ?>";
 
+                    // Memeriksa apakah filter tanggal sudah diisi
+                    if (startDate === '' || endDate === '') {
+                        alert('Silakan pilih tanggal terlebih dahulu sebelum mengunduh PDF.');
+                    } else {
+                        window.location.href = "?action=print&start_date=" + startDate + "&end_date=" + endDate;
+                    }
+                }
+
+                function downloadExcel() {
+                    // Mendapatkan nilai start_date dan end_date
+                    var startDate = "<?php echo isset($start_date) ? $start_date : ''; ?>";
+                    var endDate = "<?php echo isset($end_date) ? $end_date : ''; ?>";
+
+                    // Memeriksa apakah filter tanggal sudah diisi
+                    if (startDate === '' || endDate === '') {
+                        alert('Silakan pilih tanggal terlebih dahulu sebelum mengunduh Excel.');
+                    } else {
+                        window.location.href = "?action=excel&start_date=" + startDate + "&end_date=" + endDate;
+                    }
+                }
+            </script>
+
+    </body>
 </html>
