@@ -143,7 +143,7 @@
                                 android:insetTop="0dp"
                                 android:insetBottom="0dp"
                                 app:cornerRadius="16dp"
-                                app:icon="@drawable/ic_scanner"
+                                app:icon="@drawable/ic_absen"
                                 app:iconGravity="textStart"
                                 app:iconPadding="0dp"
                                 app:iconSize="24dp" />
