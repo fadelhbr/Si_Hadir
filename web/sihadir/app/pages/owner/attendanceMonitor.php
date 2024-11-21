@@ -695,7 +695,7 @@ try {
             e.preventDefault();
             const formData = new FormData(this);
 
-            fetch('../../controller/emergency_leave_handler.php', {
+            fetch('../../handler/emergency_leave_handler.php', {
                 method: 'POST',
                 body: formData
             })
@@ -719,7 +719,7 @@ try {
             e.preventDefault();
             const formData = new FormData(this);
 
-            fetch('../../controller/reset_entry_handler.php', {
+            fetch('../../handler/reset_entry_handler.php', {
                 method: 'POST',
                 body: formData
             })
