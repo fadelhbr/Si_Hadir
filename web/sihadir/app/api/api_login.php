@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // Prepare SQL to prevent SQL injection
-        $sql = "SELECT id, username, password, role FROM users WHERE username = :username";
+        $sql = "SELECT id, username, password, role, nama_lengkap FROM users WHERE username = :username";
         $stmt = $pdo->prepare($sql);
         $stmt->bindParam(":username", $username, PDO::PARAM_STR);
         $stmt->execute();
@@ -171,6 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'message' => 'Login berhasil',
                     'user' => [
                         'id' => $row['id'],
+                        'nama_lengkap' => $row['nama_lengkap'],
                         'username' => $row['username'],
                         'role' => $row['role']
                     ]
