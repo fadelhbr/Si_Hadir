@@ -10,6 +10,8 @@ public interface ApiService {
     @POST("api/api_login.php") // sesuaikan dengan path API kamu
     Call<ApiResponse> loginUser(
             @Field("username") String username,
-            @Field("password") String password
+            @Field("password") String password,
+            @Field("nama_lengkap") String nama_lengkap,
+            @Field("employee_id") String employee_id
     );
 }
