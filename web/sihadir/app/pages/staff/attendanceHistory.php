@@ -8,9 +8,8 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     exit;
 }
 
-// Check if the user role is employee and access type is local
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan' || 
-    !isset($_SESSION['access_type']) || $_SESSION['access_type'] !== 'local') {
+// Check if the user role is employee
+if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan') {
     // Unset session variables and destroy session
     session_unset();
     session_destroy();

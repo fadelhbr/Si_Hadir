@@ -25,15 +25,6 @@ $password = "";
 $error_message = "";
 $show_error = false;
 
-function isLocalIP($ip) {
-    return (
-        substr($ip, 0, 8) === '192.168.' ||
-        substr($ip, 0, 7) === '172.16.' ||
-        substr($ip, 0, 3) === '10.' ||
-        $ip === '127.0.0.1'
-    );
-}
-
 // Browser detection function
 function getBrowser()
 {
@@ -156,16 +147,13 @@ function isMatchingDevice($pdo, $user_id, $device_hash)
     return $device_hash === $registeredHash;
 }
 
-// Modified loginUser function to set access type in session
+// Function to handle successful login
 function loginUser($pdo, $user, $device_info, $status)
 {
     $_SESSION['loggedin'] = true;
     $_SESSION['username'] = $user['username'];
     $_SESSION['role'] = $user['role'];
     $_SESSION['id'] = $user['id'];
-    
-    // Set access type based on IP
-    $_SESSION['access_type'] = isLocalIP($_SERVER['REMOTE_ADDR']) ? 'local' : 'external';
 
     // Log access
     $random_id = random_int(100000, 999999);
@@ -185,17 +173,8 @@ function loginUser($pdo, $user, $device_info, $status)
         ':status' => $status
     ]);
 
-    // Determine redirect based on role and IP
-    if ($user['role'] == 'owner') {
-        header('Location: app/pages/owner/dashboard.php');
-    } else {
-        // For staff, check IP address
-        if ($_SESSION['access_type'] === 'local') {
-            header('Location: app/pages/staff/attendance.php');
-        } else {
-            header('Location: app/pages/staff_outside/attendanceHistory.php');
-        }
-    }
+    // Redirect based on role
+    header('Location: ' . ($user['role'] == 'owner' ? 'app/pages/owner/dashboard.php' : 'app/pages/staff/attendance.php'));
     exit;
 }
 
