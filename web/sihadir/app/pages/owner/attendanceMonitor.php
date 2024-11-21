@@ -37,7 +37,7 @@ function getEarliestAttendanceDate($pdo)
 }
 
 
-// Function to get attendance statistics for the selected date and shift
+// Update the getAttendanceStats function to combine cuti and izin
 function getAttendanceStats($pdo, $date, $shift = 'all')
 {
     $params = ['date' => $date];
@@ -55,11 +55,12 @@ function getAttendanceStats($pdo, $date, $shift = 'all')
 
     $stats = array(
         'hadir' => 0,
-        'alpha' => 0,
-        'izin' => 0,
         'terlambat' => 0,
+        'alpha' => 0,
         'cuti' => 0,
-        'pulang_dahulu' => 0
+        'izin' => 0,
+        'pulang_dahulu' => 0,
+        'tidak_absen_pulang' => 0
     );
 
     try {
@@ -318,7 +319,8 @@ try {
             <!-- Page content -->
             <div class="container-fluid p-4">
                 <h1 class="text-3xl font-semibold mb-4">Monitor Absensi</h1>
-
+                <!-- Alert Messages Container -->
+                <div id="alertContainer" class="fixed top-4 right-4 z-50"></div>
                 <!-- Search and filter form -->
                 <form class="flex items-center justify-between mb-4" method="GET">
                     <div class="flex space-x-2">
@@ -340,6 +342,9 @@ try {
                         placeholder="Cari nama/email/kode staff" value="<?php echo htmlspecialchars($searchQuery); ?>">
                 </form>
 
+                <!-- Alert Messages Container -->
+                <div id="alertContainer" class="fixed top-4 right-4 z-50"></div>
+
                 <!-- Status cards -->
                 <div class="bg-white shadow rounded-lg p-4 mb-4">
                     <h2 class="text-lg font-semibold mb-4">Status Kehadiran Staff Hari Ini (<?php echo $displayDate; ?>)
@@ -349,25 +354,27 @@ try {
                             <p class="text-sm">Hadir Tepat Waktu</p>
                             <p class="text-2xl font-bold text-green-500"><?php echo $stats['hadir']; ?></p>
                         </div>
+                        <div class="status-card bg-yellow-50 p-4 rounded-lg">
+                            <p class="text-sm">Terlambat</p>
+                            <p class="text-2xl font-bold text-yellow-500"><?php echo $stats['terlambat']; ?></p>
+                        </div>
                         <div class="status-card bg-red-50 p-4 rounded-lg">
                             <p class="text-sm">Tidak Masuk</p>
                             <p class="text-2xl font-bold text-red-500"><?php echo $stats['alpha']; ?></p>
                         </div>
                         <div class="status-card bg-purple-50 p-4 rounded-lg">
-                            <p class="text-sm">Izin</p>
-                            <p class="text-2xl font-bold text-purple-500"><?php echo $stats['izin']; ?></p>
-                        </div>
-                        <div class="status-card bg-yellow-50 p-4 rounded-lg">
-                            <p class="text-sm">Terlambat</p>
-                            <p class="text-2xl font-bold text-yellow-500"><?php echo $stats['terlambat']; ?></p>
-                        </div>
-                        <div class="status-card bg-orange-50 p-4 rounded-lg">
-                            <p class="text-sm">Cuti</p>
-                            <p class="text-2xl font-bold text-orange-500"><?php echo $stats['cuti']; ?></p>
+                            <p class="text-sm">Cuti dan Izin</p>
+                            <p class="text-2xl font-bold text-purple-500"><?php echo $stats['cuti'] + $stats['izin']; ?>
+                            </p>
                         </div>
                         <div class="status-card bg-blue-50 p-4 rounded-lg">
                             <p class="text-sm">Pulang Lebih Awal</p>
                             <p class="text-2xl font-bold text-blue-500"><?php echo $stats['pulang_dahulu']; ?></p>
+                        </div>
+                        <div class="status-card bg-orange-50 p-4 rounded-lg">
+                            <p class="text-sm">Tidak Absen Pulang</p>
+                            <p class="text-2xl font-bold text-orange-500"><?php echo $stats['tidak_absen_pulang']; ?>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -393,6 +400,9 @@ try {
                                 <th
                                     class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Jam Pulang</th>
+                                <th
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Action</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
@@ -414,10 +424,6 @@ try {
                                         <?php
                                         switch ($record['status_kehadiran']) {
                                             case 'hadir':
-                                            case 'dalam_shift':
-                                                $statusKehadiran = "Hadir Tepat Waktu";
-                                                $statusClass = "px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm";
-                                                break;
                                             case 'terlambat':
                                                 $statusKehadiran = "Terlambat";
                                                 $statusClass = "px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm";
@@ -462,11 +468,88 @@ try {
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <?php echo $record['waktu_keluar'] ? date('H:i', strtotime($record['waktu_keluar'])) : '-'; ?>
                                     </td>
-                                </script>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex space-x-2 justify-center">
+                                            <button onclick="showEmergencyLeaveModal(<?php echo $record['pegawai_id']; ?>)"
+                                                class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm transition-all duration-300 hover:bg-red-200 <?php echo ($record['status_kehadiran'] === 'izin') ? 'opacity-50 cursor-not-allowed' : ''; ?>"
+                                                <?php echo ($record['status_kehadiran'] === 'izin') ? 'disabled' : ''; ?>>
+                                                Izin mendadak
+                                            </button>
+                                            <button onclick="showResetEntryModal(<?php echo $record['pegawai_id']; ?>)"
+                                                class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm transition-all duration-300 hover:bg-blue-200">
+                                                Reset Entry
+                                            </button>
+                                        </div>
+                                    </td>
+                                    </script>
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>
                     </table>
+                </div>
+                <div id="emergencyLeaveModal"
+                    class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center transform transition-all duration-300 scale-0 opacity-0">
+                    <div class="bg-white p-8 rounded-lg shadow-xl w-1/3 transform transition-all duration-300 scale-95">
+                        <h3 class="text-xl font-semibold mb-4">Pengajuan Izin Mendadak</h3>
+                        <form id="emergencyLeaveForm" method="POST">
+                            <input type="hidden" id="employeeId" name="employeeId">
+                            <input type="hidden" name="selectedDate" value="<?php echo $selectedDate; ?>">
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="leaveType">
+                                    Jenis Izin
+                                </label>
+                                <select id="leaveType" name="leaveType"
+                                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    required>
+                                    <option value="keperluan_pribadi">Keperluan Pribadi</option>
+                                    <option value="dinas_luar">Dinas Luar</option>
+                                    <option value="sakit">Sakit</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
+                                    Keterangan
+                                </label>
+                                <textarea id="description" name="description"
+                                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-32"
+                                    required></textarea>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <button type="button" onclick="closeEmergencyLeaveModal()"
+                                    class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                                    Batal
+                                </button>
+                                <button type="submit"
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                                    Simpan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Kemudian, perbaiki struktur form reset entry modal -->
+                <div id="resetEntryModal"
+                    class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center transform transition-all duration-300 scale-0 opacity-0">
+                    <div class="bg-white p-8 rounded-lg shadow-xl w-1/3 transform transition-all duration-300 scale-95">
+                        <h3 class="text-xl font-semibold mb-4">Reset Entry Absensi</h3>
+                        <form id="resetEntryForm" method="POST">
+                            <input type="hidden" id="resetEmployeeId" name="employeeId">
+                            <input type="hidden" name="selectedDate" value="<?php echo $selectedDate; ?>">
+                            <p class="mb-4 text-gray-700">Apakah Anda yakin ingin mereset entry absensi ini? Tindakan
+                                ini akan menghapus data izin dan absensi untuk hari ini.</p>
+                            <div class="flex items-center justify-between">
+                                <button type="button" onclick="closeResetEntryModal()"
+                                    class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-colors duration-300">
+                                    Batal
+                                </button>
+                                <button type="submit"
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-300">
+                                    Reset
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -543,6 +626,119 @@ try {
             dateInput.addEventListener('change', updateResults);
             shiftSelect.addEventListener('change', updateResults);
         });
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.classList.add('alert', 'transform', 'transition-all', 'duration-300', 'translate-x-full');
+            alertDiv.classList.add(type === 'success' ? 'bg-green-100' : 'bg-red-100');
+            alertDiv.innerHTML = `
+        <div class="p-4 rounded-lg shadow-lg ${type === 'success' ? 'text-green-700' : 'text-red-700'} flex justify-between items-center">
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" class="ml-4 font-bold">&times;</button>
+        </div>
+    `;
+            document.getElementById('alertContainer').appendChild(alertDiv);
+
+            // Trigger animation
+            setTimeout(() => alertDiv.classList.remove('translate-x-full'), 10);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                alertDiv.classList.add('translate-x-full');
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 5000);
+        }
+
+        function showEmergencyLeaveModal(employeeId) {
+            const modal = document.getElementById('emergencyLeaveModal');
+            document.getElementById('employeeId').value = employeeId;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('scale-0', 'opacity-0');
+                modal.querySelector('.bg-white').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeEmergencyLeaveModal() {
+            const modal = document.getElementById('emergencyLeaveModal');
+            modal.classList.add('scale-0', 'opacity-0');
+            modal.querySelector('.bg-white').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function showResetEntryModal(employeeId) {
+            const modal = document.getElementById('resetEntryModal');
+            document.getElementById('resetEmployeeId').value = employeeId;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('scale-0', 'opacity-0');
+                modal.querySelector('.bg-white').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeResetEntryModal() {
+            const modal = document.getElementById('resetEntryModal');
+            modal.classList.add('scale-0', 'opacity-0');
+            modal.querySelector('.bg-white').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        document.getElementById('emergencyLeaveForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('../../controller/emergency_leave_handler.php', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        location.reload();
+                    } else {
+                        showAlert(data.message, 'error');
+                    }
+                    closeEmergencyLeaveModal();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Terjadi kesalahan saat memproses izin mendadak', 'error');
+                });
+        });
+
+        document.getElementById('resetEntryForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('../../controller/reset_entry_handler.php', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        location.reload();
+                    } else {
+                        showAlert(data.message, 'error');
+                    }
+                    closeResetEntryModal();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Terjadi kesalahan saat mereset entry', 'error');
+                });
+        });
+
 
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebarWrapper = document.getElementById('sidebar-wrapper');

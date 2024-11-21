@@ -6,18 +6,13 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Check if the user role is employee and access type is local
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'karyawan' || 
-    !isset($_SESSION['access_type']) || $_SESSION['access_type'] !== 'local') {
-    // Unset session variables and destroy session
+// Periksa autentikasi
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || !isset($_SESSION['role']) || $_SESSION['role'] !== 'karyawan') {
     session_unset();
     session_destroy();
-    
-    // Set headers to prevent caching
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Cache-Control: post-check=0, pre-check=0', false);
     header('Pragma: no-cache');
-    
     header('Location: ../../../login.php');
     exit;
 }

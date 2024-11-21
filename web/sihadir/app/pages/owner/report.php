@@ -61,7 +61,6 @@ if (!empty($start_date) && !empty($end_date)) {
         u.jenis_kelamin AS jenis_kelamin,
         SUM(CASE WHEN a.status_kehadiran IN ('hadir', 'terlambat', 'pulang_dahulu', 'tidak_absen_pulang') THEN 1 ELSE 0 END) AS hadir,
         SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
-        SUM(CASE WHEN a.status_kehadiran = 'sakit' THEN 1 ELSE 0 END) AS sakit,
         SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
         SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
     FROM 
@@ -89,7 +88,6 @@ if (!empty($start_date) && !empty($end_date)) {
             u.jenis_kelamin AS jenis_kelamin,
             SUM(CASE WHEN a.status_kehadiran IN ('hadir', 'terlambat', 'pulang_dahulu', 'tidak_absen_pulang') THEN 1 ELSE 0 END) AS hadir,
             SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
-            SUM(CASE WHEN a.status_kehadiran = 'sakit' THEN 1 ELSE 0 END) AS sakit,
             SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
             SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
         FROM 
@@ -131,7 +129,6 @@ if (isset($_GET['action'])) {
                 u.jenis_kelamin AS jenis_kelamin,
                 SUM(CASE WHEN a.status_kehadiran IN ('hadir', 'terlambat', 'pulang_dahulu', 'tidak_absen_pulang') THEN 1 ELSE 0 END) AS hadir,
                 SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
-                SUM(CASE WHEN a.status_kehadiran = 'sakit' THEN 1 ELSE 0 END) AS sakit,
                 SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
                 SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
             FROM 
@@ -158,7 +155,6 @@ if (isset($_GET['action'])) {
                 u.jenis_kelamin AS jenis_kelamin,
                 SUM(CASE WHEN a.status_kehadiran IN ('hadir', 'terlambat', 'pulang_dahulu', 'tidak_absen_pulang') THEN 1 ELSE 0 END) AS hadir,
                 SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
-                SUM(CASE WHEN a.status_kehadiran = 'sakit' THEN 1 ELSE 0 END) AS sakit,
                 SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
                 SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
             FROM 
@@ -214,7 +210,6 @@ if (isset($_GET['action'])) {
                         <th>Jenis Kelamin</th>
                         <th>Hadir</th>
                         <th>Alpha</th>
-                        <th>Sakit</th>
                         <th>Cuti</th>
                         <th>Izin</th>
                     </tr>
@@ -230,7 +225,6 @@ if (isset($_GET['action'])) {
                 $html .= '<td>' . htmlspecialchars(ucwords($row['jenis_kelamin'])) . '</td>';
                 $html .= '<td>' . htmlspecialchars($row['hadir']) . '</td>';
                 $html .= '<td>' . htmlspecialchars($row['alpha']) . '</td>';
-                $html .= '<td>' . htmlspecialchars($row['sakit']) . '</td>';
                 $html .= '<td>' . htmlspecialchars($row['cuti']) . '</td>';
                 $html .= '<td>' . htmlspecialchars($row['izin']) . '</td>';
                 $html .= '</tr>';
@@ -268,7 +262,7 @@ if (isset($_GET['action'])) {
     
         // Add headers
         $currentRow++; // Move to next row for headers
-        $headers = ['No.', 'Nama Karyawan', 'Jenis Kelamin', 'Hadir', 'Alpha', 'Sakit', 'Cuti', 'Izin'];
+        $headers = ['No.', 'Nama Karyawan', 'Jenis Kelamin', 'Hadir', 'Alpha', 'Cuti', 'Izin'];
         $sheet->fromArray($headers, NULL, 'A' . $currentRow);
     
         // Add data
@@ -281,7 +275,6 @@ if (isset($_GET['action'])) {
                 $sheet->setCellValue('C' . $dataRow, ucwords($data['jenis_kelamin']));
                 $sheet->setCellValue('D' . $dataRow, $data['hadir']);
                 $sheet->setCellValue('E' . $dataRow, $data['alpha']);
-                $sheet->setCellValue('F' . $dataRow, $data['sakit']);
                 $sheet->setCellValue('G' . $dataRow, $data['cuti']);
                 $sheet->setCellValue('H' . $dataRow, $data['izin']);
                 $dataRow++;
@@ -607,9 +600,6 @@ if (isset($_GET['action'])) {
                                             Alpha</th>
                                         <th
                                             class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Sakit</th>
-                                        <th
-                                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Cuti</th>
 
                                         <th
@@ -626,7 +616,6 @@ if (isset($_GET['action'])) {
                                             echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars(ucwords($detail['jenis_kelamin'])) . "</td>";
                                             echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['hadir']) . "</td>";
                                             echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['alpha']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['sakit']) . "</td>";
                                             echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['cuti']) . "</td>";
                                             echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['izin']) . "</td>";
                                             echo "</tr>";
