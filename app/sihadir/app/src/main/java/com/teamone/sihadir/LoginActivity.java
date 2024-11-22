@@ -20,15 +20,12 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
-    private static final String API_URL = "http://192.168.1.86/Si_Hadir/web/sihadir/app/api/api_login.php";
+    private static final String API_URL = "http://192.168.1.5/sihadir/app/api/api_login.php";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     // SharedPreferences keys
     private static final String PREF_IS_LOGGED_IN = "is_logged_in";
     private static final String PREF_USER_ID = "user_id";
-
-    private static final String PREF_NAMA_LENGKAP = "nama_lengkap";
-
     private static final String PREF_USERNAME = "username";
     private static final String PREF_USER_ROLE = "user_role";
 
@@ -57,12 +54,11 @@ public class LoginActivity extends AppCompatActivity {
         return preferences.getBoolean(PREF_IS_LOGGED_IN, false);
     }
 
-    private void saveLoginInfo(int userId, String username, String userRole, String namaLengkap) {
+    private void saveLoginInfo(int userId, String username, String userRole) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean(PREF_IS_LOGGED_IN, true);
         editor.putInt(PREF_USER_ID, userId);
-        editor.putString(PREF_NAMA_LENGKAP, namaLengkap);
         editor.putString(PREF_USERNAME, username);
         editor.putString(PREF_USER_ROLE, userRole);
         editor.apply();
@@ -73,7 +69,6 @@ public class LoginActivity extends AppCompatActivity {
 
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
         intent.putExtra("user_id", preferences.getInt(PREF_USER_ID, -1));
-        intent.putExtra("nama_lengkap", preferences.getString(PREF_NAMA_LENGKAP, ""));
         intent.putExtra("username", preferences.getString(PREF_USERNAME, ""));
         intent.putExtra("role", preferences.getString(PREF_USER_ROLE, ""));
         startActivity(intent);
@@ -143,12 +138,11 @@ public class LoginActivity extends AppCompatActivity {
                             // Parsing user data dari respons
                             JSONObject userObj = jsonResponse.getJSONObject("user");
                             int userId = userObj.getInt("id");
-                            String namaLengkap = userObj.getString("nama_lengkap");
                             String userRole = userObj.getString("role");
                             String responseUsername = userObj.getString("username");
 
                             // Simpan informasi login
-                            saveLoginInfo(userId, responseUsername, userRole, namaLengkap);
+                            saveLoginInfo(userId, responseUsername, userRole);
 
                             // Tampilkan pesan sukses
                             Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
