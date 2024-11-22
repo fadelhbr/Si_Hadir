@@ -29,7 +29,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center|left"
                 android:fontFamily="sans-serif-medium"
-                android:text="Permohonan izin & cuti"
+                android:text="Permohonan izin dan cuti"
                 android:textColor="#36618D"
                 android:textSize="24sp"
                 android:textStyle="bold" />

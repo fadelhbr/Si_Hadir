@@ -47,8 +47,8 @@ public class AbsenFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_absen, container, false);
 
         // Inisialisasi TextView
-        TVnamaLengkap = view.findViewById(R.id.TVnamaLengkap);
-        TVemployeeId = view.findViewById(R.id.TVemployeeId);
+        TVnamaLengkap = view.findViewById(R.id.userName);
+        TVemployeeId = view.findViewById(R.id.employeeId);
 
         // Ambil data dari SharedPreferences
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext());

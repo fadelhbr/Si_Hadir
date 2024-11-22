@@ -37,7 +37,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/poppins_bold"
-                    android:text="Halo, Fadel 👋🏻"
+                    android:text="Halo, Fadel"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="24sp"
                     android:textStyle="bold" />
