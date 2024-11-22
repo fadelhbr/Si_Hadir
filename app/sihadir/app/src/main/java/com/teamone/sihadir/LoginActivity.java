@@ -20,7 +20,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
-    private static final String API_URL = "http://192.168.1.5/sihadir/app/api/api_login.php";
+    private static final String API_URL = "http://10.10.183.51/sihadir/app/api/api_login.php";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     // SharedPreferences keys
@@ -28,6 +28,7 @@ public class LoginActivity extends AppCompatActivity {
     private static final String PREF_USER_ID = "user_id";
     private static final String PREF_USERNAME = "username";
     private static final String PREF_USER_ROLE = "user_role";
+    private static final String PREF_NAMA_LENGKAP = "nama_lengkap";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,10 +58,15 @@ public class LoginActivity extends AppCompatActivity {
     private void saveLoginInfo(int userId, String username, String userRole) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = preferences.edit();
+
+        // Capitalize username for display
+        String displayName = username.substring(0, 1).toUpperCase() + username.substring(1).toLowerCase();
+
         editor.putBoolean(PREF_IS_LOGGED_IN, true);
-        editor.putInt(PREF_USER_ID, userId);
-        editor.putString(PREF_USERNAME, username);
-        editor.putString(PREF_USER_ROLE, userRole);
+        editor.putInt("user_id", userId); // Menggunakan key yang sama dengan AbsenFragment
+        editor.putString("username", username);
+        editor.putString("user_role", userRole);
+        editor.putString("nama_lengkap", displayName); // Key untuk nama yang akan ditampilkan
         editor.apply();
     }
 
@@ -75,13 +81,14 @@ public class LoginActivity extends AppCompatActivity {
         finish();
     }
 
-    public static void logout(AppCompatActivity activity) {
+    public static void logout (AppCompatActivity activity) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activity);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean(PREF_IS_LOGGED_IN, false);
         editor.remove(PREF_USER_ID);
         editor.remove(PREF_USERNAME);
         editor.remove(PREF_USER_ROLE);
+        editor.remove(PREF_NAMA_LENGKAP);
         editor.apply();
 
         // Redirect ke LoginActivity

@@ -28,11 +28,10 @@ import com.google.android.material.textfield.TextInputEditText;
 
 public class AbsenFragment extends Fragment {
 
-    private Button scanButton1;
     private TextView TVnamaLengkap;
     private TextView TVemployeeId;
     private TextInputEditText codeInput;
-
+    private Button scanButton1;
     private final ActivityResultLauncher<ScanOptions> launcher = registerForActivityResult(new ScanContract(), result -> {
         if (result.getContents() != null) {
             codeInput.setText(result.getContents());
@@ -48,43 +47,40 @@ public class AbsenFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Menginflate layout fragment dan mengembalikannya
         View view = inflater.inflate(R.layout.fragment_absen, container, false);
 
         // Inisialisasi TextView
         TVnamaLengkap = view.findViewById(R.id.userName);
         TVemployeeId = view.findViewById(R.id.employeeId);
+        codeInput = view.findViewById(R.id.codeInput);
+        scanButton1 = view.findViewById(R.id.scanButton);
 
         // Ambil data dari SharedPreferences
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext());
+
+        // Ambil data yang disimpan dari LoginActivity
         String namaLengkap = sharedPreferences.getString("nama_lengkap", "Nama tidak tersedia");
-        int userId = sharedPreferences.getInt("user_id", 0); // Default 0 jika tidak ditemukan
+        int userId = sharedPreferences.getInt("user_id", 0);
 
         // Tampilkan data di TextView
         TVnamaLengkap.setText(namaLengkap);
-        TVemployeeId.setText(userId != 0 ? String.valueOf(userId) : "ID tidak tersedia");
+        TVemployeeId.setText(String.valueOf(userId));
 
-        // Inisialisasi TextInputEditText untuk kode absensi
-        codeInput = view.findViewById(R.id.codeInput);
+        // Debug log untuk memastikan data terambil
+        Log.d("AbsenFragment", "Nama Lengkap dari SharedPrefs: " + namaLengkap);
+        Log.d("AbsenFragment", "User ID dari SharedPrefs: " + userId);
 
+        // Scanner setup
+        scanButton1.setOnClickListener(v -> Scanner());
 
-        Log.d("AbsenFragment", "Nama Lengkap: " + namaLengkap);
-        Log.d("AbsenFragment", "User ID: " + userId);
-
-        // Menginisialisasi scanButton1 dengan view yang diinflasi
-        scanButton1 = view.findViewById(R.id.scanButton);
-
-        // Mengatur refresh rate ke 120Hz jika perangkat mendukung
+        // Set refresh rate jika diperlukan
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && getActivity() != null) {
             WindowManager.LayoutParams layoutParams = getActivity().getWindow().getAttributes();
             layoutParams.preferredDisplayModeId = findPreferredDisplayMode(120f);
             getActivity().getWindow().setAttributes(layoutParams);
         }
 
-        // Menambahkan listener untuk scanButton1
-        scanButton1.setOnClickListener(v -> Scanner());
-
-        return view; // Mengembalikan view yang diinflate
+        return view;
     }
 
     private void Scanner() {
