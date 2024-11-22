@@ -24,21 +24,26 @@ import com.journeyapps.barcodescanner.ScanOptions;
 import com.teamone.sihadir.R;
 import com.teamone.sihadir.StartScan;
 
+import com.google.android.material.textfield.TextInputEditText;
+
 public class AbsenFragment extends Fragment {
 
     private Button scanButton1;
     private TextView TVnamaLengkap;
     private TextView TVemployeeId;
+    private TextInputEditText codeInput;
 
     private final ActivityResultLauncher<ScanOptions> launcher = registerForActivityResult(new ScanContract(), result -> {
         if (result.getContents() != null) {
-            // Menampilkan hasil pemindaian dalam AlertDialog
+            codeInput.setText(result.getContents());
+            // Optional dialog konfirmasi
             AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-            builder.setTitle("QR-SCANNER RESULT");
-            builder.setMessage(result.getContents());
-            builder.setPositiveButton("oke", (dialog, which) -> dialog.dismiss());
+            builder.setTitle("Scan Berhasil");
+            builder.setMessage("Kode absensi telah terisi");
+            builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
             builder.show();
         }
+
     });
 
     @Override
@@ -58,6 +63,10 @@ public class AbsenFragment extends Fragment {
         // Tampilkan data di TextView
         TVnamaLengkap.setText(namaLengkap);
         TVemployeeId.setText(userId != 0 ? String.valueOf(userId) : "ID tidak tersedia");
+
+        // Inisialisasi TextInputEditText untuk kode absensi
+        codeInput = view.findViewById(R.id.codeInput);
+
 
         Log.d("AbsenFragment", "Nama Lengkap: " + namaLengkap);
         Log.d("AbsenFragment", "User ID: " + userId);
