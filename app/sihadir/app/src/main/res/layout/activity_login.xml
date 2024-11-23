@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    >
+    android:background="#F0F4F8">
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/textView"
@@ -64,15 +64,28 @@
             android:inputType="textPassword" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <TextView
+        android:id="@+id/btnForgotPassword"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Lupa Password?"
+        android:textColor="#3498DB"
+        android:textSize="14sp"
+        android:layout_marginTop="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/txtPasswordLayout" />
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnLogin"
         android:layout_width="200dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:text="Login"
         app:cornerRadius="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtPasswordLayout" />
+        app:layout_constraintTop_toBottomOf="@+id/btnForgotPassword" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
