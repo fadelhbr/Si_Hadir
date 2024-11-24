@@ -1,5 +1,4 @@
 <?php
-// app/handler/email_send_handler.php
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
@@ -7,10 +6,10 @@ use PHPMailer\PHPMailer\Exception;
 
 // Check if files exist
 $required_files = [
-    'vendor/autoload.php',
-    'mail/PHPMailer.php',
-    'mail/SMTP.php',
-    'mail/Exception.php'
+    '../../vendor/autoload.php',
+    '../../mail/PHPMailer.php',
+    '../../mail/SMTP.php',
+    '../../mail/Exception.php'
 ];
 
 foreach ($required_files as $file) {

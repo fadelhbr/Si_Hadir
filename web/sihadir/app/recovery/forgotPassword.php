@@ -1,12 +1,11 @@
 <?php
-//forgotPassword.php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 session_start();
 
-$auth_file = 'app/auth/auth.php';
+$auth_file = '../auth/auth.php';
 if (!file_exists($auth_file)) {
     die("Error: auth.php file not found in $auth_file");
 }
@@ -78,7 +77,7 @@ function safeRedirect(url) {
 
 window.onbeforeunload = function() {
     if (!isRedirecting) {
-        fetch('destroy_session.php', {
+        fetch('../handler/destroy_session_handler.php', {
             method: 'POST',
             credentials: 'same-origin'
         });
@@ -296,7 +295,7 @@ window.onbeforeunload = function() {
         </form>
 
         <div class="back-link">
-            <a href="login.php"><i class="fas fa-arrow-left"></i> Kembali ke halaman login</a>
+            <a href="../../login.php"><i class="fas fa-arrow-left"></i> Kembali ke halaman login</a>
         </div>
     </div>
 </body>

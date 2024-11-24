@@ -372,7 +372,7 @@ try {
                             <p class="text-2xl font-bold text-blue-500"><?php echo $stats['pulang_dahulu']; ?></p>
                         </div>
                         <div class="status-card bg-orange-50 p-4 rounded-lg">
-                            <p class="text-sm">Tidak Absen Pulang</p>
+                            <p class="text-sm">Tidak Presensi Pulang</p>
                             <p class="text-2xl font-bold text-orange-500"><?php echo $stats['tidak_absen_pulang']; ?>
                             </p>
                         </div>
@@ -449,7 +449,7 @@ try {
                                                 $statusClass = "px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm";
                                                 break;
                                             case 'tidak_absen_pulang':
-                                                $statusKehadiran = "Tidak Absen Pulang";
+                                                $statusKehadiran = "Tidak Presensi Pulang";
                                                 $statusClass = "px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm";
                                                 break;
                                             default:
@@ -493,7 +493,7 @@ try {
                 ? 'disabled'
                 : '';
             ?>>
-                Izin darurat
+                   Izin darurat
                                             </button>
                                             <button onclick="showResetEntryModal(<?php echo $record['pegawai_id']; ?>)"
                                                 class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm transition-all duration-300 hover:bg-blue-200 
@@ -506,7 +506,7 @@ try {
                 ? 'disabled'
                 : '';
             ?>>
-                  Reset Entry
+                      Reset Entry
                                             </button>
                                         </div>
                                     </td>

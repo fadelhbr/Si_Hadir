@@ -10,12 +10,12 @@ if (
 ) {
     echo "<script>
         window.onbeforeunload = null;
-        window.location.href = 'login.php';
+        window.location.href = '../../login.php';
     </script>";
     exit;
 }
 
-include 'app/auth/auth.php';
+include '../auth/auth.php';
 
 // Initialize variables
 $username = $email = $password = $confirm_password = $nama_lengkap = $no_telp = $jenis_kelamin = "";
@@ -194,7 +194,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     window.onbeforeunload = function () {
         if (!isRedirecting) {
-            fetch('destroy_session.php', {
+            fetch('../handler/destroy_session_handler.php', {
                 method: 'POST',
                 credentials: 'same-origin'
             });
@@ -622,7 +622,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             .then(data => {
                 if (data.success) {
                     alert(data.message);
-                    safeRedirect('login.php');
+                    safeRedirect('../../login.php');
                 } else {
                     if (data.errors) {
                         displayErrors(data.errors);

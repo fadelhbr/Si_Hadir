@@ -1,5 +1,4 @@
 <?php
-// oneTimeVerif.php
 session_start();
 
 // Validate required session variables
@@ -7,13 +6,13 @@ if (!isset($_SESSION['reset_email']) || !isset($_SESSION['user_id']) ||
     !isset($_SESSION['user_role']) || !isset($_SESSION['id_otp']) || !isset($_SESSION['username'])) {
     echo "<script>
         window.onbeforeunload = null;
-        window.location.href = 'login.php';
+        window.location.href = '../../login.php';
     </script>";
     exit;
 }
 
 // Include database connection
-$auth_file = 'app/auth/auth.php';
+$auth_file = '../auth/auth.php';
 if (!file_exists($auth_file)) {
     die("Error: auth.php file not found in $auth_file");
 }
@@ -36,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             // Send email
-            require_once 'app/handler/email_send_handler.php';
+            require_once '../handler/email_recovery_handler.php';
             if (!function_exists('sendOTPEmail')) {
                 throw new Exception("sendOTPEmail function not found");
             }
@@ -107,7 +106,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 throw new Exception("Gagal menyimpan kode OTP baru.");
             }
 
-            require_once 'app/handler/email_send_handler.php';
+            require_once '../handler/email_recovery_handler.php';
             if (!function_exists('sendOTPEmail')) {
                 throw new Exception("sendOTPEmail function not found");
             }
@@ -563,7 +562,7 @@ if (isset($_POST['destroy_session'])) {
         // Handle page unload
         window.onbeforeunload = function() {
             if (!isRedirecting) {
-                fetch('destroy_session.php', {
+                fetch('../handler/destroy_session_handler.php', {
                     method: 'POST',
                     credentials: 'same-origin'
                 });

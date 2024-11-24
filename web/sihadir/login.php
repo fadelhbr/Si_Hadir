@@ -483,7 +483,7 @@ unset($pdo);
                 <input type="password" id="password" name="password" class="input" required>
             </div>
             <div class="forgot-password">
-                <a href="forgotPassword.php">Lupa username atau password?</a>
+                <a href="app/recovery/forgotPassword.php">Lupa username atau password?</a>
             </div>
             <button type="submit" name="login" value="1" class="btn">
                 <i class="fas fa-sign-in-alt"></i>

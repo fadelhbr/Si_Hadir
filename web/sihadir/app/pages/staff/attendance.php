@@ -38,7 +38,7 @@ function checkHolidayStatus($pdo, $employeeId, $date)
     $stmt = $pdo->prepare($query);
     $stmt->execute([$employeeId, $date]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     return $result !== false; // Return true if holiday record exists
 }
 
@@ -94,8 +94,8 @@ function getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId)
     // If found record with leave/holiday status, return false
     if ($existingLeave) {
         return [
-            'status' => 'unavailable', 
-            'message' => 'Anda tidak dapat melakukan absensi karena status ' . $existingLeave['status_kehadiran']
+            'status' => 'unavailable',
+            'message' => 'Anda tidak dapat melakukan presensi karena status ' . $existingLeave['status_kehadiran']
         ];
     }
 
@@ -150,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Check holiday status before starting transaction
         if (checkHolidayStatus($pdo, $employee['id'], $currentDate)) {
-            throw new Exception('Anda tidak dapat melakukan absensi pada hari libur.');
+            throw new Exception('Anda tidak dapat melakukan presensi pada hari libur.');
         }
 
         $pdo->beginTransaction();
@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!checkEmployeeRole($pdo, $userId)) {
-            throw new Exception('Akses ditolak. Hanya karyawan yang dapat melakukan absensi.');
+            throw new Exception('Akses ditolak. Hanya karyawan yang dapat melakukan presensi.');
         }
 
         $employeeId = $employee['id'];
@@ -187,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Check if both check-in and check-out are already filled
         if ($attendance['waktu_masuk'] != '00:00:00' && $attendance['waktu_keluar'] != '00:00:00') {
-            throw new Exception('Anda sudah melakukan absensi masuk dan keluar untuk hari ini.');
+            throw new Exception('Anda sudah melakukan presensi masuk dan keluar untuk hari ini.');
         }
 
         $shiftStart = new DateTime($currentDate . ' ' . $shiftSchedule['jam_masuk']);
@@ -202,12 +202,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Check if the current time is before the earliest check-in time
                 if ($currentTime < $earliestCheckInTime) {
-                    throw new Exception('Terlalu awal untuk absen. Absensi dimulai 45 menit sebelum jadwal shift pada pukul ' . $earliestCheckInTime->format('H:i'));
+                    throw new Exception('Terlalu awal untuk presensi. Presensi dimulai 45 menit sebelum jadwal shift pada pukul ' . $earliestCheckInTime->format('H:i'));
                 }
 
                 // Check if the current time is after the shift end time
                 if ($currentTime > $shiftEnd) {
-                    throw new Exception('Anda melewati jam keluar shift dan tidak diperbolehkan absen. Anda melewatkan shift absen hari ini.');
+                    throw new Exception('Anda melewati jam keluar shift dan tidak diperbolehkan presensi. Anda melewatkan shift presensi hari ini.');
                 }
 
                 // Determine attendance status
@@ -217,12 +217,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $query = "UPDATE absensi SET waktu_masuk = CURRENT_TIME(), status_kehadiran = ?, kode_unik = ? WHERE id = ?";
                 $stmt = $pdo->prepare($query);
                 if (!$stmt->execute([$status, $uniqueCode, $attendance['id']])) {
-                    throw new Exception('Gagal mencatat absensi masuk.');
+                    throw new Exception('Gagal mencatat presensi masuk.');
                 }
 
                 $message = [
                     'status' => 'success',
-                    'text' => 'Absensi masuk berhasil dicatat.'
+                    'text' => 'Presensi masuk berhasil dicatat.'
                 ];
             }
             // Handle check-out
@@ -241,18 +241,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     else {
                         $stmt = $pdo->prepare("UPDATE absensi SET waktu_keluar = CURRENT_TIME(), status_kehadiran = 'pulang_dahulu', keterangan = 'Pulang lebih awal dari jadwal', kode_unik = ? WHERE id = ?");
                         if (!$stmt->execute([$uniqueCode, $attendance['id']])) {
-                            throw new Exception('Gagal mengupdate absensi pulang dahulu.');
+                            throw new Exception('Gagal mengupdate presensi pulang dahulu.');
                         }
-                        $message = ['status' => 'success', 'text' => 'Absensi pulang dahulu berhasil dicatat.'];
+                        $message = ['status' => 'success', 'text' => 'Presensi pulang dahulu berhasil dicatat.'];
                     }
                 }
                 // Normal check-out after shift end
                 else {
                     $stmt = $pdo->prepare("UPDATE absensi SET waktu_keluar = CURRENT_TIME(), status_kehadiran = 'hadir', kode_unik = ? WHERE id = ?");
                     if (!$stmt->execute([$uniqueCode, $attendance['id']])) {
-                        throw new Exception('Gagal mengupdate absensi keluar.');
+                        throw new Exception('Gagal mengupdate presensi keluar.');
                     }
-                    $message = ['status' => 'success', 'text' => 'Absensi keluar berhasil dicatat.'];
+                    $message = ['status' => 'success', 'text' => 'Presensi keluar berhasil dicatat.'];
                 }
             }
         }
@@ -284,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Si Hadir - Absen</title>
+    <title>Si Hadir - Presensi</title>
     <!-- Favicon-->
     <link rel="icon" type="image/x-icon" href="../../../assets/favicon.ico" />
     <!-- Core theme CSS (includes Bootstrap)-->
@@ -563,7 +563,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <path
                             d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z" />
                     </svg>
-                    Absen
+                    Presensi
+                </a>
+                <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0"
+                    href="schedule.php">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="sidebar-icon" fill="#6c757d"
+                        width="24" height="24">
+                        <path
+                            d="M19 4h-1V3c0-.55-.45-1-1-1s-1 .45-1 1v1H8V3c0-.55-.45-1-1-1s-1 .45-1 1v1H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z" />
+                    </svg>
+                    Jadwal
                 </a>
                 <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0"
                     href="attendanceHistory.php" style="display: flex; align-items: center;">
@@ -623,8 +632,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <!-- Header Section -->
                             <div class="text-center position-relative mb-5">
                                 <div class="header-gradient"></div>
-                                <h2 class="display-4 fw-bold text-gradient mb-3">Absensi Hari Ini</h2>
-                                <p class="text-muted fs-5 mb-0">Masukkan kode unik Anda untuk melakukan absensi</p>
+                                <h2 class="display-4 fw-bold text-gradient mb-3">Presensi Hari Ini</h2>
+                                <p class="text-muted fs-5 mb-0">Masukkan kode unik Anda untuk melakukan presensi</p>
                             </div>
 
                             <!-- Time and Date Section -->
@@ -694,7 +703,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             </div>
                                         </div>
                                         <button type="submit" class="submit-button">
-                                            <span class="button-content">Submit Absensi</span>
+                                            <span class="button-content">Submit Presensi</span>
                                             <div class="button-overlay"></div>
                                         </button>
                                     </form>

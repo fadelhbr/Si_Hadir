@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'app/auth/auth.php';
+require_once '../auth/auth.php';
 
 if (
     !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'karyawan' || 
@@ -10,7 +10,7 @@ if (
 ) {
     echo "<script>
         window.onbeforeunload = null;
-        window.location.href = 'login.php';
+        window.location.href = '../../login.php';
     </script>";
     exit;
 }
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode([
             'success' => true,
             'message' => 'Password berhasil direset. Silakan login kembali.',
-            'redirect' => 'login.php'
+            'redirect' => '../../login.php'
         ]);
         exit;
 
@@ -100,7 +100,7 @@ function handleFormResponse(response) {
 // Modify onbeforeunload
 window.onbeforeunload = function() {
     if (!isRedirecting) {
-        fetch('destroy_session.php', {
+        fetch('../handler/destroy_session_handler.php', {
             method: 'POST',
             credentials: 'same-origin'
         });

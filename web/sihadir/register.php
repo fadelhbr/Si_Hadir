@@ -109,7 +109,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt_otp = $pdo->prepare($sql_otp);
             $stmt_otp->bindParam(":otp_code", $default_otp, PDO::PARAM_STR);
             $stmt_otp->execute();
-            
+
             // Get the auto-increment ID from otp_code table
             $id_otp = $pdo->lastInsertId();
 
@@ -121,7 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     VALUES (:id, :username, :password, :nama_lengkap, :email, :role, :no_telp, :jenis_kelamin, :id_otp)";
 
             $stmt = $pdo->prepare($sql);
-            
+
             // Hash the password
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
@@ -138,10 +138,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             // Execute the statement
             $stmt->execute();
-            
+
             // Commit transaction
             $pdo->commit();
-            
+
             // Destroy session
             session_destroy();
 
@@ -345,7 +345,7 @@ unset($pdo);
 <body>
     <div class="register-container">
         <h1 class="register-title">Si Hadir</h1>
-        <p class="register-subtitle">Buat akun untuk mulai menggunakan aplikasi</p>
+        <p class="register-subtitle">Buat akun owner untuk mulai menggunakan aplikasi</p>
 
         <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
             <div class="input-group <?php echo !empty($nama_lengkap_err) ? 'error' : ''; ?>">
