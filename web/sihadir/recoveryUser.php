@@ -2,85 +2,65 @@
 session_start();
 require_once 'app/auth/auth.php';
 
-// Check if user is logged in and has recovery access
-if (!isset($_SESSION['recovery']) || !isset($_SESSION['user_id']) || $_SESSION['recovery'] !== true) {
-    header('Location: login.php');
+if (
+    !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'karyawan' || 
+    !isset($_SESSION['reset_email']) || !isset($_SESSION['user_id']) || 
+    !isset($_SESSION['otp_verified']) || $_SESSION['otp_verified'] !== true || 
+    !isset($_SESSION['username']) // Validasi username
+) {
+    echo "<script>
+        window.onbeforeunload = null;
+        window.location.href = 'login.php';
+    </script>";
     exit;
 }
 
+$username = htmlspecialchars($_SESSION['username']);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
     $userId = $_SESSION['user_id'];
 
     try {
-        // Start transaction
         $pdo->beginTransaction();
 
-        // Check if user exists and is an owner
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ? AND role = 'owner'");
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ? AND role = 'karyawan'");
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
 
         if (!$user) {
-            throw new Exception('User tidak ditemukan atau bukan owner');
+            throw new Exception('User tidak ditemukan atau bukan karyawan');
         }
 
-        if ($action === 'reset_password') {
-            $newPassword = $_POST['new_password'] ?? '';
-            $confirmPassword = $_POST['confirm_password'] ?? '';
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
 
-            // Validate passwords
-            if (empty($newPassword) || empty($confirmPassword)) {
-                throw new Exception('Semua field harus diisi');
-            }
-
-            if ($newPassword !== $confirmPassword) {
-                throw new Exception('Password tidak cocok');
-            }
-
-            if (strlen($newPassword) < 8) {
-                throw new Exception('Password minimal 8 karakter');
-            }
-
-            // Update password in users table
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-            $updateStmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
-            $updateSuccess = $updateStmt->execute([$hashedPassword, $userId]);
-
-            // Delete from log_akses
-            $deleteStmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = ?");
-            $deleteSuccess = $deleteStmt->execute([$userId]);
-
-            if (!$updateSuccess) {
-                throw new Exception('Gagal mengupdate password');
-            }
-
-            $message = 'Password berhasil direset. Silakan login kembali.';
-
-        } elseif ($action === 'reset_devices') {
-            // Delete from log_akses
-            $deleteStmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = ?");
-            $deleteSuccess = $deleteStmt->execute([$userId]);
-
-            if (!$deleteSuccess) {
-                throw new Exception('Gagal mereset perangkat');
-            }
-
-            $message = 'Semua perangkat berhasil direset. Silakan login kembali.';
-        } else {
-            throw new Exception('Aksi tidak valid');
+        if (empty($newPassword) || empty($confirmPassword)) {
+            throw new Exception('Semua field harus diisi');
         }
 
-        // Commit transaction
+        if ($newPassword !== $confirmPassword) {
+            throw new Exception('Password tidak cocok');
+        }
+
+        if (strlen($newPassword) < 8) {
+            throw new Exception('Password minimal 8 karakter');
+        }
+
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        $updateStmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+        $updateSuccess = $updateStmt->execute([$hashedPassword, $userId]);
+
+        if (!$updateSuccess) {
+            throw new Exception('Gagal mengupdate password');
+        }
+
         $pdo->commit();
-
-        // Destroy session after successful operation
         session_destroy();
 
         echo json_encode([
             'success' => true,
-            'redirect' => 'login.php',
-            'message' => $message
+            'message' => 'Password berhasil direset. Silakan login kembali.',
+            'redirect' => 'login.php'
         ]);
         exit;
 
@@ -92,10 +72,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'success' => false,
             'message' => $e->getMessage()
         ]);
-        exit;
     }
 }
 ?>
+
+<script>
+let isRedirecting = false;
+
+// Fungsi untuk redirect yang aman
+function safeRedirect(url) {
+    isRedirecting = true;
+    window.onbeforeunload = null;
+    window.location.href = url;
+}
+
+// Handle response dari form submit
+function handleFormResponse(response) {
+    if (response.success && response.redirect) {
+        safeRedirect(response.redirect);
+    }
+    // Handle pesan error jika ada
+    if (response.message) {
+        alert(response.message);
+    }
+}
+
+// Modify onbeforeunload
+window.onbeforeunload = function() {
+    if (!isRedirecting) {
+        fetch('destroy_session.php', {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+    }
+};
+</script>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -276,32 +288,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container">
         <header class="header">
-            <h1 class="title">Password Recovery</h1>
+            <h1 class="title">Halo, <?= $username ?>!</h1>
             <p class="subtitle">
-                Masukkan password yang baru dan konfirmasi untuk mereset password.
+                Ini adalah menu recovery password Anda. Masukkan password baru dan konfirmasi untuk melanjutkan.
             </p>
         </header>
 
         <div id="alert" class="alert"></div>
 
         <form id="recoveryForm" method="POST" class="form">
-            <input type="hidden" name="action" id="actionInput" value="reset_password">
             <div class="form-group">
                 <label for="new_password" class="label">Password Baru</label>
                 <input type="password" name="new_password" id="new_password" class="input" required minlength="8">
             </div>
             <div class="form-group">
                 <label for="confirm_password" class="label">Konfirmasi Password</label>
-                <input type="password" name="confirm_password" id="confirm_password" class="input" required
-                    minlength="8">
+                <input type="password" name="confirm_password" id="confirm_password" class="input" required minlength="8">
             </div>
             <button type="submit" id="submitBtn" class="btn">
                 <i class="fas fa-lock"></i>
                 <span>Reset Password</span>
-            </button>
-            <button type="button" id="resetDevicesBtn" class="btn btn-secondary">
-                <i class="fas fa-devices"></i>
-                <span>Reset Semua Perangkat</span>
             </button>
         </form>
     </div>
@@ -309,49 +315,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         document.getElementById('recoveryForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            performAction('reset_password');
-        });
 
-        document.getElementById('resetDevicesBtn').addEventListener('click', function (e) {
-            performAction('reset_devices');
-        });
-
-        function performAction(action) {
             const form = document.getElementById('recoveryForm');
             const submitBtn = document.getElementById('submitBtn');
-            const resetDevicesBtn = document.getElementById('resetDevicesBtn');
-            const actionInput = document.getElementById('actionInput');
             const alert = document.getElementById('alert');
 
-            // Reset validation for devices reset
-            if (action === 'reset_devices') {
-                actionInput.value = 'reset_devices';
-                submitBtn.disabled = true;
-                resetDevicesBtn.disabled = true;
-                resetDevicesBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Processing...';
-            } else {
-                // Password reset validation
-                const newPassword = document.getElementById('new_password').value;
-                const confirmPassword = document.getElementById('confirm_password').value;
+            const newPassword = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
 
-                if (newPassword.length < 8) {
-                    alert.textContent = 'Password minimal 8 karakter';
-                    alert.style.display = 'block';
-                    alert.className = 'alert alert-error';
-                    return;
-                }
-
-                if (newPassword !== confirmPassword) {
-                    alert.textContent = 'Password tidak cocok';
-                    alert.style.display = 'block';
-                    alert.className = 'alert alert-error';
-                    return;
-                }
-
-                actionInput.value = 'reset_password';
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Processing...';
+            if (newPassword.length < 8) {
+                alert.textContent = 'Password minimal 8 karakter';
+                alert.style.display = 'block';
+                alert.className = 'alert alert-error';
+                return;
             }
+
+            if (newPassword !== confirmPassword) {
+                alert.textContent = 'Password tidak cocok';
+                alert.style.display = 'block';
+                alert.className = 'alert alert-error';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Processing...';
 
             // Create FormData object
             const formData = new FormData(form);
@@ -368,16 +355,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     alert.className = 'alert ' + (data.success ? 'alert-success' : 'alert-error');
 
                     if (data.success) {
-                        // Redirect to login page after successful reset
                         setTimeout(() => {
                             window.location.href = data.redirect;
                         }, 2000);
                     } else {
-                        // Re-enable buttons
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = '<i class="fas fa-lock"></i> <span>Reset Password</span>';
-                        resetDevicesBtn.disabled = false;
-                        resetDevicesBtn.innerHTML = '<i class="fas fa-devices"></i> <span>Reset Semua Perangkat</span>';
                     }
                 })
                 .catch(error => {
@@ -386,13 +369,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     alert.style.display = 'block';
                     alert.className = 'alert alert-error';
 
-                    // Re-enable buttons
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-lock"></i> <span>Reset Password</span>';
-                    resetDevicesBtn.disabled = false;
-                    resetDevicesBtn.innerHTML = '<i class="fas fa-devices"></i> <span>Reset Semua Perangkat</span>';
                 });
-        }
+        });
     </script>
 </body>
 

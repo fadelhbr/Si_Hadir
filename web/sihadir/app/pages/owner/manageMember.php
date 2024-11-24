@@ -52,12 +52,13 @@ $jenis_kelamin_options = [
 // Get users with their division names (excluding owner role)
 $stmt = $pdo->prepare("
     SELECT DISTINCT u.*, p.divisi_id, p.hari_libur, d.nama_divisi,
-    js.shift_id, s.nama_shift
+    js.shift_id, s.nama_shift, o.otp_code
     FROM users u 
     LEFT JOIN pegawai p ON u.id = p.user_id 
     LEFT JOIN divisi d ON p.divisi_id = d.id
     LEFT JOIN jadwal_shift js ON p.id = js.pegawai_id
     LEFT JOIN shift s ON js.shift_id = s.id
+    LEFT JOIN otp_code o ON u.id_otp = o.id
     WHERE u.role != 'owner'
     AND (js.tanggal = CURRENT_DATE OR js.tanggal IS NULL)
 ");
@@ -97,10 +98,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             throw new Exception("Nomor telepon sudah terdaftar");
         }
 
-        // Insert into users table
+        // First, insert into otp_code table
+        $stmt = $pdo->prepare("INSERT INTO otp_code (otp_code) VALUES ('000000')");
+        $stmt->execute();
+        $otpId = $pdo->lastInsertId();
+
+        // Insert into users table with id_otp
         $stmt = $pdo->prepare("
-            INSERT INTO users (nama_lengkap, email, username, jenis_kelamin, password, no_telp, role)
-            VALUES (:nama_lengkap, :email, :username, :jenis_kelamin, :password, :no_telp, 'karyawan')
+            INSERT INTO users (nama_lengkap, email, username, jenis_kelamin, password, no_telp, role, id_otp)
+            VALUES (:nama_lengkap, :email, :username, :jenis_kelamin, :password, :no_telp, 'karyawan', :id_otp)
         ");
 
         $stmt->execute([
@@ -109,7 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             'username' => $_POST['username'],
             'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
             'no_telp' => $_POST['no_telp'],
-            'jenis_kelamin' => $_POST['jenis_kelamin']
+            'jenis_kelamin' => $_POST['jenis_kelamin'],
+            'id_otp' => $otpId
         ]);
 
         $userId = $pdo->lastInsertId();
@@ -361,6 +368,11 @@ if (isset($_POST['delete_user'])) {
         // Finally delete from users
         $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
         $stmt->execute(['user_id' => $_POST['user_id']]);
+
+        if ($otpId) {
+            $stmt = $pdo->prepare("DELETE FROM otp_code WHERE id = :otp_id");
+            $stmt->execute(['otp_id' => $otpId]);
+        }
 
         $pdo->commit();
         $_SESSION['alert'] = [

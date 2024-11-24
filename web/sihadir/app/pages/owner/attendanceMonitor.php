@@ -23,101 +23,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
     exit;
 }
 
-function resetAttendanceAndIzin($pdo, $employeeId)
-{
-    try {
-        // Start transaction to ensure atomic operations
-        $pdo->beginTransaction();
-
-        // Delete from izin (leave) table for the given employee on the current date
-        $deleteIzinQuery = "DELETE FROM izin WHERE pegawai_id = :pegawai_id AND tanggal = CURRENT_DATE";
-        $stmt = $pdo->prepare($deleteIzinQuery);
-        $stmt->execute(['pegawai_id' => $employeeId]);
-
-        // Delete from absensi (attendance) table for the given employee on the current date
-        $deleteAbsensiQuery = "DELETE FROM absensi WHERE pegawai_id = :pegawai_id AND DATE(tanggal) = CURRENT_DATE";
-        $stmt = $pdo->prepare($deleteAbsensiQuery);
-        $stmt->execute(['pegawai_id' => $employeeId]);
-
-        // Commit the transaction
-        $pdo->commit();
-
-        return ['success' => true, 'message' => 'Entry berhasil direset'];
-    } catch (PDOException $e) {
-        // Rollback the transaction on error
-        $pdo->rollBack();
-        error_log("Database error in resetAttendanceAndIzin: " . $e->getMessage());
-        return ['success' => false, 'message' => 'Terjadi kesalahan saat mereset entry'];
-    }
-}
-
-// If the reset action is triggered via POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resetEmployeeId'])) {
-    $response = resetAttendanceAndIzin($pdo, $_POST['resetEmployeeId']);
-    echo json_encode($response);
-    exit;
-}
-
-function processEmergencyLeave($pdo)
-{
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['employeeId'])) {
-        try {
-            // Check if employee already has leave request for today
-            $checkQuery = "SELECT id FROM izin WHERE pegawai_id = :pegawai_id AND tanggal = CURRENT_DATE";
-            $stmt = $pdo->prepare($checkQuery);
-            $stmt->execute(['pegawai_id' => $_POST['employeeId']]);
-            
-            if ($stmt->rowCount() > 0) {
-                echo json_encode([
-                    'success' => false, 
-                    'message' => 'Izin mendadak gagal, dikarenakan ada izin yang bersamaan hari ini'
-                ]);
-                exit;
-            }
-
-            // Start transaction
-            $pdo->beginTransaction();
-
-            // Insert into izin table
-            $insertIzinQuery = "INSERT INTO izin (pegawai_id, tanggal, jenis_izin, keterangan, status) 
-                               VALUES (:pegawai_id, CURRENT_DATE, :jenis_izin, :keterangan, 'disetujui')";
-            
-            $stmt = $pdo->prepare($insertIzinQuery);
-            $stmt->execute([
-                'pegawai_id' => $_POST['employeeId'],
-                'jenis_izin' => $_POST['leaveType'],
-                'keterangan' => $_POST['description']
-            ]);
-
-            // Update absensi table
-            $updateAbsensiQuery = "UPDATE absensi 
-                                  SET status_kehadiran = 'izin', 
-                                      keterangan = :keterangan 
-                                  WHERE pegawai_id = :pegawai_id 
-                                  AND DATE(tanggal) = CURRENT_DATE";
-            
-            $stmt = $pdo->prepare($updateAbsensiQuery);
-            $stmt->execute([
-                'pegawai_id' => $_POST['employeeId'],
-                'keterangan' => $_POST['description']
-            ]);
-
-            // Commit transaction
-            $pdo->commit();
-            
-            echo json_encode(['success' => true, 'message' => 'Izin mendadak berhasil diproses']);
-
-        } catch (PDOException $e) {
-            // Rollback transaction on error
-            $pdo->rollBack();
-            error_log("Database error in process_emergency_leave: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Database error occurred']);
-        }
-    }
-}
-
-processEmergencyLeave($pdo);
-
 function getEarliestAttendanceDate($pdo)
 {
     try {
@@ -266,7 +171,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Si Hadir - Monitor Absensi</title>
+    <title>Si Hadir - Monitor Presensi</title>
     <!-- Favicon-->
     <link rel="icon" type="image/x-icon" href="../../../assets/icon/favicon.ico" />
     <!-- Core theme CSS (includes Bootstrap)-->
@@ -326,31 +231,6 @@ try {
                 position: absolute;
             }
         }
-
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid transparent;
-            border-radius: 4px;
-        }
-
-        .alert-success {
-            color: #0f5132;
-            background-color: #d1e7dd;
-            border-color: #badbcc;
-        }
-
-        .alert-danger {
-            color: #842029;
-            background-color: #f8d7da;
-            border-color: #f5c2c7;
-        }
-
-        .fade-out {
-            opacity: 0;
-            transition: opacity 2s;
-        }
-        
     </style>
 
 </head>
@@ -377,7 +257,7 @@ try {
                         <path
                             d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z" />
                     </svg>
-                    Monitor Absensi
+                    Monitor Presensi
                 </a>
                 <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0"
                     href="schedule.php">
@@ -438,7 +318,9 @@ try {
             </nav>
             <!-- Page content -->
             <div class="container-fluid p-4">
-                <h1 class="text-3xl font-semibold mb-4">Monitor Absensi</h1>
+                <h1 class="text-3xl font-semibold mb-4">Monitor Presensi</h1>
+                <!-- Alert Messages Container -->
+                <div id="alertContainer" class="fixed top-4 right-4 z-50"></div>
                 <!-- Search and filter form -->
                 <form class="flex items-center justify-between mb-4" method="GET">
                     <div class="flex space-x-2">
@@ -460,9 +342,12 @@ try {
                         placeholder="Cari nama/email/kode staff" value="<?php echo htmlspecialchars($searchQuery); ?>">
                 </form>
 
+                <!-- Alert Messages Container -->
+                <div id="alertContainer" class="fixed top-4 right-4 z-50"></div>
+
                 <!-- Status cards -->
                 <div class="bg-white shadow rounded-lg p-4 mb-4">
-                    <h2 class="text-lg font-semibold mb-4">Status Kehadiran Staff Hari Ini (<?php echo $displayDate; ?>)
+                    <h2 class="text-lg font-semibold mb-4">Status Presensi Staff Hari Ini (<?php echo $displayDate; ?>)
                     </h2>
                     <div class="grid grid-cols-6 gap-6 text-center">
                         <div class="status-card bg-green-50 p-4 rounded-lg">
@@ -493,9 +378,6 @@ try {
                         </div>
                     </div>
                 </div>
-
-                <!-- Alert Messages Container -->
-                <div id="alertContainer"></div>
 
                 <!-- Attendance table -->
                 <div class="bg-white shadow rounded-lg p-4 mb-4">
@@ -586,15 +468,47 @@ try {
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <?php echo $record['waktu_keluar'] ? date('H:i', strtotime($record['waktu_keluar'])) : '-'; ?>
                                     </td>
+                                    <?php
+                                    // Tambahkan debug untuk memastikan
+                                    $today = date('Y-m-d');
+                                    $isToday = $selectedDate === $today;
+
+                                    // Debug logging
+                                    error_log("Selected Date: " . $selectedDate);
+                                    error_log("Today's Date: " . $today);
+                                    error_log("Is Today: " . ($isToday ? 'Yes' : 'No'));
+                                    ?>
+
+                                    <!-- Di dalam loop tabel, ubah bagian tombol menjadi: -->
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex space-x-2 justify-center">
-                                    <button type="button" class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm transition-all duration-300 hover:bg-red-200" data-bs-toggle="modal" data-bs-target="#emergencyLeaveModal">    
-                                        Izin mendadak
-                                    </button>
-                                    <button type="button" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm transition-all duration-300 hover:bg-blue-200" data-bs-toggle="modal" data-bs-target="#resetEntryModal">
-                                        Reset Entry
-                                    </button>
-                                    </div>
+                                        <div class="flex space-x-2 justify-center">
+                                            <button onclick="showEmergencyLeaveModal(<?php echo $record['pegawai_id']; ?>)"
+                                                class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm transition-all duration-300 hover:bg-red-200 
+            <?php
+            echo (!$isToday || $record['status_kehadiran'] !== 'alpha')
+                ? 'opacity-50 cursor-not-allowed'
+                : '';
+            ?>" <?php
+            echo (!$isToday || $record['status_kehadiran'] !== 'alpha')
+                ? 'disabled'
+                : '';
+            ?>>
+                Izin darurat
+                                            </button>
+                                            <button onclick="showResetEntryModal(<?php echo $record['pegawai_id']; ?>)"
+                                                class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm transition-all duration-300 hover:bg-blue-200 
+            <?php
+            echo !$isToday
+                ? 'opacity-50 cursor-not-allowed'
+                : '';
+            ?>" <?php
+            echo !$isToday
+                ? 'disabled'
+                : '';
+            ?>>
+                  Reset Entry
+                                            </button>
+                                        </div>
                                     </td>
                                     </script>
                                 </tr>
@@ -603,12 +517,14 @@ try {
                     </table>
                 </div>
                 <!-- Emergency Leave Modal -->
-                <div class="modal fade" id="emergencyLeaveModal" tabindex="-1" aria-labelledby="emergencyLeaveModalLabel" aria-hidden="true">
+                <div class="modal fade" id="emergencyLeaveModal" tabindex="-1"
+                    aria-labelledby="emergencyLeaveModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-md">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="emergencyLeaveModalLabel">Pengajuan Izin Mendadak</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <h5 class="modal-title" id="emergencyLeaveModalLabel">Pengajuan Izin Darurat</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
                                 <form id="emergencyLeaveForm" method="POST">
@@ -630,10 +546,11 @@ try {
                                         <label class="form-label">Keterangan</label>
                                         <textarea name="description" class="form-control" rows="4" required></textarea>
                                     </div>
-                                    
+
                                     <!-- Modal Footer -->
                                     <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">Batal</button>
                                         <button type="submit" class="btn btn-primary">Simpan</button>
                                     </div>
                                 </form>
@@ -642,31 +559,40 @@ try {
                     </div>
                 </div>
 
-                    <!-- Reset Entry Modal -->
-                    <div class="modal fade" id="resetEntryModal" tabindex="-1" aria-labelledby="resetEntryModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-md"> <!-- Mengurangi ukuran modal menjadi medium -->
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="resetEntryModalLabel">Reset Entry Absensi</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form id="resetEntryForm" method="POST">
-                                        <input type="hidden" id="resetEmployeeId" name="employeeId">
-                                        <input type="hidden" name="selectedDate" value="<?php echo $selectedDate; ?>">
-                                        
-                                        <p class="mb-4 text-sm text-gray-600">Apakah Anda yakin ingin mereset entry absensi ini? Tindakan ini akan menghapus data izin dan absensi untuk hari ini.</p>
-                                        
-                                        <!-- Modal Footer -->
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                                            <button type="submit" class="btn btn-danger btn-sm">Reset</button>
-                                        </div>
-                                    </form>
-                                </div>
+                <!-- Reset Entry Modal -->
+                <div class="modal fade" id="resetEntryModal" tabindex="-1" aria-labelledby="resetEntryModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-md"> <!-- Mengurangi ukuran modal menjadi medium -->
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="resetEntryModalLabel">Reset Entry Presensi</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="resetEntryForm" method="POST">
+                                    <input type="hidden" id="resetEmployeeId" name="employeeId">
+                                    <input type="hidden" name="selectedDate"
+                                        value="<?php echo htmlspecialchars($selectedDate); ?>">
+
+                                    <p class="mb-4 text-sm text-gray-600">
+                                        Apakah Anda yakin ingin mereset entry presensi ini? Tindakan ini akan menghapus
+                                        data izin dan presensi untuk hari ini.
+                                    </p>
+                                </form>
+                            </div>
+                            <!-- Modal Footer -->
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm"
+                                    data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" form="resetEntryForm" class="btn btn-danger btn-sm">Reset</button>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap core JS-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -742,17 +668,17 @@ try {
 
         function showAlert(message, type) {
             const alertDiv = document.createElement('div');
-            alertDiv.classList.add('alert', 
-                type === 'success' ? 'alert-success' : 'alert-danger', 
-                'alert-dismissible', 
-                'fade', 
+            alertDiv.classList.add('alert',
+                type === 'success' ? 'alert-success' : 'alert-danger',
+                'alert-dismissible',
+                'fade',
                 'show'
             );
             alertDiv.innerHTML = `
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
-            
+
             document.getElementById('alertContainer').appendChild(alertDiv);
 
             // Automatically remove the alert after a few seconds
@@ -762,87 +688,142 @@ try {
             }, 5000);
         }
 
-function showEmergencyLeaveModal(employeeId) {
-    const modal = document.getElementById('emergencyLeaveModal');
-    document.getElementById('employeeId').value = employeeId;
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
+        function showEmergencyLeaveModal(employeeId) {
+            // Reset form sebelum menampilkan modal
+            const form = document.getElementById('emergencyLeaveForm');
+            form.reset();
 
-function closeEmergencyLeaveModal() {
-    const modal = document.getElementById('emergencyLeaveModal');
-    modal.classList.remove('flex');
-    modal.classList.add('hidden');
-}
+            // Set employee ID dan tampilkan modal
+            document.getElementById('employeeId').value = employeeId;
+            const modal = new bootstrap.Modal(document.getElementById('emergencyLeaveModal'));
+            modal.show();
+        }
 
-function showResetEntryModal(employeeId) {
-    const modal = document.getElementById('resetEntryModal');
-    document.getElementById('resetEmployeeId').value = employeeId;
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
+        function closeEmergencyLeaveModal() {
+            const modal = document.getElementById('emergencyLeaveModal');
+            modal.classList.add('scale-0', 'opacity-0');
+            modal.querySelector('.bg-white').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
 
-function closeResetEntryModal() {
-    const modal = document.getElementById('resetEntryModal');
-    modal.classList.remove('flex');
-    modal.classList.add('hidden');
-}
+        function showResetEntryModal(employeeId) {
+            // Reset form sebelum menampilkan modal
+            const form = document.getElementById('resetEntryForm');
+            form.reset();
 
-document.getElementById('emergencyLeaveForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    const formData = new FormData(this);
+            // Set employee ID dan tampilkan modal
+            document.getElementById('resetEmployeeId').value = employeeId;
+            const modal = new bootstrap.Modal(document.getElementById('resetEntryModal'));
+            modal.show();
+        }
 
-    fetch('../../controller/emergency_leave_handler.php', {
-        method: 'POST',
-        body: formData
-    })
-        .then(response => response.json())
-        .then(data => {
-            // Use Bootstrap's modal hide method
-            const modal = bootstrap.Modal.getInstance(document.getElementById('emergencyLeaveModal'));
-            modal.hide();
+        function closeResetEntryModal() {
+            const modal = document.getElementById('resetEntryModal');
+            modal.classList.add('scale-0', 'opacity-0');
+            modal.querySelector('.bg-white').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
 
-            if (data.success) {
-                showAlert(data.message, 'success');
-            } else {
-                showAlert(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            const modal = bootstrap.Modal.getInstance(document.getElementById('emergencyLeaveModal'));
-            modal.hide();
-            showAlert('Terjadi kesalahan saat memproses izin mendadak', 'error');
-        });
-});
+        document.addEventListener('DOMContentLoaded', function () {
+            const emergencyLeaveForm = document.getElementById('emergencyLeaveForm');
+            const resetEntryForm = document.getElementById('resetEntryForm');
+            const searchInput = document.getElementById('searchInput');
+            const dateInput = document.querySelector('input[name="date"]');
+            const shiftSelect = document.querySelector('select[name="shift"]');
 
-        document.getElementById('resetEntryForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const formData = new FormData(this);
+            function clearForm(form) {
+                form.reset();
+                const textareas = form.querySelectorAll('textarea');
+                const selects = form.querySelectorAll('select');
 
-            fetch('../../controller/attendanceMonitor.php', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // Use Bootstrap's modal hide method
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('resetEntryModal'));
-                    modal.hide();
-
-                    if (data.success) {
-                        showAlert(data.message, 'success');
-                    } else {
-                        showAlert(data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('resetEntryModal'));
-                    modal.hide();
-                    showAlert('Terjadi kesalahan saat mereset entry', 'error');
+                textareas.forEach(textarea => {
+                    textarea.value = '';
                 });
+
+                selects.forEach(select => {
+                    select.selectedIndex = 0;
+                });
+            }
+
+            // Handler untuk form izin mendadak
+            emergencyLeaveForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const selectedDate = dateInput.value; // Mengambil tanggal yang dipilih
+                formData.append('selectedDate', selectedDate); // Menambahkan tanggal ke FormData
+
+                fetch('../../handler/emergency_leave_handler.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('emergencyLeaveModal'));
+                        modal.hide();
+                        clearForm(emergencyLeaveForm); // Clear form setelah submit
+
+                        if (data.success) {
+                            showAlert(data.message, 'success');
+                            // Refresh halaman setelah sukses
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            showAlert(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('emergencyLeaveModal'));
+                        modal.hide();
+                        clearForm(emergencyLeaveForm); // Clear form meskipun error
+                        showAlert('Terjadi kesalahan saat memproses izin mendadak', 'error');
+                    });
+            });
+
+            // Handler untuk form reset entry
+            resetEntryForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const selectedDate = dateInput.value; // Mengambil tanggal yang dipilih
+                formData.append('selectedDate', selectedDate); // Menambahkan tanggal ke FormData
+
+                fetch('../../handler/reset_entry_handler.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('resetEntryModal'));
+                        modal.hide();
+                        clearForm(resetEntryForm); // Clear form setelah submit
+
+                        if (data.success) {
+                            showAlert(data.message, 'success');
+                            // Refresh halaman setelah sukses
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            showAlert(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('resetEntryModal'));
+                        modal.hide();
+                        clearForm(resetEntryForm); // Clear form meskipun error
+                        showAlert('Terjadi kesalahan saat mereset entry', 'error');
+                    });
+            });
         });
+
 
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebarWrapper = document.getElementById('sidebar-wrapper');
