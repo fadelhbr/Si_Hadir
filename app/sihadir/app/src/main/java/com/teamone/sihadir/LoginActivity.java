@@ -1,32 +1,45 @@
 package com.teamone.sihadir;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.PreferenceManager;
 
 import com.google.gson.Gson;
-import com.teamone.sihadir.model.ApiResponse; // Import model ApiResponse
-
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.*;
 import java.io.IOException;
+import org.json.JSONObject;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
 
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
+    private static final String API_URL = "http://10.10.183.51/sihadir/app/api/api_login.php";
+    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+
+    // SharedPreferences keys
+    private static final String PREF_IS_LOGGED_IN = "is_logged_in";
+    private static final String PREF_USER_ID = "user_id";
+    private static final String PREF_USERNAME = "username";
+    private static final String PREF_USER_ROLE = "user_role";
+    private static final String PREF_NAMA_LENGKAP = "nama_lengkap";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Periksa apakah sudah login
+        if (isLoggedIn()) {
+            navigateToMainActivity();
+            return;
+        }
+
         setContentView(R.layout.activity_login);
 
         // Inisialisasi komponen
@@ -34,80 +47,130 @@ public class LoginActivity extends AppCompatActivity {
         passwordEditText = findViewById(R.id.txtPassword);
         btnLogin = findViewById(R.id.btnLogin);
 
-        // Ketika tombol login diklik
         btnLogin.setOnClickListener(v -> login());
     }
 
-    // Fungsi login
-    private void login() {
-        String username = usernameEditText.getText().toString();
-        String password = passwordEditText.getText().toString();
+    private boolean isLoggedIn() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        return preferences.getBoolean(PREF_IS_LOGGED_IN, false);
+    }
 
-        // Validasi input kosong
+    private void saveLoginInfo(int userId, String username, String userRole) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = preferences.edit();
+
+        // Capitalize username for display
+        String displayName = username.substring(0, 1).toUpperCase() + username.substring(1).toLowerCase();
+
+        editor.putBoolean(PREF_IS_LOGGED_IN, true);
+        editor.putInt("user_id", userId); // Menggunakan key yang sama dengan AbsenFragment
+        editor.putString("username", username);
+        editor.putString("user_role", userRole);
+        editor.putString("nama_lengkap", displayName); // Key untuk nama yang akan ditampilkan
+        editor.apply();
+    }
+
+    private void navigateToMainActivity() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        intent.putExtra("user_id", preferences.getInt(PREF_USER_ID, -1));
+        intent.putExtra("username", preferences.getString(PREF_USERNAME, ""));
+        intent.putExtra("role", preferences.getString(PREF_USER_ROLE, ""));
+        startActivity(intent);
+        finish();
+    }
+
+    public static void logout (AppCompatActivity activity) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activity);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean(PREF_IS_LOGGED_IN, false);
+        editor.remove(PREF_USER_ID);
+        editor.remove(PREF_USERNAME);
+        editor.remove(PREF_USER_ROLE);
+        editor.remove(PREF_NAMA_LENGKAP);
+        editor.apply();
+
+        // Redirect ke LoginActivity
+        Intent intent = new Intent(activity, LoginActivity.class);
+        activity.startActivity(intent);
+        activity.finish();
+    }
+
+    private void login() {
+        String username = usernameEditText.getText().toString().trim();
+        String password = passwordEditText.getText().toString().trim();
+
         if (username.isEmpty() || password.isEmpty()) {
             Toast.makeText(LoginActivity.this, "Username dan Password harus diisi", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        // Membuat JSON request body
+        Map<String, String> requestMap = new HashMap<>();
+        requestMap.put("username", username);
+        requestMap.put("password", password);
+        String jsonBody = new Gson().toJson(requestMap);
+
         OkHttpClient client = new OkHttpClient();
+        RequestBody body = RequestBody.create(JSON, jsonBody);
 
-        // Membuat RequestBody dengan data username dan password
-        RequestBody formBody = new FormBody.Builder()
-                .add("username", username)
-                .add("password", password)
-                .build();
-
-        // Membuat request POST
         Request request = new Request.Builder()
-                .url("http://192.168.1.8/sihadir/app/api/api_login.php") // Ganti dengan URL API kamu
-                .post(formBody)
+                .url(API_URL)
+                .post(body)
+                .addHeader("Content-Type", "application/json")
                 .build();
 
-        // Mengirim request ke server
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                // Menampilkan pesan error jika terjadi kegagalan jaringan
                 runOnUiThread(() ->
-                        Toast.makeText(LoginActivity.this, "Network error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(LoginActivity.this,
+                                "Kesalahan jaringan: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show()
                 );
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    String jsonResponse = response.body().string(); // Mendapatkan string JSON dari respons
+                final String responseBody = response.body().string();
 
-                    // Parsing respons JSON menggunakan Gson
-                    Gson gson = new Gson();
-                    ApiResponse apiResponse = gson.fromJson(jsonResponse, ApiResponse.class);
-                    String nama_lengkap = apiResponse.getNama_lengkap(); // Ambil nama lengkap dari API respons
-                    String role = apiResponse.getRole();
+                runOnUiThread(() -> {
+                    try {
+                        JSONObject jsonResponse = new JSONObject(responseBody);
+                        boolean success = jsonResponse.getBoolean("success");
+                        String message = jsonResponse.getString("message");
 
-                    if (apiResponse.getStatus().equals("success")) {
-                        // Jika login berhasil, pindah ke MainActivity dan kirim nama
-                        runOnUiThread(() -> {
-                            Toast.makeText(LoginActivity.this, apiResponse.getMessage(), Toast.LENGTH_SHORT).show();
+                        if (success) {
+                            // Parsing user data dari respons
+                            JSONObject userObj = jsonResponse.getJSONObject("user");
+                            int userId = userObj.getInt("id");
+                            String userRole = userObj.getString("role");
+                            String responseUsername = userObj.getString("username");
 
-                            // Intent untuk pindah ke MainActivity
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                            intent.putExtra("nama_lengkap", nama_lengkap); // Mengirim nama lengkap ke MainActivity
-                            intent.putExtra("role", role);
-                            startActivity(intent);
-                            finish(); // Menutup LoginActivity
-                        });
-                    } else {
-                        // Jika login gagal, tampilkan pesan dari API
-                        runOnUiThread(() ->
-                                Toast.makeText(LoginActivity.this, apiResponse.getMessage(), Toast.LENGTH_SHORT).show()
-                        );
+                            // Simpan informasi login
+                            saveLoginInfo(userId, responseUsername, userRole);
+
+                            // Tampilkan pesan sukses
+                            Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
+
+                            // Pindah ke MainActivity
+                            navigateToMainActivity();
+                        } else {
+                            // Tampilkan pesan error dari server
+                            Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception e) {
+                        // Error parsing JSON
+                        Toast.makeText(LoginActivity.this,
+                                "Kesalahan memproses respons: " + e.toString(),
+                                Toast.LENGTH_LONG).show();
+
+                        // Log error untuk debugging
+                        e.printStackTrace();
+                        System.out.println("Response Body: " + responseBody);
                     }
-                } else {
-                    // Jika respons gagal, tampilkan pesan gagal login
-                    runOnUiThread(() ->
-                            Toast.makeText(LoginActivity.this, "Login failed!", Toast.LENGTH_SHORT).show()
-                    );
-                }
+                });
             }
         });
     }

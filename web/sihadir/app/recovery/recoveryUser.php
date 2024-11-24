@@ -1,20 +1,39 @@
 <?php
 session_start();
-require_once 'app/auth/auth.php';
+require_once '../auth/auth.php';
 
-// Check if user is logged in and has recovery access
-if (!isset($_SESSION['recovery']) || !isset($_SESSION['user_id']) || $_SESSION['recovery'] !== true) {
-    header('Location: login.php');
+if (
+    !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'karyawan' || 
+    !isset($_SESSION['reset_email']) || !isset($_SESSION['user_id']) || 
+    !isset($_SESSION['otp_verified']) || $_SESSION['otp_verified'] !== true || 
+    !isset($_SESSION['username']) // Validasi username
+) {
+    echo "<script>
+        window.onbeforeunload = null;
+        window.location.href = '../../login.php';
+    </script>";
     exit;
 }
 
+$username = htmlspecialchars($_SESSION['username']);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $newPassword = $_POST['new_password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
     $userId = $_SESSION['user_id'];
 
     try {
-        // Validate passwords
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ? AND role = 'karyawan'");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            throw new Exception('User tidak ditemukan atau bukan karyawan');
+        }
+
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+
         if (empty($newPassword) || empty($confirmPassword)) {
             throw new Exception('Semua field harus diisi');
         }
@@ -27,23 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Password minimal 8 karakter');
         }
 
-        // Start transaction
-        $pdo->beginTransaction();
-
-        // Check if user exists and is an owner
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ? AND role = 'owner'");
-        $stmt->execute([$userId]);
-        $user = $stmt->fetch();
-
-        if (!$user) {
-            throw new Exception('User tidak ditemukan atau bukan owner');
-        }
-
-        // Delete from log_akses
-        $deleteStmt = $pdo->prepare("DELETE FROM log_akses WHERE user_id = ?");
-        $deleteStmt->execute([$userId]);
-
-        // Update password in users table
         $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
         $updateStmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
         $updateSuccess = $updateStmt->execute([$hashedPassword, $userId]);
@@ -52,15 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Gagal mengupdate password');
         }
 
-        // Commit transaction
         $pdo->commit();
-
-        // Clear recovery session
         session_destroy();
 
         echo json_encode([
             'success' => true,
-            'message' => 'Password berhasil direset. Silakan login kembali.'
+            'message' => 'Password berhasil direset. Silakan login kembali.',
+            'redirect' => '../../login.php'
         ]);
         exit;
 
@@ -72,10 +72,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'success' => false,
             'message' => $e->getMessage()
         ]);
-        exit;
     }
 }
 ?>
+
+<script>
+let isRedirecting = false;
+
+// Fungsi untuk redirect yang aman
+function safeRedirect(url) {
+    isRedirecting = true;
+    window.onbeforeunload = null;
+    window.location.href = url;
+}
+
+// Handle response dari form submit
+function handleFormResponse(response) {
+    if (response.success && response.redirect) {
+        safeRedirect(response.redirect);
+    }
+    // Handle pesan error jika ada
+    if (response.message) {
+        alert(response.message);
+    }
+}
+
+// Modify onbeforeunload
+window.onbeforeunload = function() {
+    if (!isRedirecting) {
+        fetch('../handler/destroy_session_handler.php', {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+    }
+};
+</script>
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -238,15 +271,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 transform: rotate(360deg);
             }
         }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            margin-top: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
     </style>
 </head>
 
 <body>
     <div class="container">
         <header class="header">
-            <h1 class="title">Password Recovery</h1>
+            <h1 class="title">Halo, <?= $username ?>!</h1>
             <p class="subtitle">
-                Masukkan password yang baru dan konfirmasi untuk mereset password.
+                Ini adalah menu recovery password Anda. Masukkan password baru dan konfirmasi untuk melanjutkan.
             </p>
         </header>
 
@@ -259,8 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="form-group">
                 <label for="confirm_password" class="label">Konfirmasi Password</label>
-                <input type="password" name="confirm_password" id="confirm_password" class="input" required
-                    minlength="8">
+                <input type="password" name="confirm_password" id="confirm_password" class="input" required minlength="8">
             </div>
             <button type="submit" id="submitBtn" class="btn">
                 <i class="fas fa-lock"></i>
@@ -273,15 +316,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.getElementById('recoveryForm').addEventListener('submit', function (e) {
             e.preventDefault();
 
-            const form = this;
+            const form = document.getElementById('recoveryForm');
             const submitBtn = document.getElementById('submitBtn');
             const alert = document.getElementById('alert');
 
-            // Get password values
             const newPassword = document.getElementById('new_password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
 
-            // Client-side validation
             if (newPassword.length < 8) {
                 alert.textContent = 'Password minimal 8 karakter';
                 alert.style.display = 'block';
@@ -296,7 +337,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 return;
             }
 
-            // Disable button and show loading state
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Processing...';
 
@@ -315,14 +355,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     alert.className = 'alert ' + (data.success ? 'alert-success' : 'alert-error');
 
                     if (data.success) {
-                        // Reset form
-                        form.reset();
-                        // Redirect to login page after successful update
                         setTimeout(() => {
-                            window.location.href = 'login.php';
+                            window.location.href = data.redirect;
                         }, 2000);
                     } else {
-                        // Re-enable button if there's an error
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = '<i class="fas fa-lock"></i> <span>Reset Password</span>';
                     }
@@ -333,7 +369,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     alert.style.display = 'block';
                     alert.className = 'alert alert-error';
 
-                    // Re-enable button
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-lock"></i> <span>Reset Password</span>';
                 });

@@ -2,28 +2,23 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/home"
-        android:title="Home"
-        android:icon="@drawable/ic_beranda"/>
-
-    <item
-        android:id="@+id/shorts"
-        android:title="Shorts"
+        android:id="@+id/fr_absen"
+        android:title="Absen"
         android:icon="@drawable/ic_absen"/>
 
     <item
-        android:id="@+id/fab"
-        android:title=""
-        android:enabled="false"/>
+        android:id="@+id/fr_riwayat"
+        android:title="RIwayat"
+        android:icon="@drawable/ic_riwayat"/>
 
     <item
-        android:id="@+id/subscriptions"
-        android:title="Subscriptions"
-        android:icon="@drawable/ic_dashboard"/>
+        android:id="@+id/fr_perizinan"
+        android:title="Perizinan"
+        android:icon="@drawable/ic_perizinan"/>
 
     <item
-        android:id="@+id/library"
-        android:title="Library"
-        android:icon="@drawable/ic_member"/>
+        android:id="@+id/fr_logout"
+        android:title="Log Out"
+        android:icon="@drawable/ic_logout"/>
 
 </menu>

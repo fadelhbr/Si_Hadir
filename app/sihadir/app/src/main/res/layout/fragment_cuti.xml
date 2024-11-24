@@ -27,10 +27,10 @@
                 style="@style/TEXT"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
+                android:layout_gravity="center|left"
                 android:fontFamily="sans-serif-medium"
-                android:text="Cuti &amp; Perizinan"
-                android:textColor="#F2F2F6"
+                android:text="Permohonan izin dan cuti"
+                android:textColor="#36618D"
                 android:textSize="24sp"
                 android:textStyle="bold" />
 
@@ -61,7 +61,7 @@
                             style="@style/TEXT"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Sisa Cuti"
+                            android:text="Izin"
                             android:textColor="#5C6BC0"
                             android:textSize="14sp" />
 
@@ -96,7 +96,7 @@
                             style="@style/TEXT"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Cuti Terpakai"
+                            android:text="Cuti"
                             android:textColor="#66BB6A"
                             android:textSize="14sp" />
 
@@ -137,22 +137,22 @@
                 android:layout_marginBottom="12dp">
 
                 <TextView
+                    style="@style/TEXT"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Riwayat Cuti"
-                    style="@style/TEXT"
+                    android:text="Riwayat Izin"
+                    android:textColor="#1a237e"
                     android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="#1a237e"/>
+                    android:textStyle="bold" />
 
                 <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.MaterialComponents.Button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="+ Ajukan Cuti"
+                    android:text="+ Ajukan Izin"
                     android:textSize="12sp"
-                    style="@style/Widget.MaterialComponents.Button"
-                    app:cornerRadius="8dp"/>
+                    app:cornerRadius="8dp" />
             </LinearLayout>
 
             <androidx.cardview.widget.CardView
@@ -228,22 +228,22 @@
                 android:layout_marginBottom="12dp">
 
                 <TextView
+                    style="@style/TEXT"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Riwayat Izin"
-                    style="@style/TEXT"
+                    android:text="Riwayat Cuti"
+                    android:textColor="#1a237e"
                     android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="#1a237e"/>
+                    android:textStyle="bold" />
 
                 <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.MaterialComponents.Button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="+ Ajukan Izin"
+                    android:text="+ Ajukan Cuti"
                     android:textSize="12sp"
-                    style="@style/Widget.MaterialComponents.Button"
-                    app:cornerRadius="8dp"/>
+                    app:cornerRadius="8dp" />
             </LinearLayout>
 
             <androidx.cardview.widget.CardView
@@ -264,11 +264,11 @@
 
                         <TextView
                             style="@style/TableHeaderStyle"
-                            android:text="TANGGAL"/>
+                            android:text="TANGGAL MULAI" />
 
                         <TextView
                             style="@style/TableHeaderStyle"
-                            android:text="JENIS IZIN"/>
+                            android:text="TANGGAL SELESAI" />
 
                         <TextView
                             style="@style/TableHeaderStyle"

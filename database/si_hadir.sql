@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 14, 2024 at 09:12 PM
+-- Generation Time: Nov 20, 2024 at 04:04 PM
 -- Server version: 8.0.40-0ubuntu0.22.04.1
 -- PHP Version: 8.1.2-1ubuntu2.19
 
@@ -230,9 +230,9 @@ CREATE TABLE `absensi` (
   `jadwal_shift_id` int NOT NULL,
   `waktu_masuk` time DEFAULT NULL,
   `waktu_keluar` time DEFAULT NULL,
-  `kode_unik` char(6) COLLATE utf8mb4_bin NOT NULL,
-  `status_kehadiran` enum('hadir','terlambat','izin','alpha','cuti','pulang_dahulu','dalam_shift','tidak_absen_pulang','libur') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'alpha',
-  `keterangan` text COLLATE utf8mb4_bin,
+  `kode_unik` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `status_kehadiran` enum('hadir','terlambat','izin','alpha','cuti','pulang_dahulu','tidak_absen_pulang','libur') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'alpha',
+  `keterangan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
   `tanggal` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
@@ -248,8 +248,8 @@ CREATE TABLE `cuti` (
   `tanggal_mulai` date NOT NULL,
   `tanggal_selesai` date NOT NULL,
   `durasi_cuti` int DEFAULT NULL,
-  `keterangan` text COLLATE utf8mb4_bin,
-  `status` enum('pending','disetujui','ditolak') COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending',
+  `keterangan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `status` enum('pending','disetujui','ditolak') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
@@ -280,12 +280,12 @@ DELIMITER ;
 -- (See below for the actual view)
 --
 CREATE TABLE `cuti_disetujui` (
-`nama_staff` varchar(100)
+`durasi_cuti` int
+,`keterangan` text
+,`nama_staff` varchar(100)
+,`status` enum('pending','disetujui','ditolak')
 ,`tanggal_mulai` date
 ,`tanggal_selesai` date
-,`durasi_cuti` int
-,`keterangan` text
-,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -295,12 +295,12 @@ CREATE TABLE `cuti_disetujui` (
 -- (See below for the actual view)
 --
 CREATE TABLE `cuti_ditolak` (
-`nama_staff` varchar(100)
+`durasi_cuti` int
+,`keterangan` text
+,`nama_staff` varchar(100)
+,`status` enum('pending','disetujui','ditolak')
 ,`tanggal_mulai` date
 ,`tanggal_selesai` date
-,`durasi_cuti` int
-,`keterangan` text
-,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -310,12 +310,12 @@ CREATE TABLE `cuti_ditolak` (
 -- (See below for the actual view)
 --
 CREATE TABLE `cuti_view` (
-`nama_staff` varchar(100)
+`durasi_cuti` int
+,`keterangan` text
+,`nama_staff` varchar(100)
+,`status` enum('pending','disetujui','ditolak')
 ,`tanggal_mulai` date
 ,`tanggal_selesai` date
-,`durasi_cuti` int
-,`keterangan` text
-,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -326,7 +326,7 @@ CREATE TABLE `cuti_view` (
 
 CREATE TABLE `divisi` (
   `id` int NOT NULL,
-  `nama_divisi` varchar(50) COLLATE utf8mb4_bin NOT NULL,
+  `nama_divisi` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
@@ -363,9 +363,9 @@ CREATE TABLE `izin` (
   `id` int NOT NULL,
   `pegawai_id` int NOT NULL,
   `tanggal` date NOT NULL,
-  `jenis_izin` enum('keperluan_pribadi','dinas_luar') COLLATE utf8mb4_bin NOT NULL,
-  `keterangan` text COLLATE utf8mb4_bin,
-  `status` enum('pending','disetujui','ditolak') COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending',
+  `jenis_izin` enum('keperluan_pribadi','dinas_luar') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `keterangan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `status` enum('pending','disetujui','ditolak') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
@@ -390,11 +390,11 @@ DELIMITER ;
 -- (See below for the actual view)
 --
 CREATE TABLE `izin_disetujui` (
-`nama_lengkap` varchar(100)
-,`tanggal` date
-,`jenis_izin` enum('keperluan_pribadi','dinas_luar')
+`jenis_izin` enum('keperluan_pribadi','dinas_luar')
 ,`keterangan` text
+,`nama_lengkap` varchar(100)
 ,`status` enum('pending','disetujui','ditolak')
+,`tanggal` date
 );
 
 -- --------------------------------------------------------
@@ -404,11 +404,11 @@ CREATE TABLE `izin_disetujui` (
 -- (See below for the actual view)
 --
 CREATE TABLE `izin_ditolak` (
-`nama_lengkap` varchar(100)
-,`tanggal` date
-,`jenis_izin` enum('keperluan_pribadi','dinas_luar')
+`jenis_izin` enum('keperluan_pribadi','dinas_luar')
 ,`keterangan` text
+,`nama_lengkap` varchar(100)
 ,`status` enum('pending','disetujui','ditolak')
+,`tanggal` date
 );
 
 -- --------------------------------------------------------
@@ -422,7 +422,7 @@ CREATE TABLE `jadwal_shift` (
   `pegawai_id` int NOT NULL,
   `shift_id` int NOT NULL,
   `tanggal` date NOT NULL,
-  `status` enum('aktif','nonaktif') COLLATE utf8mb4_bin DEFAULT 'aktif'
+  `status` enum('aktif','nonaktif') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT 'aktif'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
@@ -448,11 +448,11 @@ CREATE TABLE `log_akses` (
   `id` int NOT NULL,
   `user_id` int NOT NULL,
   `waktu` datetime DEFAULT NULL,
-  `ip_address` varchar(45) COLLATE utf8mb4_bin NOT NULL,
-  `device_info` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL,
-  `status` enum('logout','login','first_registration') COLLATE utf8mb4_bin DEFAULT NULL,
-  `device_hash` varchar(64) COLLATE utf8mb4_bin DEFAULT NULL,
-  `device_details` text COLLATE utf8mb4_bin
+  `ip_address` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `device_info` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `status` enum('logout','login','first_registration') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `device_hash` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `device_details` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -465,8 +465,8 @@ CREATE TABLE `pegawai` (
   `id` int NOT NULL,
   `user_id` int NOT NULL,
   `divisi_id` int NOT NULL,
-  `status_aktif` enum('aktif','nonaktif') COLLATE utf8mb4_bin DEFAULT 'aktif',
-  `hari_libur` enum('senin','selasa','rabu','kamis','jumat','sabtu','minggu') COLLATE utf8mb4_bin NOT NULL,
+  `status_aktif` enum('aktif','nonaktif') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT 'aktif',
+  `hari_libur` enum('senin','selasa','rabu','kamis','jumat','sabtu','minggu') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
@@ -491,11 +491,11 @@ DELIMITER ;
 -- (See below for the actual view)
 --
 CREATE TABLE `perizinan_setuju_tolak` (
-`nama_lengkap` varchar(100)
-,`tanggal` date
-,`jenis_izin` enum('keperluan_pribadi','dinas_luar')
+`jenis_izin` enum('keperluan_pribadi','dinas_luar')
 ,`keterangan` text
+,`nama_lengkap` varchar(100)
 ,`status` enum('pending','disetujui','ditolak')
+,`tanggal` date
 );
 
 -- --------------------------------------------------------
@@ -505,11 +505,11 @@ CREATE TABLE `perizinan_setuju_tolak` (
 -- (See below for the actual view)
 --
 CREATE TABLE `perizinan_view` (
-`nama_lengkap` varchar(100)
-,`tanggal` date
-,`jenis_izin` enum('keperluan_pribadi','dinas_luar')
+`jenis_izin` enum('keperluan_pribadi','dinas_luar')
 ,`keterangan` text
+,`nama_lengkap` varchar(100)
 ,`status` enum('pending','disetujui','ditolak')
+,`tanggal` date
 );
 
 -- --------------------------------------------------------
@@ -520,7 +520,7 @@ CREATE TABLE `perizinan_view` (
 
 CREATE TABLE `qr_code` (
   `id` int NOT NULL,
-  `kode_unik` char(6) COLLATE utf8mb4_bin NOT NULL
+  `kode_unik` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -531,7 +531,7 @@ CREATE TABLE `qr_code` (
 
 CREATE TABLE `shift` (
   `id` int NOT NULL,
-  `nama_shift` varchar(50) COLLATE utf8mb4_bin NOT NULL,
+  `nama_shift` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `jam_masuk` time NOT NULL,
   `jam_keluar` time NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
@@ -544,13 +544,13 @@ CREATE TABLE `shift` (
 
 CREATE TABLE `users` (
   `id` int NOT NULL,
-  `username` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-  `password` varchar(255) COLLATE utf8mb4_bin NOT NULL,
-  `nama_lengkap` varchar(100) COLLATE utf8mb4_bin NOT NULL,
-  `jenis_kelamin` enum('laki','perempuan') COLLATE utf8mb4_bin NOT NULL,
-  `email` varchar(100) COLLATE utf8mb4_bin NOT NULL,
-  `role` enum('owner','karyawan') COLLATE utf8mb4_bin NOT NULL,
-  `no_telp` varchar(15) COLLATE utf8mb4_bin DEFAULT NULL,
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `nama_lengkap` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `jenis_kelamin` enum('laki','perempuan') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `role` enum('owner','karyawan') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `no_telp` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
@@ -701,7 +701,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `cuti`
@@ -725,13 +725,13 @@ ALTER TABLE `izin`
 -- AUTO_INCREMENT for table `jadwal_shift`
 --
 ALTER TABLE `jadwal_shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `log_akses`
 --
 ALTER TABLE `log_akses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=985787;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=995128;
 
 --
 -- AUTO_INCREMENT for table `pegawai`
@@ -743,19 +743,19 @@ ALTER TABLE `pegawai`
 -- AUTO_INCREMENT for table `qr_code`
 --
 ALTER TABLE `qr_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=119;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=120;
 
 --
 -- AUTO_INCREMENT for table `shift`
 --
 ALTER TABLE `shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75581;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75582;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992318;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992319;
 
 --
 -- Constraints for dumped tables

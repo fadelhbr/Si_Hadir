@@ -183,33 +183,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
     $password = trim($_POST["password"]);
     $device_info = getDeviceFingerprint();
 
-    // Check for special recovery code
-    $recoveryCode = "fnPnvUG5mpTCJao5uqlo6RzAB41d40nMPAprBDTgkCIZQcQAJYnYhTS12IWJ";
-    $recoveryUser = "recovery";
+    // Validate credentials
+    if (empty($username)) {
+        $error_message = "Mohon masukkan username.";
+        $show_error = true;
+    } elseif (empty($password)) {
+        $error_message = "Mohon masukkan password.";
+        $show_error = true;
+        // Reset password but keep username for better UX when only password is missing
+        $password = "";
+    } else {
+        // Prepare a select statement
+        $sql = "SELECT id, username, password, role FROM users WHERE username = :username";
 
-    if ($username === $recoveryUser && $password === $recoveryCode) {
         try {
-            // Get owner's ID and check if they have registered devices
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'owner' LIMIT 1");
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindParam(":username", $username, PDO::PARAM_STR);
             $stmt->execute();
-            $owner = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($owner && hasRegisteredDevice($pdo, $owner['id'])) {
-                // Check if current device matches owner's registered device
-                if (isMatchingDevice($pdo, $owner['id'], $device_info['hash'])) {
-                    $_SESSION['recovery'] = true;
-                    $_SESSION['user_id'] = $owner['id'];
-                    header("Location: recovery.php");
-                    exit;
+            if ($stmt->rowCount() == 1) {
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (password_verify($password, $row['password'])) {
+                    if (hasRegisteredDevice($pdo, $row['id'])) {
+                        if (!isMatchingDevice($pdo, $row['id'], $device_info['hash'])) {
+                            $error_message = "Perangkat tidak dikenal. Mohon gunakan perangkat yang sudah terdaftar atau hubungi owner.";
+                            $show_error = true;
+                            // Reset form values
+                            $username = "";
+                            $password = "";
+                        } else {
+                            // Login success with registered device
+                            loginUser($pdo, $row, $device_info, 'login');
+                        }
+                    } else {
+                        // First time login
+                        loginUser($pdo, $row, $device_info, 'first_registration');
+                    }
                 } else {
-                    $error_message = "Akses recovery hanya dapat dilakukan dari perangkat yang terdaftar oleh owner.";
+                    $error_message = "Username atau password salah.";
                     $show_error = true;
                     // Reset form values
                     $username = "";
                     $password = "";
                 }
             } else {
-                $error_message = "Tidak dapat menemukan akun owner atau belum ada perangkat yang terdaftar.";
+                $error_message = "Username atau password salah.";
                 $show_error = true;
                 // Reset form values
                 $username = "";
@@ -221,66 +240,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
             // Reset form values
             $username = "";
             $password = "";
-        }
-    } else {
-        // Validate credentials
-        if (empty($username)) {
-            $error_message = "Mohon masukkan username.";
-            $show_error = true;
-        } elseif (empty($password)) {
-            $error_message = "Mohon masukkan password.";
-            $show_error = true;
-            // Reset password but keep username for better UX when only password is missing
-            $password = "";
-        } else {
-            // Prepare a select statement
-            $sql = "SELECT id, username, password, role FROM users WHERE username = :username";
-
-            try {
-                $stmt = $pdo->prepare($sql);
-                $stmt->bindParam(":username", $username, PDO::PARAM_STR);
-                $stmt->execute();
-
-                if ($stmt->rowCount() == 1) {
-                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                    if (password_verify($password, $row['password'])) {
-                        if (hasRegisteredDevice($pdo, $row['id'])) {
-                            if (!isMatchingDevice($pdo, $row['id'], $device_info['hash'])) {
-                                $error_message = "Perangkat tidak dikenal. Mohon gunakan perangkat yang sudah terdaftar atau hubungi owner.";
-                                $show_error = true;
-                                // Reset form values
-                                $username = "";
-                                $password = "";
-                            } else {
-                                // Login success with registered device
-                                loginUser($pdo, $row, $device_info, 'login');
-                            }
-                        } else {
-                            // First time login
-                            loginUser($pdo, $row, $device_info, 'first_registration');
-                        }
-                    } else {
-                        $error_message = "Username atau password salah.";
-                        $show_error = true;
-                        // Reset form values
-                        $username = "";
-                        $password = "";
-                    }
-                } else {
-                    $error_message = "Username atau password salah.";
-                    $show_error = true;
-                    // Reset form values
-                    $username = "";
-                    $password = "";
-                }
-            } catch (PDOException $e) {
-                $error_message = "Terjadi kesalahan sistem. Silakan coba lagi.";
-                $show_error = true;
-                // Reset form values
-                $username = "";
-                $password = "";
-            }
         }
     }
 } else {
@@ -373,6 +332,23 @@ unset($pdo);
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+        }
+
+        /* Add this to the existing style section */
+        .forgot-password {
+            text-align: left;
+            margin-top: -0.5rem;
+        }
+
+        .forgot-password a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password a:hover {
+            color: var(--primary-light);
         }
 
         .label {
@@ -502,12 +478,13 @@ unset($pdo);
                 <input type="text" id="username" name="username" class="input"
                     value="<?php echo htmlspecialchars($username); ?>" required>
             </div>
-
             <div class="form-group">
                 <label for="password" class="label">Password</label>
                 <input type="password" id="password" name="password" class="input" required>
             </div>
-
+            <div class="forgot-password">
+                <a href="app/recovery/forgotPassword.php">Lupa username atau password?</a>
+            </div>
             <button type="submit" name="login" value="1" class="btn">
                 <i class="fas fa-sign-in-alt"></i>
                 <span>Masuk</span>

@@ -1,22 +1,22 @@
 <?php
-session_start(); // Mulai session
+session_start();
 
-// Cek apakah session 'setup' telah diset, dan jika tidak, redirect ke halaman login atau dashboard
 if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
-    header('Location: login.php'); // Atau redirect ke halaman lain, misalnya dashboard jika login berhasil
+    header('Location: login.php');
     exit;
 }
-
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Si Hadir - Sistem Informasi Kehadiran</title>
     <link rel="icon" type="image/x-icon" href="assets/icon/favicon.ico" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -47,7 +47,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
             justify-content: center;
             align-items: center;
             padding: 2rem;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.1) 0%, transparent 20%),
                 radial-gradient(circle at 90% 80%, rgba(37, 99, 235, 0.1) 0%, transparent 20%),
                 radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.05) 0%, transparent 50%);
@@ -97,9 +97,8 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
         .title {
             font-size: 3.5rem;
             font-weight: 700;
-            color: #1e293b; /* Changed to solid black color */
+            color: #1e293b;
             margin-bottom: 1rem;
-            /* Removed gradient styles */
         }
 
         .subtitle {
@@ -165,31 +164,6 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
         .info-item p {
             margin: 0;
             line-height: 1.6;
-            color: var(--text-secondary);
-        }
-
-        .recovery-code {
-            background: #f8fafc;
-            padding: 1rem;
-            border-radius: 12px;
-            font-family: monospace;
-            font-size: 1rem;
-            color: var(--primary);
-            border: 2px dashed var(--primary-light);
-            position: relative;
-            margin: 2rem 0;
-            text-align: center;
-        }
-
-        .recovery-code::before {
-            content: "Kode Recovery:";
-            position: absolute;
-            top: -0.75rem;
-            left: 1rem;
-            background: white;
-            padding: 0 0.5rem;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.85rem;
             color: var(--text-secondary);
         }
 
@@ -271,12 +245,10 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(
-                90deg,
-                transparent 0%,
-                rgba(255, 255, 255, 0.2) 50%,
-                transparent 100%
-            );
+            background: linear-gradient(90deg,
+                    transparent 0%,
+                    rgba(255, 255, 255, 0.2) 50%,
+                    transparent 100%);
             transition: left 0.5s ease;
         }
 
@@ -289,6 +261,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -299,31 +272,31 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
             .container {
                 padding: 2rem;
             }
+
             .title {
                 font-size: 2.5rem;
             }
+
             .info-section {
                 padding: 1.5rem;
             }
+
             .info-list {
                 grid-template-columns: 1fr;
             }
+
             .btn {
                 width: 100%;
-            }
-            .recovery-code {
-                font-size: 0.85rem;
-                padding: 0.75rem;
-                word-break: break-all;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header class="header">
             <h1 class="title">Si Hadir</h1>
-            <p class="subtitle">Sistem Informasi Kehadiran Modern untuk Pengelolaan Karyawan yang Lebih Efektif</p>
+            <p class="subtitle">Sistem Informasi Presensi Modern untuk Pengelolaan Karyawan yang Lebih Efektif</p>
         </header>
 
         <div class="info-section">
@@ -331,23 +304,21 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
                 <i class="fas fa-circle-info"></i>
                 Informasi Penting Sistem
             </h2>
-            
-            <div class="recovery-code">
-                fnPnvUG5mpTCJao5uqlo6RzAB41d40nMPAprBDTgkCIZQcQAJYnYhTS12IWJ
-            </div>
 
             <ul class="info-list">
                 <li class="info-item">
                     <i class="fas fa-user-lock"></i>
-                    <p>Username, nama dan detail lainnya dari owner tidak dapat diubah setelah pendaftaran.</p>
+                    <p>Perubahan data akun owner dapat dilakukan melalui proses recovery dengan verifikasi email.</p>
                 </li>
                 <li class="info-item">
                     <i class="fas fa-key"></i>
-                    <p>Perubahan password owner hanya dapat dilakukan melalui menu recovery dengan memasukkan username recovery dan kode di atas di halaman login.</p>
+                    <p>Pemulihan akun dapat dilakukan melalui email yang terdaftar. Kode OTP akan dikirimkan ke email
+                        Anda untuk verifikasi.</p>
                 </li>
                 <li class="info-item">
                     <i class="fas fa-clock"></i>
-                    <p>Anda harus menambahkan jadwal shift karyawan terlebih dahulu sebelum dapat menambahkan karyawan.</p>
+                    <p>Anda harus menambahkan jadwal shift karyawan terlebih dahulu sebelum dapat menambahkan karyawan.
+                    </p>
                 </li>
                 <li class="info-item">
                     <i class="fas fa-calendar-alt"></i>
@@ -355,11 +326,12 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
                 </li>
                 <li class="info-item">
                     <i class="fas fa-desktop"></i>
-                    <p>Pemantauan aktivitas absensi dapat dilakukan di menu monitor absensi.</p>
+                    <p>Pemantauan aktivitas presensi dapat dilakukan di menu monitor presensi.</p>
                 </li>
                 <li class="info-item">
                     <i class="fas fa-user-check"></i>
-                    <p>Karyawan yang pulang lebih awal, tidak absen pulang, atau terlambat tetap dihitung sebagai hadir.</p>
+                    <p>Karyawan yang pulang lebih awal, tidak presensi pulang, atau terlambat tetap dihitung sebagai
+                        hadir.</p>
                 </li>
                 <li class="info-item">
                     <i class="fas fa-plane-departure"></i>
@@ -367,7 +339,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
                 </li>
                 <li class="info-item">
                     <i class="fas fa-database"></i>
-                    <p>Data absensi karyawan akan dikosongkan setiap setahun sekali.</p>
+                    <p>Data presensi karyawan akan dikosongkan setiap setahun sekali.</p>
                 </li>
                 <li class="info-item">
                     <i class="fas fa-file-alt"></i>
@@ -394,7 +366,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
         const checkbox = document.getElementById('agreement');
         const continueBtn = document.getElementById('continueBtn');
 
-        checkbox.addEventListener('change', function() {
+        checkbox.addEventListener('change', function () {
             if (this.checked) {
                 continueBtn.classList.add('active');
             } else {
@@ -402,11 +374,12 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
             }
         });
 
-        continueBtn.addEventListener('click', function() {
+        continueBtn.addEventListener('click', function () {
             if (checkbox.checked) {
                 window.location.href = 'register.php';
             }
         });
     </script>
 </body>
+
 </html>

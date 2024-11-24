@@ -68,4 +68,8 @@ dependencies {
     // Scanner Barcode
     implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
 
+    //buat api login hehe :)
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
+    implementation 'com.google.code.gson:gson:2.8.9'
+
 }

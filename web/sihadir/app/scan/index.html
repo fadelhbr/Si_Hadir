@@ -114,7 +114,7 @@
         let currentCode = '';
 
         function checkAndUpdateQR() {
-            fetch('../controller/qr_generator.php')
+            fetch('../handler/qr_generator.php')
                 .then(response => response.json())
                 .then(data => {
                     // Only update QR code and display if the code needs to be updated

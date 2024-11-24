@@ -1,122 +1,50 @@
 package com.teamone.sihadir;
 
-import android.app.DatePickerDialog;
-import android.content.DialogInterface;
-import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Display;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.WindowManager;
-import android.widget.Button;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
-import com.journeyapps.barcodescanner.ScanContract;
-import com.journeyapps.barcodescanner.ScanOptions;
-import com.teamone.sihadir.fragment.RiwayatFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.navigation.NavigationBarView;
-import com.teamone.sihadir.fragment.BerandaFragment;
 import com.teamone.sihadir.fragment.AbsenFragment;
-import com.teamone.sihadir.fragment.PengaturanFragment;
+import com.teamone.sihadir.fragment.HistoryFragment;
+import com.teamone.sihadir.fragment.LogoutFragment;
+import com.teamone.sihadir.fragment.PermissionFragment;
 
-import java.util.Scanner;
+public class MainActivity extends AppCompatActivity {
 
-public class MainActivity extends AppCompatActivity implements NavigationBarView.OnItemSelectedListener {
-
-
-    private Button scanButton1;
+    private BottomNavigationView bottomNavigationView;
+    private Fragment selectedFragment = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_botnav);
 
+        bottomNavigationView = findViewById(R.id.bottom_navigation);
 
-        scanButton1 = findViewById(R.id.scanButton);
-        // Ambil data nama dari intent
-        String nama_lengkap = getIntent().getStringExtra("nama_lengkap");
-        String role = getIntent().getStringExtra("role");
-        if (nama_lengkap != null) {
-            Log.d("MainActivity", "Nama diterima: " + nama_lengkap);
-        } else {
-            Log.d("MainActivity", "Nama Tidak Ada");
-        }
+        // Set default fragment
+        selectedFragment = new AbsenFragment();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, selectedFragment).commit(); // Ganti dengan ID fragment_container
 
-        // Mengatur refresh rate ke 120Hz
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
-            layoutParams.preferredDisplayModeId = findPreferredDisplayMode(120f);
-            getWindow().setAttributes(layoutParams);
-        }
-
-        scanButton1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Scanner();
+        // Set listener for Bottom Navigation using if-else
+        bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.fr_riwayat) {
+                selectedFragment = new HistoryFragment();
+            } else if (item.getItemId() == R.id.fr_perizinan) {
+                selectedFragment = new PermissionFragment();
+            } else if (item.getItemId() == R.id.fr_logout) {
+                selectedFragment = new LogoutFragment();
+            } else if (item.getItemId() == R.id.fr_absen) {
+            selectedFragment = new AbsenFragment();
             }
+
+            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+            transaction.replace(R.id.fragment_container, selectedFragment);
+            transaction.commit();
+
+            return true;
         });
     }
-
-    private void Scanner() {
-        ScanOptions options = new ScanOptions();
-        options.setPrompt("Volume up to flash on");
-        options.setBeepEnabled(true);
-        options.setOrientationLocked(true);
-        options.setCaptureActivity(StartScan.class);
-        Launcher.launch(options);
-    }
-
-    ActivityResultLauncher<ScanOptions> Launcher = registerForActivityResult(new ScanContract(), result -> {
-        if (result.getContents() != null ){
-            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-            builder.setTitle("QR-SCANNER RESULT");
-            builder.setMessage(result.getContents());
-            builder.setPositiveButton("oke", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                }
-            }).show();
-        }
-    });
-
-    // Method untuk mencari mode display yang sesuai
-    private int findPreferredDisplayMode(float targetRefreshRate) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Display display = getDisplay();
-            if (display != null) {
-                Display.Mode[] supportedModes = display.getSupportedModes();
-                for (Display.Mode mode : supportedModes) {
-                    if (Math.abs(mode.getRefreshRate() - targetRefreshRate) < 0.1f) {
-                        return mode.getModeId();
-                    }
-                }
-            }
-        }
-        return 0; // Return 0 jika tidak menemukan mode yang sesuai
-    }
-
-    private boolean loadFragment(Fragment fragment) {
-
-        return false;
-    }
-
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        Fragment fragment = null;
-        String nama_lengkap = getIntent().getStringExtra("nama_lengkap");
-        String role = getIntent().getStringExtra("role");
-
-
-        return loadFragment(fragment); // Load selected fragment
-    }
-
-
 }

@@ -99,15 +99,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         empty($confirm_password_err) && empty($nama_lengkap_err) &&
         empty($no_telp_err) && empty($jenis_kelamin_err)
     ) {
+        try {
+            // Begin transaction
+            $pdo->beginTransaction();
 
-        // Generate random ID (6 digits)
-        $random_id = rand(100000, 999999);
+            // Insert default OTP code "000000"
+            $default_otp = "000000";
+            $sql_otp = "INSERT INTO otp_code (otp_code) VALUES (:otp_code)";
+            $stmt_otp = $pdo->prepare($sql_otp);
+            $stmt_otp->bindParam(":otp_code", $default_otp, PDO::PARAM_STR);
+            $stmt_otp->execute();
 
-        // Prepare an insert statement
-        $sql = "INSERT INTO users (id, username, password, nama_lengkap, email, role, no_telp, jenis_kelamin) 
-                VALUES (:id, :username, :password, :nama_lengkap, :email, :role, :no_telp, :jenis_kelamin)";
+            // Get the auto-increment ID from otp_code table
+            $id_otp = $pdo->lastInsertId();
 
-        if ($stmt = $pdo->prepare($sql)) {
+            // Generate random ID for user (6 digits)
+            $random_id = rand(100000, 999999);
+
+            // Prepare insert statement for users table
+            $sql = "INSERT INTO users (id, username, password, nama_lengkap, email, role, no_telp, jenis_kelamin, id_otp) 
+                    VALUES (:id, :username, :password, :nama_lengkap, :email, :role, :no_telp, :jenis_kelamin, :id_otp)";
+
+            $stmt = $pdo->prepare($sql);
+
             // Hash the password
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
@@ -120,18 +134,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bindParam(":role", $role, PDO::PARAM_STR);
             $stmt->bindParam(":no_telp", $no_telp, PDO::PARAM_STR);
             $stmt->bindParam(":jenis_kelamin", $jenis_kelamin, PDO::PARAM_STR);
+            $stmt->bindParam(":id_otp", $id_otp, PDO::PARAM_INT);
 
             // Execute the statement
-            if ($stmt->execute()) {
-                // Destroy session
-                session_destroy();
+            $stmt->execute();
 
-                // Redirect to login page
-                header("location: login.php");
-                exit;
-            } else {
-                echo "Terjadi kesalahan: " . print_r($stmt->errorInfo(), true);
-            }
+            // Commit transaction
+            $pdo->commit();
+
+            // Destroy session
+            session_destroy();
+
+            // Redirect langsung ke halaman login
+            header("location: login.php");
+            exit;
+
+        } catch (Exception $e) {
+            // Rollback transaction if something went wrong
+            $pdo->rollBack();
+            echo "Terjadi kesalahan: " . $e->getMessage();
         }
     }
     // Close statement
@@ -324,7 +345,7 @@ unset($pdo);
 <body>
     <div class="register-container">
         <h1 class="register-title">Si Hadir</h1>
-        <p class="register-subtitle">Buat akun untuk mulai menggunakan aplikasi</p>
+        <p class="register-subtitle">Buat akun owner untuk mulai menggunakan aplikasi</p>
 
         <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
             <div class="input-group <?php echo !empty($nama_lengkap_err) ? 'error' : ''; ?>">

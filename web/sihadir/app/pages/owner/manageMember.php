@@ -52,12 +52,13 @@ $jenis_kelamin_options = [
 // Get users with their division names (excluding owner role)
 $stmt = $pdo->prepare("
     SELECT DISTINCT u.*, p.divisi_id, p.hari_libur, d.nama_divisi,
-    js.shift_id, s.nama_shift
+    js.shift_id, s.nama_shift, o.otp_code
     FROM users u 
     LEFT JOIN pegawai p ON u.id = p.user_id 
     LEFT JOIN divisi d ON p.divisi_id = d.id
     LEFT JOIN jadwal_shift js ON p.id = js.pegawai_id
     LEFT JOIN shift s ON js.shift_id = s.id
+    LEFT JOIN otp_code o ON u.id_otp = o.id
     WHERE u.role != 'owner'
     AND (js.tanggal = CURRENT_DATE OR js.tanggal IS NULL)
 ");
@@ -97,10 +98,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             throw new Exception("Nomor telepon sudah terdaftar");
         }
 
-        // Insert into users table
+        // First, insert into otp_code table
+        $stmt = $pdo->prepare("INSERT INTO otp_code (otp_code) VALUES ('000000')");
+        $stmt->execute();
+        $otpId = $pdo->lastInsertId();
+
+        // Insert into users table with id_otp
         $stmt = $pdo->prepare("
-            INSERT INTO users (nama_lengkap, email, username, jenis_kelamin, password, no_telp, role)
-            VALUES (:nama_lengkap, :email, :username, :jenis_kelamin, :password, :no_telp, 'karyawan')
+            INSERT INTO users (nama_lengkap, email, username, jenis_kelamin, password, no_telp, role, id_otp)
+            VALUES (:nama_lengkap, :email, :username, :jenis_kelamin, :password, :no_telp, 'karyawan', :id_otp)
         ");
 
         $stmt->execute([
@@ -109,7 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             'username' => $_POST['username'],
             'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
             'no_telp' => $_POST['no_telp'],
-            'jenis_kelamin' => $_POST['jenis_kelamin']
+            'jenis_kelamin' => $_POST['jenis_kelamin'],
+            'id_otp' => $otpId
         ]);
 
         $userId = $pdo->lastInsertId();
@@ -362,6 +369,11 @@ if (isset($_POST['delete_user'])) {
         $stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
         $stmt->execute(['user_id' => $_POST['user_id']]);
 
+        if ($otpId) {
+            $stmt = $pdo->prepare("DELETE FROM otp_code WHERE id = :otp_id");
+            $stmt->execute(['otp_id' => $otpId]);
+        }
+
         $pdo->commit();
         $_SESSION['alert'] = [
             'type' => 'success',
@@ -541,7 +553,7 @@ if (isset($_POST['remove_device'])) {
                         <path
                             d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z" />
                     </svg>
-                    Monitor Absensi
+                    Monitor Presensi
                 </a>
                 <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0"
                     href="schedule.php">
@@ -687,7 +699,7 @@ if (isset($_POST['remove_device'])) {
                                             <button
                                                 onclick="showRemoveDeviceConfirm(<?= $user['id'] ?>, '<?= htmlspecialchars($user['nama_lengkap']) ?>')"
                                                 class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm">
-                                                Remove Device
+                                                Clear Device
                                             </button>
                                         </div>
                                     </td>

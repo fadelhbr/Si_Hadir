@@ -69,7 +69,6 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
             font-size: 3rem;
             font-weight: 700;
             color: #1e293b;
-            /* Ganti dengan hitam */
             margin-bottom: 1rem;
         }
 
@@ -234,7 +233,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
         <header class="header">
             <h1 class="title">Si Hadir</h1>
             <p class="subtitle">
-                Sistem absensi modern yang memudahkan pengelolaan kehadiran karyawan dengan teknologi terkini
+                Sistem presensi modern yang memudahkan pengelolaan kehadiran karyawan dengan teknologi terkini
             </p>
         </header>
 
@@ -243,9 +242,9 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
                 <div class="feature-icon">
                     <i class="fas fa-mobile-alt"></i>
                 </div>
-                <h3 class="feature-title">Absensi Mobile</h3>
+                <h3 class="feature-title">Presensi Mobile</h3>
                 <p class="feature-description">
-                    Lakukan absensi dengan mudah melalui aplikasi Android yang user-friendly dan efisien
+                    Lakukan presensi dengan mudah melalui aplikasi Android yang user-friendly dan efisien
                 </p>
             </div>
 
@@ -261,17 +260,16 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
 
             <div class="feature-card">
                 <div class="feature-icon">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="fas fa-shield-alt"></i>
                 </div>
-                <h3 class="feature-title">Laporan Lengkap</h3>
+                <h3 class="feature-title">Secure</h3>
                 <p class="feature-description">
-                    Akses laporan detail dan analisis kehadiran karyawan dengan mudah
+                    Data kehadiran karyawan disimpan dengan aman
                 </p>
             </div>
         </div>
 
         <div class="cta-section">
-
             <div class="buttons">
                 <a href="agreement.php" class="btn btn-primary">
                     <i class="fas fa-user-plus"></i>
