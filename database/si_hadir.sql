@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 24, 2024 at 12:44 PM
+-- Generation Time: Nov 25, 2024 at 11:55 AM
 -- Server version: 8.0.40-0ubuntu0.22.04.1
 -- PHP Version: 8.1.2-1ubuntu2.19
 
@@ -25,7 +25,21 @@ DELIMITER $$
 --
 -- Procedures
 --
-CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()  BEGIN
+    -- Nonaktifkan pemeriksaan foreign key terlebih dahulu
+    SET FOREIGN_KEY_CHECKS = 0;
+
+    -- Kosongkan tabel absensi
+    TRUNCATE TABLE absensi;
+
+    -- Kosongkan tabel log_akses
+    TRUNCATE TABLE log_akses;
+
+    -- Aktifkan kembali pemeriksaan foreign key
+    SET FOREIGN_KEY_CHECKS = 1;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()  BEGIN
     -- Deklarasi variabel untuk iterasi pengguna
     DECLARE done INT DEFAULT FALSE;
     DECLARE curr_pegawai_id INT;
@@ -166,14 +180,29 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
             WHERE pegawai_id = curr_pegawai_id 
             AND DATE(tanggal) = tanggal_hari_ini
         ) THEN
-            -- Update record absensi jika ada
+            -- Update status absensi berdasarkan izin/cuti yang disetujui
             UPDATE absensi 
-            SET status_kehadiran = status_kehadiran 
+            SET status_kehadiran = (
+                CASE 
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM izin 
+                        WHERE pegawai_id = curr_pegawai_id 
+                        AND tanggal = tanggal_hari_ini
+                        AND status = 'disetujui'
+                    ) THEN 'izin'
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM cuti 
+                        WHERE pegawai_id = curr_pegawai_id 
+                        AND tanggal_hari_ini BETWEEN tanggal_mulai AND tanggal_selesai 
+                        AND status = 'disetujui'
+                    ) THEN 'cuti'
+                    ELSE status_kehadiran
+                END
+            )
             WHERE pegawai_id = curr_pegawai_id 
-            AND DATE(tanggal) = tanggal_hari_ini
-            AND waktu_masuk = '00:00:00'
-            AND waktu_keluar = '00:00:00'
-            AND status_kehadiran = 'alpha';
+            AND DATE(tanggal) = tanggal_hari_ini;
         ELSE
             -- Insert record baru jika belum ada
             INSERT INTO absensi (
@@ -200,20 +229,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `auto_insert_absensi` ()  BEGIN
     -- Menutup cursor
     CLOSE cur_employees;
 
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()  BEGIN
-    -- Nonaktifkan pemeriksaan foreign key terlebih dahulu
-    SET FOREIGN_KEY_CHECKS = 0;
-
-    -- Kosongkan tabel absensi
-    TRUNCATE TABLE absensi;
-
-    -- Kosongkan tabel log_akses
-    TRUNCATE TABLE log_akses;
-
-    -- Aktifkan kembali pemeriksaan foreign key
-    SET FOREIGN_KEY_CHECKS = 1;
 END$$
 
 DELIMITER ;
@@ -720,7 +735,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `cuti`
@@ -750,13 +765,13 @@ ALTER TABLE `jadwal_shift`
 -- AUTO_INCREMENT for table `log_akses`
 --
 ALTER TABLE `log_akses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=995134;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=938431;
 
 --
 -- AUTO_INCREMENT for table `otp_code`
 --
 ALTER TABLE `otp_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992332;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992334;
 
 --
 -- AUTO_INCREMENT for table `pegawai`
@@ -774,13 +789,13 @@ ALTER TABLE `qr_code`
 -- AUTO_INCREMENT for table `shift`
 --
 ALTER TABLE `shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75587;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75588;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992327;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992328;
 
 --
 -- Constraints for dumped tables
@@ -835,12 +850,12 @@ DELIMITER $$
 --
 -- Events
 --
-CREATE DEFINER=`root`@`localhost` EVENT `auto_insert_absensi_event` ON SCHEDULE EVERY 10 SECOND STARTS '2024-11-07 16:54:05' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
-    CALL auto_insert_absensi();
-END$$
-
 CREATE DEFINER=`root`@`localhost` EVENT `auto_clear_database` ON SCHEDULE EVERY 1 YEAR STARTS '2024-11-07 16:54:05' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
     CALL reset_database_table();
+END$$
+
+CREATE DEFINER=`root`@`localhost` EVENT `auto_insert_absensi_event` ON SCHEDULE EVERY 10 SECOND STARTS '2024-11-07 16:54:05' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
+    CALL update_attendance();
 END$$
 
 DELIMITER ;

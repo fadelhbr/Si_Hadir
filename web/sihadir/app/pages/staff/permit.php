@@ -24,7 +24,6 @@ if (!isset($_SESSION['id'])) {
 
 $user_id = $_SESSION['id'];
 
-
 try {
     // Dapatkan pegawai_id
     $queryPegawai = "SELECT p.id as pegawai_id 
@@ -48,6 +47,44 @@ try {
                 $tanggal = $_POST['permitDate'];
                 $jenis_izin = $_POST['permitType'];
                 $keterangan = $_POST['permitDescription'];
+
+                // Cek apakah sudah ada izin di tanggal yang sama
+                $queryCheck = "SELECT COUNT(*) as total FROM izin 
+                             WHERE pegawai_id = :pegawai_id 
+                             AND tanggal = :tanggal";
+                $stmtCheck = $pdo->prepare($queryCheck);
+                $stmtCheck->execute([
+                    'pegawai_id' => $pegawai_id,
+                    'tanggal' => $tanggal
+                ]);
+                $existingPermit = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+                if ($existingPermit['total'] > 0) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Anda sudah mengajukan izin untuk tanggal tersebut!'
+                    ]);
+                    exit;
+                }
+
+                // Cek apakah sudah ada cuti di tanggal yang sama
+                $queryCheckCuti = "SELECT COUNT(*) as total FROM cuti 
+                                 WHERE pegawai_id = :pegawai_id 
+                                 AND :tanggal BETWEEN tanggal_mulai AND tanggal_selesai";
+                $stmtCheckCuti = $pdo->prepare($queryCheckCuti);
+                $stmtCheckCuti->execute([
+                    'pegawai_id' => $pegawai_id,
+                    'tanggal' => $tanggal
+                ]);
+                $existingCuti = $stmtCheckCuti->fetch(PDO::FETCH_ASSOC);
+
+                if ($existingCuti['total'] > 0) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Anda sudah memiliki cuti yang mencakup tanggal tersebut!'
+                    ]);
+                    exit;
+                }
 
                 $query = "INSERT INTO izin (pegawai_id, tanggal, jenis_izin, keterangan, status, created_at) 
                          VALUES (:pegawai_id, :tanggal, :jenis_izin, :keterangan, 'pending', NOW())";
@@ -78,6 +115,51 @@ try {
                 $tanggal_mulai = $_POST['leaveStartDate'];
                 $tanggal_selesai = $_POST['leaveEndDate'];
                 $keterangan = $_POST['leaveDescription'];
+
+                // Cek apakah ada izin dalam rentang tanggal cuti
+                $queryCheckIzin = "SELECT COUNT(*) as total FROM izin 
+                                 WHERE pegawai_id = :pegawai_id 
+                                 AND tanggal BETWEEN :tanggal_mulai AND :tanggal_selesai";
+                $stmtCheckIzin = $pdo->prepare($queryCheckIzin);
+                $stmtCheckIzin->execute([
+                    'pegawai_id' => $pegawai_id,
+                    'tanggal_mulai' => $tanggal_mulai,
+                    'tanggal_selesai' => $tanggal_selesai
+                ]);
+                $existingIzin = $stmtCheckIzin->fetch(PDO::FETCH_ASSOC);
+
+                if ($existingIzin['total'] > 0) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Anda sudah memiliki izin dalam rentang tanggal cuti yang diajukan!'
+                    ]);
+                    exit;
+                }
+
+                // Cek apakah ada cuti yang overlap
+                $queryCheckCuti = "SELECT COUNT(*) as total FROM cuti 
+                                 WHERE pegawai_id = :pegawai_id 
+                                 AND (
+                                     (tanggal_mulai BETWEEN :tanggal_mulai AND :tanggal_selesai)
+                                     OR (tanggal_selesai BETWEEN :tanggal_mulai AND :tanggal_selesai)
+                                     OR (:tanggal_mulai BETWEEN tanggal_mulai AND tanggal_selesai)
+                                     OR (:tanggal_selesai BETWEEN tanggal_mulai AND tanggal_selesai)
+                                 )";
+                $stmtCheckCuti = $pdo->prepare($queryCheckCuti);
+                $stmtCheckCuti->execute([
+                    'pegawai_id' => $pegawai_id,
+                    'tanggal_mulai' => $tanggal_mulai,
+                    'tanggal_selesai' => $tanggal_selesai
+                ]);
+                $existingCuti = $stmtCheckCuti->fetch(PDO::FETCH_ASSOC);
+
+                if ($existingCuti['total'] > 0) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Terdapat overlap dengan pengajuan cuti yang sudah ada!'
+                    ]);
+                    exit;
+                }
 
                 // Hitung durasi cuti
                 $date1 = new DateTime($tanggal_mulai);
@@ -544,7 +626,7 @@ try {
                                             <option value="" class="placeholder" hidden>Pilih Jenis Izin</option>
                                             <option value="dinas_luar">Dinas Luar</option>
                                             <option value="keperluan_pribadi">Keperluan Pribadi</option>
-                                            <option value="lainnya">Lainnya</option>
+                                            <option value="sakit">Sakit</option>
                                         </select>
                                     </div>
                                     <div class="mb-3">
