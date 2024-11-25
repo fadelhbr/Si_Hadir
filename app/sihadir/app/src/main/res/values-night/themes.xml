@@ -34,12 +34,23 @@
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
+    <!-- Warna untuk dark mode -->
+    <color name="surface_container">#1D1D1D</color>
+    <color name="on_surface_container">#FFFFFF</color>
+
     <!-- Dark mode -->
     <style name="SCREEN">
         <item name="android:background">#85736969</item>
     </style>
     <style name="SCREEN_TOP">
         <item name="android:background">#272733</item>
+    </style>
+
+    <style name="Theme.YourApp" parent="Theme.Material3.Dark">
+        <item name="colorSurface">@color/black</item>
+        <item name="colorOnSurface">@color/white</item>
+        <item name="colorSurfaceContainer">@color/surface_container</item>
+        <item name="colorOnSurfaceContainer">@color/on_surface_container</item>
     </style>
 
     <style name="TEXT">

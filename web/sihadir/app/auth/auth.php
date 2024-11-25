@@ -3,7 +3,7 @@
 
 // Database configuration
 $host = 'localhost'; // Your database host
-$db   = 'hadir_bgt';       // Your database name
+$db   = 'si_hadir';       // Your database name
 $user = 'root';      // Your database username
 $pass = '';          // Your database password
 
