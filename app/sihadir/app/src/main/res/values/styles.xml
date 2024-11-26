@@ -23,13 +23,4 @@
         <item name="android:textSize">14sp</item>
     </style>
 
-    <style name="CustomTextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxStrokeWidth">1dp</item>
-        <item name="android:paddingTop">0dp</item>
-        <item name="android:paddingBottom">0dp</item>
-        <item name="boxCollapsedPaddingTop">0dp</item>
-        <item name="boxStrokeColor">@color/material_on_surface_stroke</item>
-        <item name="android:textColorHint">@color/material_on_surface_disabled</item>
-    </style>
-
 </resources>
