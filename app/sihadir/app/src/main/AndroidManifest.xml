@@ -19,22 +19,28 @@
         android:theme="@style/Theme.Sihadir"
         tools:targetApi="31">
         <activity
-            android:name=".WelcomeActivity"
+            android:name=".OnboardingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".adapter.OnboardingAdapter"
+            android:exported="false" />
+        <activity
+            android:name=".SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".LoginActivity" />
+        <activity android:name=".LoginActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true" />
         <activity
             android:name=".StartScan"
             android:stateNotNeeded="true"
-            android:theme="@style/zxing_CaptureTheme"/>
+            android:theme="@style/zxing_CaptureTheme" />
     </application>
 
 </manifest>
