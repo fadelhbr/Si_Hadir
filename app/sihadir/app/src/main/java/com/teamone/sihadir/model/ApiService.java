@@ -1,5 +1,6 @@
 package com.teamone.sihadir.model;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
@@ -14,4 +15,9 @@ public interface ApiService {
             @Field("nama_lengkap") String nama_lengkap,
             @Field("employee_id") String employee_id
     );
-}
+        @POST("send_otp.php")
+        @FormUrlEncoded
+        Call<ResponseBody> sendOTP(@Field("email") String email);
+    }
+
+
