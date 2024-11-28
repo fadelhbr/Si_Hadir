@@ -5,25 +5,38 @@ import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
+
 import com.google.gson.Gson;
-import okhttp3.*;
+
 import org.json.JSONObject;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import android.util.Base64;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class LoginActivity extends AppCompatActivity {
 
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
+    private TextView btnForgotPassword;
     private static final String API_URL = "http://192.168.1.37/Si_Hadir/web/sihadir/app/api/api_login.php";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -114,6 +127,75 @@ public class LoginActivity extends AppCompatActivity {
         intent.putExtra("role", preferences.getString(PREF_USER_ROLE, ""));
         startActivity(intent);
         finish();
+    }
+
+    public static void logout(AppCompatActivity activity) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activity);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean(PREF_IS_LOGGED_IN, false);
+        editor.remove(PREF_USER_ID);
+        editor.remove(PREF_USERNAME);
+        editor.remove(PREF_USER_ROLE);
+        editor.remove(PREF_NAMA_LENGKAP);
+        editor.apply();
+
+        // Redirect ke LoginActivity
+        Intent intent = new Intent(activity, LoginActivity.class);
+        activity.startActivity(intent);
+        activity.finish();
+    }
+
+    private void initializeEntryAnimations() {
+        // Animasi elemen login secara terpisah
+        usernameEditText.setAlpha(0f);
+        passwordEditText.setAlpha(0f);
+        btnLogin.setAlpha(0f);
+        btnForgotPassword.setAlpha(0f);
+
+        usernameEditText.animate()
+                .alpha(1f)
+                .setStartDelay(300)
+                .setDuration(500)
+                .start();
+
+        passwordEditText.animate()
+                .alpha(1f)
+                .setStartDelay(500)
+                .setDuration(500)
+                .start();
+
+        btnLogin.animate()
+                .alpha(1f)
+                .setStartDelay(700)
+                .setDuration(500)
+                .start();
+
+        btnForgotPassword.animate()
+                .alpha(1f)
+                .setStartDelay(900)
+                .setDuration(500)
+                .start();
+    }
+
+    private void animateLoginClick() {
+        // Animasi pada saat tombol login ditekan
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(btnLogin, "scaleX", 1f, 0.9f, 1f);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(btnLogin, "scaleY", 1f, 0.9f, 1f);
+        ObjectAnimator rotation = ObjectAnimator.ofFloat(btnLogin, "rotation", 0f, 10f, -10f, 0f);
+
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.setDuration(300);
+        animatorSet.setInterpolator(new AccelerateDecelerateInterpolator());
+        animatorSet.playTogether(scaleX, scaleY, rotation);
+        animatorSet.start();
+    }
+
+    private void animateLoginSuccess() {
+        // Animasi ketika login berhasil
+        ObjectAnimator fadeOut = ObjectAnimator.ofFloat(usernameEditText, "alpha", 1f, 0f);
+        fadeOut.setDuration(300);
+
+        fadeOut.start();
     }
 
     private void login() {
