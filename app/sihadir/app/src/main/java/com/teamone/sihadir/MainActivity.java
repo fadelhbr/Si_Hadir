@@ -8,7 +8,7 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.teamone.sihadir.fragment.AbsenFragment;
-import com.teamone.sihadir.fragment.HistoryFragment;
+import com.teamone.sihadir.fragment.RiwayatFragment;
 import com.teamone.sihadir.fragment.LogoutFragment;
 import com.teamone.sihadir.fragment.PermissionFragment;
 
@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         // Set listener for Bottom Navigation using if-else
         bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
             if (item.getItemId() == R.id.fr_riwayat) {
-                selectedFragment = new HistoryFragment();
+                selectedFragment = new RiwayatFragment();
             } else if (item.getItemId() == R.id.fr_perizinan) {
                 selectedFragment = new PermissionFragment();
             } else if (item.getItemId() == R.id.fr_logout) {
