@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (item.getItemId() == R.id.fr_logout) {
                 selectedFragment = new LogoutFragment();
             } else if (item.getItemId() == R.id.fr_absen) {
-            selectedFragment = new AbsenFragment();
+                selectedFragment = new AbsenFragment();
             }
 
             FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
