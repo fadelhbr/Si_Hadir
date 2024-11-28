@@ -134,7 +134,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // Prepare SQL to prevent SQL injection
-        $sql = "SELECT id, username, password, role, nama_lengkap FROM users WHERE username = :username";
+        $sql = "SELECT u.id, u.username, u.password, u.role, u.nama_lengkap, p.id AS pegawai_id 
+                FROM users u
+                LEFT JOIN pegawai p ON u.id = p.user_id
+                WHERE u.username = :username";
         $stmt = $pdo->prepare($sql);
         $stmt->bindParam(":username", $username, PDO::PARAM_STR);
         $stmt->execute();
@@ -173,7 +176,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'id' => $row['id'],
                         'nama_lengkap' => $row['nama_lengkap'],
                         'username' => $row['username'],
-                        'role' => $row['role']
+                        'role' => $row['role'],
+                        'pegawai_id' => $row['pegawai_id']
                     ]
                 ];
             } else {
