@@ -123,6 +123,14 @@ try {
                 position: absolute;
             }
         }
+        .table-container {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* Internet Explorer dan Edge */
+        }
+
+        .table-container::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, dan Opera */
+        }
     </style>
 </head>
 
@@ -193,7 +201,7 @@ try {
             <div class="container-fluid p-4">
                 <h1 class="text-3xl font-semibold mb-4">Riwayat Kehadiran</h1>
                 <!-- Tabel Kehadiran -->
-                <div id="activityTable" class="bg-white shadow rounded-lg p-4 mb-4">
+                <div id="activityTable" class="table-container max-h-[300px] overflow-y-auto scrollbar-hide">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>

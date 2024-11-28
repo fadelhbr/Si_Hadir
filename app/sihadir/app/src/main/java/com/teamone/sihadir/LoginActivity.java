@@ -20,7 +20,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
-    private static final String API_URL = "http://10.10.183.51/sihadir/app/api/api_login.php";
+    private static final String API_URL = "http://10.0.2.2/Si_Hadir/web/sihadir/app/api/api_login.php";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     // SharedPreferences keys

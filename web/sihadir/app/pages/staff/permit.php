@@ -360,24 +360,46 @@ try {
             display: none;
         }
 
-        .btn-izin {
-            background-color: #007bff;
-            /* Warna biru */
-            color: white;
-            transition: background-color 0.3s, color 0.3s;
+        .mobile-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
         }
 
-        .btn-cuti {
-            background-color: #6c757d;
-            /* Warna abu-abu */
-            color: white;
-            transition: background-color 0.3s, color 0.3s;
+        @media (max-width: 767px) {
+        .mobile-button {
+            flex-direction: column;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1rem;
         }
 
+        .mobile-button svg {
+            margin-right: 0;
+            margin-bottom: 0.25rem;
+        }
+        }
         .btn-active {
             background-color: #0056b3 !important;
             /* Warna tombol aktif */
             color: white !important;
+        }
+        .table-container {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* Internet Explorer dan Edge */
+        }
+
+        .table-container::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, dan Opera */
         }
     </style>
 </head>
@@ -474,21 +496,22 @@ try {
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     <?php endif; ?>
+                    <div class="flex items-center justify-between mb-4 flex-wrap">
+                <div class="flex space-x-2 mb-2 md:mb-0">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center space-x-2 mobile-button"
+                    id="permitRequestBtn" data-bs-toggle="modal" data-bs-target="#permitRequestModal">
+                    <span>Pengajuan Izin</span>
+                    </button>
+                    <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center space-x-2 mobile-button"
+                    id="leaveRequestBtn" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
+                    <span>Pengajuan Cuti</span>
+                    </button>
                 </div>
-                <h1 class="text-3xl font-semibold mb-4">Cuti & Perizinan</h1>
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex space-x-2">
-                        <button class="bg-blue-500 text-white px-4 py-2 rounded" id="permitRequestBtn"
-                            data-bs-toggle="modal" data-bs-target="#permitRequestModal">
-                            Pengajuan Izin
-                        </button>
-                        <button class="bg-green-500 text-white px-4 py-2 rounded" id="leaveRequestBtn"
-                            data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
-                            Pengajuan Cuti
-                        </button>
-                    </div>
-                    <input type="text" id="searchDate" class="border border-gray-300 rounded px-2 py-1 w-full md:w-64"
-                        placeholder="Cari Jadwal">
+                <div class="w-full md:w-64">
+                    <input type="text" id="searchDate"
+                    class="border border-gray-300 rounded px-4 py-2 w-full placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Cari Jadwal">
+                </div>
                 </div>
 
                 <div class="bg-white shadow rounded-lg p-4 mb-4">
@@ -501,7 +524,7 @@ try {
                     </div>
 
                     <!-- IZIN TABEL -->
-                    <div id="izinTable" class="table-container">
+                    <div id="izinTable" class="table-container max-h-[300px] overflow-y-auto scrollbar-hide">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -527,17 +550,28 @@ try {
                                 <?php else: ?>
                                     <?php foreach ($dataIzin as $row): ?>
                                         <tr>
-                                            <td class="px-4 py-3 text-center"><?php echo htmlspecialchars($row['tanggal']); ?>
+                                            <td class="px-4 py-3 text-center">
+                                                <?php echo htmlspecialchars($row['tanggal']); ?>
                                             </td>
                                             <td class="px-4 py-3 text-center">
                                                 <?php echo htmlspecialchars($row['jenis_izin']); ?>
                                             </td>
                                             <td class="px-4 py-3 text-center">
-                                                <?php echo htmlspecialchars($row['keterangan']); ?>
+                                                <?php 
+                                                // Membatasi keterangan menjadi 200 kata
+                                                $keterangan = $row['keterangan'];
+                                                $kata = str_word_count($keterangan, 2);
+                                                $potongan_kata = array_keys($kata);
+                                                
+                                                if (str_word_count($keterangan) > 200) {
+                                                    $keterangan = substr($keterangan, 0, $potongan_kata[200]) . '...';
+                                                }
+                                                
+                                                echo htmlspecialchars($keterangan); 
+                                                ?>
                                             </td>
                                             <td class="px-4 py-3 text-center">
-                                                <span
-                                                    class="<?php echo $row['status'] == 'disetujui' ? 'bg-green-500' : ($row['status'] == 'pending' ? 'bg-yellow-500' : 'bg-red-500'); ?> text-white py-1 px-2 rounded">
+                                                <span class="<?php echo $row['status'] == 'disetujui' ? 'bg-green-500' : ($row['status'] == 'pending' ? 'bg-yellow-500' : 'bg-red-500'); ?> text-white py-1 px-2 rounded">
                                                     <?php echo ucfirst(htmlspecialchars($row['status'])); ?>
                                                 </span>
                                             </td>
@@ -548,7 +582,7 @@ try {
                         </table>
                     </div>
                     <!-- Leave History Table -->
-                    <div id="cutiTable" class="table-container hidden">
+                    <div id="cutiTable" class="table-container hidden max-h-[300px] overflow-y-auto scrollbar-hide">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
