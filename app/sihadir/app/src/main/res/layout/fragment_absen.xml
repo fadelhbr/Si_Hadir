@@ -33,7 +33,7 @@
                 android:padding="24dp">
 
                 <TextView
-                    android:id="@+id/greetingText"
+                    android:id="@+id/userName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/poppins_bold"
@@ -43,7 +43,7 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/statusText"
+                    android:id="@+id/statusChip"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
@@ -81,32 +81,17 @@
                             android:layout_weight="1"
                             android:orientation="vertical">
 
-                            <TextView
-                                android:id="@+id/userName"
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/dateTimeText"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="@font/poppins_bold"
-                                android:textColor="?attr/colorOnSurface"
-                                android:textSize="22sp"
+                                android:text="Senin, 12 November 2024"
+                                android:textColor="?attr/colorOnPrimary"
+                                android:textSize="18sp"
                                 android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/employeeId"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:fontFamily="@font/poppins_semibold"
-                                android:text="ID: 12345"
-                                android:textColor="?attr/colorOnSurface"
-                                android:textSize="14sp" />
                         </LinearLayout>
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/statusChip"
-                            style="@style/Widget.Material3.Chip.Assist"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Belum Absen" />
                     </LinearLayout>
 
                     <!-- Content Section -->
@@ -115,16 +100,6 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="24dp">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/dateTimeText"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:text="Senin, 12 November 2024"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
 
                         <!-- Attendance Code Input -->
                         <LinearLayout
@@ -179,10 +154,10 @@
                             android:id="@+id/submitButton"
                             style="@style/Widget.Material3.Button"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
+                            android:layout_height="60dp"
+                            android:layout_marginTop="14dp"
                             android:fontFamily="@font/poppins_semibold"
-                            android:paddingVertical="16dp"
+                            android:paddingVertical="14dp"
                             android:text="Submit Absensi"
                             android:textSize="16sp"
                             app:cornerRadius="16dp" />
@@ -205,14 +180,14 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <TextView
+                    <com.google.android.material.textview.MaterialTextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:fontFamily="@font/poppins_bold"
                         android:text="Jadwal Kerja"
                         android:textColor="?attr/colorOnSurface"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold" />
 
                     <!-- Fixed Header -->
@@ -222,8 +197,6 @@
                         android:stretchColumns="*">
 
                         <TableRow
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
                             android:background="@drawable/rounded_table"
                             android:padding="12dp">
 
@@ -234,7 +207,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Hari"
-                                android:textColor="?attr/colorOnSurface"
+                                android:textColor="?attr/colorOnPrimary"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -244,7 +217,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Shift"
-                                android:textColor="?attr/colorOnSurface"
+                                android:textColor="?attr/colorOnPrimary"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -254,7 +227,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Jam Masuk"
-                                android:textColor="?attr/colorOnSurface"
+                                android:textColor="?attr/colorOnPrimary"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -264,7 +237,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Jam Keluar"
-                                android:textColor="?attr/colorOnSurface"
+                                android:textColor="?attr/colorOnPrimary"
                                 android:textStyle="bold" />
                         </TableRow>
                     </TableLayout>

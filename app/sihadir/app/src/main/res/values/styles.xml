@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="CalendarViewCustom" parent="ThemeOverlay.Material3.MaterialCalendar">
-        <!-- Customize calendar appearance here -->
+        <!--  Customize calendar appearance here  -->
         <item name="android:datePickerStyle">@style/Widget.Material3.MaterialCalendar</item>
     </style>
+
     <style name="TableHeaderStyle">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
@@ -23,13 +24,31 @@
         <item name="android:textSize">14sp</item>
     </style>
 
+    <style name="DialogTheme" parent="Theme.MaterialComponents.Light.Dialog">
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowMinWidthMajor">90%</item>
+        <item name="android:windowMinWidthMinor">90%</item>
+    </style>
+
     <style name="CustomTextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
         <item name="boxStrokeWidth">1dp</item>
         <item name="android:paddingTop">0dp</item>
         <item name="android:paddingBottom">0dp</item>
         <item name="boxCollapsedPaddingTop">0dp</item>
-        <item name="boxStrokeColor">@color/material_on_surface_stroke</item>
         <item name="android:textColorHint">@color/material_on_surface_disabled</item>
     </style>
 
+    <!-- New Splash Screen Theme -->
+    <style name="SplashScreenTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Remove default splash screen -->
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:windowContentOverlay">@null</item>
+
+        <!-- For Android 12+ -->
+        <item name="android:windowSplashScreenBackground">@color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@null</item>
+    </style>
 </resources>
