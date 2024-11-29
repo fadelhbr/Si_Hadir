@@ -1,24 +1,60 @@
 package com.teamone.sihadir.model;
 
-import java.util.List;
+import com.google.gson.annotations.SerializedName;
 
 public class ApiResponse {
+    @SerializedName("status")
     private String status;
-    private List<Riwayat> data;
+
+    @SerializedName("message")
+    private String message;
+
+    @SerializedName("nama_lengkap")
+    private String nama_lengkap;
+
+    @SerializedName("role")
+    private String role;
+
+    // Getter dan Setter
 
     public String getStatus() {
+
         return status;
     }
 
     public void setStatus(String status) {
+
         this.status = status;
     }
 
-    public List<Riwayat> getData() {
-        return data;
+    public String getMessage() {
+
+        return message;
     }
 
-    public void setData(List<Riwayat> data) {
-        this.data = data;
+    public void setMessage(String message) {
+
+        this.message = message;
+    }
+
+    public String getNama_lengkap(){
+
+        return nama_lengkap;
+    }
+
+    public void setNama_lengkap(String nama_lengkap){
+
+        this.nama_lengkap = nama_lengkap;
+    }
+
+    public String getRole(){
+
+        return  role;
+    }
+
+    public void setRole(String role){
+
+        this.role = role;
     }
 }
+

@@ -434,14 +434,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             /* Warna tombol aktif */
             color: white !important;
         }
-        .table-container {
-        scrollbar-width: none; /* Firefox */
-        -ms-overflow-style: none; /* Internet Explorer dan Edge */
-        }
-
-        .table-container::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, dan Opera */
-        }
     </style>
 
 
@@ -748,7 +740,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 </div>
 
                                 <!-- Tabel Izin -->
-                                <div id="izinHistoryTable" class="table-container max-h-[300px] overflow-y-auto">
+                                <div id="izinHistoryTable" class="table-container">
                                     <table class="min-w-full divide-y divide-gray-200">
                                         <thead class="bg-gray-50">
                                             <tr>
@@ -803,7 +795,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 </div>
 
                                 <!-- Tabel Cuti -->
-                                <div id="cutiHistoryTable" class="hidden table-container hidden max-h-[300px] overflow-y-auto">
+                                <div id="cutiHistoryTable" class="hidden table-container hidden">
                                     <table class="min-w-full divide-y divide-gray-200">
                                         <thead class="bg-gray-50">
                                             <tr>

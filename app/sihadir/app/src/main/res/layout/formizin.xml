@@ -1,100 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_margin="16dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="4dp">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="wrap_content">
 
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Form permohonan izin"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnBack"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:text="Back"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#3F51B5"/>
-        </RelativeLayout>
-
-        <!-- Tombol Tanggal -->
-        <LinearLayout
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
+            android:layout_centerHorizontal="true"
+            android:text="Permohonan Izin"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_close"
+            android:layout_alignParentEnd="true" />
+    </RelativeLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnTanggal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Tanggal"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#2196F3"
-                app:icon="@drawable/ic_date"
-                app:iconTint="#FFFFFF"
-                app:iconGravity="end"/>
-        </LinearLayout>
+    <CalendarView
+        android:id="@+id/calendarViewLeaveDate"
+        android:layout_width="match_parent"
+        android:layout_height="302dp"
+        android:layout_marginTop="16dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+    <Spinner
+        android:id="@+id/spinnerLeaveType"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
+        android:prompt="@string/leave_type_prompt" />
 
-            <AutoCompleteTextView
-                android:id="@+id/spinnerJenisIzin"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Pilih jenis izin"
-                android:inputType="none"/>
+    <EditText
+        android:id="@+id/editTextDescription"
+        android:layout_width="match_parent"
+        android:layout_height="103dp"
+        android:layout_marginTop="16dp"
+        android:hint="Keterangan" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+    <Button
+        android:id="@+id/buttonSubmit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Ajukan Permohonan" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/edtKeterangan"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Keterangan"
-                android:minLines="3"
-                android:gravity="top"
-                android:inputType="textMultiLine"/>
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <Button
-            android:id="@+id/btnSubmit"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Ajukan permohonan"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#3F51B5"/>
-
-    </LinearLayout>
-
-</androidx.cardview.widget.CardView>
+</LinearLayout>

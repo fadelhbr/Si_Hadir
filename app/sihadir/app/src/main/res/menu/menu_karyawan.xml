@@ -3,17 +3,17 @@
 
     <item
         android:id="@+id/fr_absen"
-        android:title="Presensi"
+        android:title="Absen"
         android:icon="@drawable/ic_absen"/>
 
     <item
         android:id="@+id/fr_riwayat"
-        android:title="Riwayat"
+        android:title="RIwayat"
         android:icon="@drawable/ic_riwayat"/>
 
     <item
         android:id="@+id/fr_perizinan"
-        android:title="Cuti dan Izin"
+        android:title="Perizinan"
         android:icon="@drawable/ic_perizinan"/>
 
     <item
