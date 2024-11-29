@@ -1,5 +1,6 @@
 package com.teamone.sihadir.fragment;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -59,6 +60,7 @@ public class AbsenFragment extends Fragment {
 
     });
 
+    @SuppressLint("MissingInflatedId")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Menginflate layout fragment dan mengembalikannya
@@ -66,7 +68,12 @@ public class AbsenFragment extends Fragment {
 
         // Inisialisasi TextView
         TVnamaLengkap = view.findViewById(R.id.userName);
-        TVemployeeId = view.findViewById(R.id.statusChip);
+        TVemployeeId = view.findViewById(R.id.employeeId);
+        // Tambahkan null check untuk TextView
+        if (TVnamaLengkap == null || TVemployeeId == null) {
+            Log.e("AbsenFragment", "TextView not found in layout");
+            return view;
+        }
 
         // Ambil data dari SharedPreferences
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext());
@@ -80,12 +87,22 @@ public class AbsenFragment extends Fragment {
         // Inisialisasi TextInputEditText untuk kode absensi
         codeInput = view.findViewById(R.id.codeInput);
 
+// Tambahkan null check untuk codeInput
+        if (codeInput == null) {
+            Log.e("AbsenFragment", "codeInput not found in layout");
+        }
 
         Log.d("AbsenFragment", "Nama Lengkap: " + namaLengkap);
         Log.d("AbsenFragment", "User ID: " + userId);
 
         // Menginisialisasi scanButton1 dengan view yang diinflasi
         scanButton1 = view.findViewById(R.id.scanButton);
+
+        // Tambahkan null check untuk scanButton1
+        if (scanButton1 == null) {
+            Log.e("AbsenFragment", "scanButton not found in layout");
+            return view;
+        }
 
         // Mengatur refresh rate ke 120Hz jika perangkat mendukung
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && getActivity() != null) {
