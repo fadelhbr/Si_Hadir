@@ -283,6 +283,8 @@
     <color name="md_theme_dark_surfaceContainer_highContrast">#1D2024</color>
     <color name="md_theme_dark_surfaceContainerHigh_highContrast">#272A2F</color>
     <color name="md_theme_dark_surfaceContainerHighest_highContrast">#32353A</color>
+    <color name="primary_color">#2962FF</color>
+    <color name="border_color">#E0E0E0</color>
     <color name="primary">#2196F3</color>
     <color name="primary_dark">#1976D2</color>
     <color name="primary_light">#BBDEFB</color>
