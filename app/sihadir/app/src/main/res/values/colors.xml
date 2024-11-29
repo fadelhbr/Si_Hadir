@@ -15,7 +15,6 @@
     <color name="md_theme_light_onTertiaryContainer">#051D2A</color>
     <color name="md_theme_light_error">#BA1A1A</color>
     <color name="md_theme_light_onError">#FFFFFF</color>
-    <color name="colorPrimary">#28a745</color>
     <color name="md_theme_light_errorContainer">#FFDAD6</color>
     <color name="md_theme_light_onErrorContainer">#410002</color>
     <color name="md_theme_light_background">#F5F9FF</color>
@@ -284,16 +283,13 @@
     <color name="md_theme_dark_surfaceContainer_highContrast">#1D2024</color>
     <color name="md_theme_dark_surfaceContainerHigh_highContrast">#272A2F</color>
     <color name="md_theme_dark_surfaceContainerHighest_highContrast">#32353A</color>
-    <color name="black">#000000</color>
-    <color name="darker_gray">#666666</color>
-    <color name="primary">#DA342E</color>
-    <color name="primary_color">#2962FF</color>
-    <color name="background_color">#F5F5F5</color>
-    <color name="text_primary">#212121</color>
-    <color name="text_secondary">#757575</color>
-    <color name="border_color">#E0E0E0</color>
+    <color name="primary">#2196F3</color>
+    <color name="primary_dark">#1976D2</color>
+    <color name="primary_light">#BBDEFB</color>
+    <color name="accent">#03A9F4</color>
+    <color name="gray">#757575</color>
+    <color name="gray_light">#D8D8D8</color>
     <color name="white">#FFFFFF</color>
-    <!-- Warna untuk light mode -->
-    <color name="surface_container">#FFFFFF</color>
-    <color name="on_surface_container">#000000</color>
+    <color name="black">#000000</color>
+    <color name="biru_utama">#2196F3</color>
 </resources>

@@ -32,6 +32,7 @@
                 <item name="android:statusBarColor">#F8F9FF</item>
                 <!-- Set to false since it is dark -->
                 <item name="android:windowLightStatusBar">true</item>
+
             </style>
     <style name="CircleImageView">
         <item name="cornerFamily">rounded</item>
@@ -46,10 +47,6 @@
     <item name="android:background">#FFF</item>
 </style>
 
-    <style name="Theme.YourApp" parent="Theme.Material3.Light">
-        <item name="colorSurface">@color/white</item>
-        <item name="colorOnSurface">@color/black</item>
-    </style>
 
 <!--  texts background if light mode on  -->
     <style name="TEXT">

@@ -5,17 +5,17 @@ import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.view.View;
+import android.util.Base64;
+import android.util.Log;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 
-import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 
 import org.json.JSONObject;
@@ -36,13 +36,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
-
     private TextView btnForgotPassword;
-
-    private MaterialButton btnSendOTP;
-
-    private EditText emailEditText;
-    private static final String API_URL = "http://192.168.1.4/sihadir/app/api/api_login.php";
+    private static final String API_URL = "http://192.168.1.37/Si_Hadir/web/sihadir/app/api/api_login.php";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     // SharedPreferences keys
@@ -71,93 +66,20 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btnLogin);
         btnForgotPassword = findViewById(R.id.btnForgotPassword);
 
-        // Inisialisasi TextView Lupa Password
-        btnForgotPassword = findViewById(R.id.btnForgotPassword);
+        // Tambahkan animasi awal
+        initializeEntryAnimations();
 
-        btnLogin.setOnClickListener(v -> login());
-        // Tambahkan listener untuk lupa password
-        btnForgotPassword.setOnClickListener(v -> showLupaPasswordDialog());
-    }
-
-    private void showLupaPasswordDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Lupa Password");
-
-        // Inflate layout custom untuk dialog
-        View dialogView = getLayoutInflater().inflate(R.layout.lupa_password, null);
-        EditText emailInput = dialogView.findViewById(R.id.Email_input);
-
-        builder.setView(dialogView);
-        builder.setPositiveButton("Kirim", (dialog, which) -> {
-            String email = emailInput.getText().toString().trim();
-            if (isValidEmail(email)) {
-                kirimResetPassword(email);
-            } else {
-                Toast.makeText(this, "Email tidak valid", Toast.LENGTH_SHORT).show();
-            }
+        btnLogin.setOnClickListener(v -> {
+            // Tambahkan animasi ketika login diklik
+            animateLoginClick();
+            login();
         });
 
-        builder.setNegativeButton("Batal", (dialog, which) -> dialog.dismiss());
-
-        builder.create().show();
-    }
-
-    private void kirimResetPassword(String email) {
-        // URL untuk reset password (sesuaikan dengan API Anda)
-        String RESET_PASSWORD_URL = "http://192.168.1.4/sihadir/app/api/api_reset_password.php";
-
-        OkHttpClient client = new OkHttpClient();
-
-        // Buat request body
-        Map<String, String> requestMap = new HashMap<>();
-        requestMap.put("email", email);
-        String jsonBody = new Gson().toJson(requestMap);
-
-        RequestBody body = RequestBody.create(
-                MediaType.parse("application/json; charset=utf-8"),
-                jsonBody
-        );
-
-        Request request = new Request.Builder()
-                .url(RESET_PASSWORD_URL)
-                .post(body)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(LoginActivity.this,
-                            "Gagal mengirim permintaan reset password",
-                            Toast.LENGTH_SHORT).show();
-                });
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                final String responseBody = response.body().string();
-
-                runOnUiThread(() -> {
-                    try {
-                        JSONObject jsonResponse = new JSONObject(responseBody);
-                        boolean success = jsonResponse.getBoolean("success");
-                        String message = jsonResponse.getString("message");
-
-                        Toast.makeText(LoginActivity.this,
-                                message,
-                                Toast.LENGTH_SHORT).show();
-                    } catch (Exception e) {
-                        Toast.makeText(LoginActivity.this,
-                                "Kesalahan memproses respons",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
+        btnForgotPassword.setOnClickListener(v -> {
+            // Aksi ketika lupa password diklik
+            Toast.makeText(LoginActivity.this, "Lupa password diklik", Toast.LENGTH_SHORT).show();
+            // Anda bisa menambahkan logika untuk menangani fitur lupa password di sini.
         });
-    }
-
-    private boolean isValidEmail(String email) {
-        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
     }
 
     private boolean isLoggedIn() {
