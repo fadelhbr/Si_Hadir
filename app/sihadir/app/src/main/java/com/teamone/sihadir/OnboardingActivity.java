@@ -31,7 +31,6 @@ public class OnboardingActivity extends AppCompatActivity {
         nextButton = findViewById(R.id.nextButton);
         finishButton = findViewById(R.id.finishButton);
         TabLayout tabLayout = findViewById(R.id.tabLayout);
-
         List<OnboardingItem> onboardingItems = new ArrayList<>();
         onboardingItems.add(new OnboardingItem(R.drawable.ic_qr_code, "Scan & Presensi",
                 "Absensi mudah dan cepat dengan scan QR code menggunakan jaringan lokal yang aman"));

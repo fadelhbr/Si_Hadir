@@ -527,6 +527,14 @@ if (isset($_POST['remove_device'])) {
                 position: absolute;
             }
         }
+        .table-container {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* Internet Explorer dan Edge */
+        }
+
+        .table-container::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, dan Opera */
+        }
     </style>
 
 </head>
@@ -643,8 +651,17 @@ if (isset($_POST['remove_device'])) {
                     <?php unset($_SESSION['alert']); ?>
                 <?php endif; ?>
                 <!-- Table content -->
-                <div class="bg-white shadow rounded-lg p-4 mb-4">
-                    <table class="min-w-full divide-y divide-gray-200">
+                <div class="bg-white shadow rounded-lg p-4 mb-4 overflow-x-auto custom-scrollbar">
+                <style>
+                    .custom-scrollbar::-webkit-scrollbar {
+                        display: none;
+                    }
+                    .custom-scrollbar {
+                        -ms-overflow-style: none;  /* IE and Edge */
+                        scrollbar-width: none;  /* Firefox */
+                    }
+                </style>
+                <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th
