@@ -13,11 +13,16 @@
         android:background="@android:color/transparent"
         app:elevation="0dp"/>
 
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -85,6 +90,7 @@
                                 android:id="@+id/dateTimeText"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
+                                android:layout_marginLeft="10dp"
                                 android:fontFamily="@font/poppins_bold"
                                 android:text="Senin, 12 November 2024"
                                 android:textColor="?attr/colorOnPrimary"
@@ -99,13 +105,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="24dp">
+                        android:padding="20dp">
 
                         <!-- Attendance Code Input -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginLeft="9dp"
+                            android:layout_marginRight="9dp"
                             android:gravity="center"
                             android:orientation="horizontal">
 
@@ -129,7 +137,7 @@
                                     android:layout_height="55dp"
                                     android:fontFamily="@font/poppins_semibold"
                                     android:gravity="center"
-                                    android:hint="Masukkan Kode Absensi"
+                                    android:hint="Kode Presensi"
                                     android:inputType="text"
                                     android:paddingTop="0dp"
                                     android:paddingBottom="0dp" />
@@ -155,10 +163,12 @@
                             style="@style/Widget.Material3.Button"
                             android:layout_width="match_parent"
                             android:layout_height="60dp"
-                            android:layout_marginTop="14dp"
+                            android:layout_marginTop="20dp"
+                            android:layout_marginLeft="9dp"
+                            android:layout_marginRight="9dp"
                             android:fontFamily="@font/poppins_semibold"
                             android:paddingVertical="14dp"
-                            android:text="Submit Absensi"
+                            android:text="Submit Presensi"
                             android:textSize="16sp"
                             app:cornerRadius="16dp" />
                     </LinearLayout>
@@ -183,7 +193,9 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
                         android:layout_marginBottom="16dp"
+                        android:layout_marginLeft="9dp"
                         android:fontFamily="@font/poppins_bold"
                         android:text="Jadwal Kerja"
                         android:textColor="?attr/colorOnSurface"
@@ -194,6 +206,8 @@
                     <TableLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginLeft="9dp"
+                        android:layout_marginRight="9dp"
                         android:stretchColumns="*">
 
                         <TableRow
@@ -204,6 +218,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
+                                android:layout_marginTop="10dp"
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Hari"
@@ -214,6 +229,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
+                                android:layout_marginTop="10dp"
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Shift"
@@ -243,13 +259,14 @@
                     </TableLayout>
 
                     <!-- Scrollable Content -->
-                    <androidx.core.widget.NestedScrollView
-                        android:layout_width="match_parent"
-                        android:layout_height="200dp">
+
+
 
                         <TableLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginLeft="9dp"
+                            android:layout_marginRight="9dp"
                             android:stretchColumns="*">
 
                             <!-- Monday -->
@@ -505,7 +522,8 @@
 
                             <!-- Sunday -->
                             <TableRow
-                                android:background="?attr/colorSurface"
+                                android:background="@drawable/rounded_table_bottom"
+                                android:layout_marginBottom="12dp"
                                 android:padding="12dp">
 
                                 <TextView
@@ -546,9 +564,9 @@
                             </TableRow>
 
                         </TableLayout>
-                    </androidx.core.widget.NestedScrollView>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

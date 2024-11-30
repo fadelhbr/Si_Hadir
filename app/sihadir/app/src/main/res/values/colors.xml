@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="md_theme_light_primary">#1E6FD9</color>
+    <color name="colorPrimary">@color/md_theme_light_primary</color>
+    <color name="md_theme_light_primary">#36618E</color>
     <color name="md_theme_light_onPrimary">#FFFFFF</color>
     <color name="md_theme_light_primaryContainer">#B6D4FF</color>
     <color name="md_theme_light_onPrimaryContainer">#072D4B</color>
@@ -282,6 +283,8 @@
     <color name="md_theme_dark_surfaceContainer_highContrast">#1D2024</color>
     <color name="md_theme_dark_surfaceContainerHigh_highContrast">#272A2F</color>
     <color name="md_theme_dark_surfaceContainerHighest_highContrast">#32353A</color>
+    <color name="primary_color">#2962FF</color>
+    <color name="border_color">#E0E0E0</color>
     <color name="primary">#2196F3</color>
     <color name="primary_dark">#1976D2</color>
     <color name="primary_light">#BBDEFB</color>
