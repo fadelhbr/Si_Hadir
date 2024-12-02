@@ -8,6 +8,7 @@ import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Query;
 
 public interface ApiService {
@@ -25,4 +26,11 @@ public interface ApiService {
     Call<ApiResponse> getRiwayatKehadiran(
             @Body Map<String, String> body // Mengirimkan username dan password melalui body
     );
+
+    @POST("api_attendance.php") // Sesuaikan dengan endpoint API Anda
+    Call<AbsensiApiResponse> submitAbsensi(@Body AbsensiRequest request);
+
+    @PUT("/absensi/update")
+    Call<AbsensiApiResponse> updateAbsensi(@Body AbsensiRequest request);
+
 }

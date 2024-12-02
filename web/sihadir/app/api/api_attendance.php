@@ -7,7 +7,8 @@ header('Access-Control-Allow-Headers: Content-Type');
 require_once '../auth/auth.php';
 date_default_timezone_set('Asia/Jakarta');
 
-function sendResponse($status, $message, $data = null) {
+function sendResponse($status, $message, $data = null)
+{
     $response = [
         'status' => $status,
         'message' => $message
@@ -19,26 +20,29 @@ function sendResponse($status, $message, $data = null) {
     exit;
 }
 
-function checkHolidayStatus($pdo, $employeeId, $date) {
+function checkHolidayStatus($pdo, $employeeId, $date)
+{
     $query = "SELECT status_kehadiran 
               FROM absensi 
               WHERE pegawai_id = ? 
               AND DATE(tanggal) = ? 
               AND status_kehadiran = 'libur'";
-    
+
     $stmt = $pdo->prepare($query);
     $stmt->execute([$employeeId, $date]);
     return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
 }
 
-function verifyUniqueCode($pdo, $uniqueCode) {
+function verifyUniqueCode($pdo, $uniqueCode)
+{
     $query = "SELECT * FROM qr_code WHERE kode_unik = ?";
     $stmt = $pdo->prepare($query);
     $stmt->execute([$uniqueCode]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-function getActiveShiftSchedule($pdo, $employeeId, $date) {
+function getActiveShiftSchedule($pdo, $employeeId, $date)
+{
     $query = "SELECT 
                 js.id as jadwal_shift_id, 
                 js.status as jadwal_status, 
@@ -57,7 +61,8 @@ function getActiveShiftSchedule($pdo, $employeeId, $date) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-function getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId) {
+function getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId)
+{
     // Check for leave/holiday status
     $checkQuery = "SELECT id, status_kehadiran 
                   FROM absensi 
@@ -166,34 +171,46 @@ try {
     $shiftStart = new DateTime($currentDate . ' ' . $shiftSchedule['jam_masuk']);
     $shiftEnd = new DateTime($currentDate . ' ' . $shiftSchedule['jam_keluar']);
 
-    // Handle check-in
-    if ($attendance['waktu_masuk'] == '00:00:00') {
+    // Modifikasi pada bagian check-in
+    if ($attendance['waktu_masuk'] == '00:00:00') { // Check-in logic
         $earliestCheckInTime = (clone $shiftStart)->modify('-45 minutes');
 
+        // Cek apakah terlalu awal
         if ($currentTime < $earliestCheckInTime) {
             throw new Exception('Terlalu awal untuk absen. Absensi dimulai 45 menit sebelum jadwal shift pada pukul ' . $earliestCheckInTime->format('H:i'));
         }
 
+        // Cek apakah melewati waktu akhir shift
         if ($currentTime > $shiftEnd) {
             throw new Exception('Melewati jam keluar shift dan tidak diperbolehkan absen');
         }
 
-        $status = ($currentTime <= $shiftStart) ? 'hadir' : 'terlambat';
+        // Tentukan status berdasarkan waktu check-in
+        $status = ($currentTime > $shiftStart) ? 'terlambat' : 'hadir';
 
-        $stmt = $pdo->prepare("UPDATE absensi SET waktu_masuk = CURRENT_TIME(), status_kehadiran = ?, kode_unik = ? WHERE id = ?");
+        // Update database untuk absensi masuk
+        $stmt = $pdo->prepare("
+            UPDATE absensi 
+            SET waktu_masuk = CURRENT_TIME(), 
+                status_kehadiran = ?, 
+                kode_unik = ? 
+            WHERE id = ?
+        ");
         if (!$stmt->execute([$status, $uniqueCode, $attendance['id']])) {
             throw new Exception('Gagal mencatat absensi masuk');
         }
 
+        // Persiapkan respons data
         $responseData = [
             'attendance_id' => $attendance['id'],
             'check_in_time' => date('H:i:s'),
             'status' => $status
         ];
-        
-        $pdo->commit();
+
+        $pdo->commit(); // Commit jika berhasil
         sendResponse('success', 'Absensi masuk berhasil dicatat', $responseData);
     }
+
     // Handle check-out
     else if ($attendance['waktu_keluar'] == '00:00:00') {
         if ($currentTime < $shiftEnd && !$confirmEarlyLeave) {

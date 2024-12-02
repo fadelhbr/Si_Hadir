@@ -82,10 +82,11 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.10.0'
     implementation 'com.google.code.gson:gson:2.8.9'
 
-    //buat refresh hehe :)
-    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    //buat activity result launcher :)
+    implementation 'androidx.activity:activity-ktx:1.7.2'
+    implementation 'androidx.fragment:fragment-ktx:1.6.1'
 
-    //buat recycleview disuruh bintang :)
-    implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    //buat absensi :)
+    implementation 'com.google.code.gson:gson:2.8.9'
 
 }
