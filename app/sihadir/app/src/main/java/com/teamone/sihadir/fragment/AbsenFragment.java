@@ -138,23 +138,16 @@ public class AbsenFragment extends Fragment {
             return;
         }
 
-        // Deteksi kode untuk early leave
-        boolean isEarlyLeave = absensiCode.startsWith("EL"); // Contoh: awalan "EL" untuk early leave
-
-        if (isEarlyLeave) {
-            // Tampilkan dialog konfirmasi jika early leave
-            showEarlyLeaveConfirmationDialog(() -> sendAbsensiRequest(userId, absensiCode, true));
-        } else {
-            // Langsung kirim jika bukan early leave
-            sendAbsensiRequest(userId, absensiCode, false);
-        }
+        // Check early leave status before submitting
+        checkEarlyLeaveStatus(userId, absensiCode);
     }
 
-    private void sendAbsensiRequest(int userId, String absensiCode, boolean confirmEarlyLeave) {
+    private void checkEarlyLeaveStatus(int userId, String absensiCode) {
+        // Prepare the request body
         AbsensiRequest request = new AbsensiRequest(
                 String.valueOf(userId),
                 absensiCode,
-                confirmEarlyLeave
+                false // Initial confirmation set to false
         );
 
         apiService.submitAbsensi(request).enqueue(new Callback<AbsensiApiResponse>() {
@@ -163,9 +156,48 @@ public class AbsenFragment extends Fragment {
                 if (response.isSuccessful() && response.body() != null) {
                     AbsensiApiResponse apiResponse = response.body();
 
+                    // Check if confirmation is needed for early leave
+                    if ("confirm_needed".equalsIgnoreCase(apiResponse.getStatus())) {
+                        showEarlyLeaveConfirmationDialog(
+                                () -> sendFinalAbsensiRequest(userId, absensiCode, true),
+                                () -> showErrorDialog("Konfirmasi Diperlukan", "Konfirmasi pulang lebih awal tidak dilakukan.")
+                        );
+                    } else if ("success".equalsIgnoreCase(apiResponse.getStatus())) {
+                        // Absensi successful without confirmation needed
+                        Toast.makeText(requireContext(), apiResponse.getMessage(), Toast.LENGTH_SHORT).show();
+                        codeInput.setText(""); // Reset input
+                    } else {
+                        // Other error cases
+                        showErrorDialog("Gagal", apiResponse.getMessage());
+                    }
+                } else {
+                    showErrorDialog("Gagal", "Tidak dapat mengirim absensi. Silakan coba lagi.");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<AbsensiApiResponse> call, @NonNull Throwable t) {
+                showErrorDialog("Error", "Terjadi kesalahan: " + t.getMessage());
+            }
+        });
+    }
+
+    private void sendFinalAbsensiRequest(int userId, String absensiCode, boolean confirmEarlyLeave) {
+        AbsensiRequest finalRequest = new AbsensiRequest(
+                String.valueOf(userId),
+                absensiCode,
+                confirmEarlyLeave
+        );
+
+        apiService.submitAbsensi(finalRequest).enqueue(new Callback<AbsensiApiResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<AbsensiApiResponse> call, @NonNull Response<AbsensiApiResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    AbsensiApiResponse apiResponse = response.body();
+
                     if ("success".equalsIgnoreCase(apiResponse.getStatus())) {
                         Toast.makeText(requireContext(), apiResponse.getMessage(), Toast.LENGTH_SHORT).show();
-                        codeInput.setText(""); // Reset input setelah berhasil
+                        codeInput.setText(""); // Reset input
                     } else {
                         showErrorDialog("Gagal", apiResponse.getMessage());
                     }
@@ -179,6 +211,22 @@ public class AbsenFragment extends Fragment {
                 showErrorDialog("Error", "Terjadi kesalahan: " + t.getMessage());
             }
         });
+    }
+
+    private void showEarlyLeaveConfirmationDialog(Runnable onConfirm, Runnable onCancel) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Konfirmasi Pulang Lebih Awal");
+        builder.setMessage("Anda akan pulang sebelum jam shift berakhir. Apakah Anda yakin?");
+        builder.setPositiveButton("Ya", (dialog, which) -> {
+            dialog.dismiss();
+            onConfirm.run();
+        });
+        builder.setNegativeButton("Tidak", (dialog, which) -> {
+            dialog.dismiss();
+            onCancel.run();
+        });
+        builder.setCancelable(false);
+        builder.show();
     }
 
 
