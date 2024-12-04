@@ -1,5 +1,7 @@
 package com.teamone.sihadir.model;
 
+import com.google.gson.JsonObject;
+
 import java.util.Map;
 
 import retrofit2.Call;
@@ -30,7 +32,10 @@ public interface ApiService {
     @POST("api_attendance.php") // Sesuaikan dengan endpoint API Anda
     Call<AbsensiApiResponse> submitAbsensi(@Body AbsensiRequest request);
 
-    @PUT("/absensi/update")
-    Call<AbsensiApiResponse> updateAbsensi(@Body AbsensiRequest request);
+    @GET("api_schedule.php")
+    Call<ScheduleResponse> getEmployeeSchedule(@Query("user_id") int userId);
+
+    @GET("api_status.php")
+    Call<AttendanceStatusResponse> getAttendanceStatus(@Query("user_id") int userId);
 
 }

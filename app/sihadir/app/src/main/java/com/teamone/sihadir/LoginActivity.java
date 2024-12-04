@@ -5,23 +5,32 @@ import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
+import android.util.Base64;
 import android.util.Log;
-import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
-import android.view.animation.AnticipateOvershootInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
+
 import com.google.gson.Gson;
-import okhttp3.*;
+
 import org.json.JSONObject;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -35,6 +44,7 @@ public class LoginActivity extends AppCompatActivity {
     private static final String PREF_IS_LOGGED_IN = "is_logged_in";
     private static final String PREF_USER_ID = "user_id";
     private static final String PREF_USERNAME = "username";
+    private static final String PREF_PASSWORD = "password";
     private static final String PREF_USER_ROLE = "user_role";
     private static final String PREF_NAMA_LENGKAP = "nama_lengkap";
 
@@ -77,21 +87,35 @@ public class LoginActivity extends AppCompatActivity {
         return preferences.getBoolean(PREF_IS_LOGGED_IN, false);
     }
 
-    private void saveLoginInfo(int userId, String username, String userRole) {
+    private void saveLoginInfo(int userId, String username, String password, String userRole) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = preferences.edit();
 
-        Log.d("LoginActivity", "Menyimpan user_id: " + userId);
+        // Encrypt password
+        String encryptedPassword = encryptPassword(password);
 
         // Capitalize username for display
         String displayName = username.substring(0, 1).toUpperCase() + username.substring(1).toLowerCase();
 
+        // Save all credentials
         editor.putBoolean(PREF_IS_LOGGED_IN, true);
         editor.putInt(PREF_USER_ID, userId);
         editor.putString(PREF_USERNAME, username);
+        editor.putString(PREF_PASSWORD, encryptedPassword);
         editor.putString(PREF_USER_ROLE, userRole);
         editor.putString(PREF_NAMA_LENGKAP, displayName);
-        editor.apply();
+
+        // Verify that editor.apply() is successful
+        boolean success = editor.commit(); // Using commit() instead of apply() to verify
+
+        // Log the save operation
+        Log.d("LOGIN_DEBUG", "Save credentials success: " + success);
+        Log.d("LOGIN_DEBUG", "Username saved: " + preferences.getString(PREF_USERNAME, "not found"));
+        Log.d("LOGIN_DEBUG", "Password saved: " + (preferences.getString(PREF_PASSWORD, null) != null));
+    }
+
+    private String encryptPassword(String password) {
+        return Base64.encodeToString(password.getBytes(), Base64.DEFAULT);
     }
 
     private void navigateToMainActivity() {
@@ -183,7 +207,6 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Membuat JSON request body
         Map<String, String> requestMap = new HashMap<>();
         requestMap.put("username", username);
         requestMap.put("password", password);
@@ -219,47 +242,42 @@ public class LoginActivity extends AppCompatActivity {
                         String message = jsonResponse.getString("message");
 
                         if (success) {
-                            // Tambahkan animasi login berhasil
-                            animateLoginSuccess();
-
-                            // Parsing user data dari respons
                             JSONObject userObj = jsonResponse.getJSONObject("user");
                             int userId = userObj.getInt("id");
-                            Log.d("LoginActivity", "userId diterima dari API: " + userId);
                             String userRole = userObj.getString("role");
                             String responseUsername = userObj.getString("username");
 
-                            // Simpan informasi login
-                            saveLoginInfo(userId, responseUsername, userRole);
+                            // Save login info including password
+                            saveLoginInfo(userId, responseUsername, password, userRole);
 
-                            // Tampilkan pesan sukses
+                            // Verify saved credentials immediately after saving
+                            verifyCredentialsSaved();
+
                             Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
-
-                            // Pindah ke MainActivity dengan sedikit delay untuk animasi
-                            new Handler().postDelayed(() -> {
-                                navigateToMainActivity();
-                            }, 300);
+                            navigateToMainActivity();
                         } else {
-                            // Animasi error
-                            ObjectAnimator shake = ObjectAnimator.ofFloat(usernameEditText, "translationX", 0, -10, 10, -10, 10, 0);
-                            shake.setDuration(300);
-                            shake.start();
-
-                            // Tampilkan pesan error dari server
                             Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
                         }
                     } catch (Exception e) {
-                        // Error parsing JSON
                         Toast.makeText(LoginActivity.this,
                                 "Kesalahan memproses respons: " + e.toString(),
                                 Toast.LENGTH_LONG).show();
-
-                        // Log error untuk debugging
                         e.printStackTrace();
-                        System.out.println("Response Body: " + responseBody);
                     }
                 });
             }
         });
+    }
+
+    // Method baru untuk verifikasi credentials
+    private void verifyCredentialsSaved() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isLoggedIn = preferences.getBoolean(PREF_IS_LOGGED_IN, false);
+        String savedUsername = preferences.getString(PREF_USERNAME, "");
+        String savedPassword = preferences.getString(PREF_PASSWORD, "");
+
+        Log.d("LOGIN_VERIFY", "Is Logged In: " + isLoggedIn);
+        Log.d("LOGIN_VERIFY", "Username saved: " + !savedUsername.isEmpty());
+        Log.d("LOGIN_VERIFY", "Password saved: " + !savedPassword.isEmpty());
     }
 }
