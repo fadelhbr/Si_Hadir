@@ -474,6 +474,7 @@ public class AbsenFragment extends Fragment {
                     } else {
                         // Other error cases
                         showErrorDialog("Gagal", apiResponse.getMessage());
+                        codeInput.setText("");
                     }
                 } else {
                     showErrorDialog("Gagal", "Tidak dapat mengirim absensi. Silakan coba lagi.");

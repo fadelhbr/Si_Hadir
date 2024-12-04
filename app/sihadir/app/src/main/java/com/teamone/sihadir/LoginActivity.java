@@ -12,6 +12,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.provider.Settings;
+import android.os.Build;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
@@ -45,6 +51,7 @@ public class LoginActivity extends AppCompatActivity {
     private static final String PREF_USER_ID = "user_id";
     private static final String PREF_USERNAME = "username";
     private static final String PREF_PASSWORD = "password";
+
     private static final String PREF_USER_ROLE = "user_role";
     private static final String PREF_NAMA_LENGKAP = "nama_lengkap";
 
@@ -207,9 +214,16 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        // Generate device hash and info
+        String deviceHash = generateDeviceHash();
+        String deviceInfo = generateDeviceInfo();
+
         Map<String, String> requestMap = new HashMap<>();
         requestMap.put("username", username);
         requestMap.put("password", password);
+        requestMap.put("device_hash", deviceHash);
+        requestMap.put("device_info", deviceInfo);
+
         String jsonBody = new Gson().toJson(requestMap);
 
         OkHttpClient client = new OkHttpClient();
@@ -250,9 +264,6 @@ public class LoginActivity extends AppCompatActivity {
                             // Save login info including password
                             saveLoginInfo(userId, responseUsername, password, userRole);
 
-                            // Verify saved credentials immediately after saving
-                            verifyCredentialsSaved();
-
                             Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
                             navigateToMainActivity();
                         } else {
@@ -267,6 +278,50 @@ public class LoginActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    // Method to generate unique device hash
+    private String generateDeviceHash() {
+        String deviceUniqueId = Settings.Secure.getString(getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+        String deviceModel = Build.MODEL;
+        String deviceManufacturer = Build.MANUFACTURER;
+
+        String combinedInfo = deviceUniqueId + deviceModel + deviceManufacturer;
+        return hashSHA256(combinedInfo);
+    }
+
+    // Method to generate device information
+    private String generateDeviceInfo() {
+        JSONObject deviceInfoJson = new JSONObject();
+        try {
+            deviceInfoJson.put("model", Build.MODEL);
+            deviceInfoJson.put("manufacturer", Build.MANUFACTURER);
+            deviceInfoJson.put("os_version", Build.VERSION.RELEASE);
+            deviceInfoJson.put("device_id", Settings.Secure.getString(getContentResolver(),
+                    Settings.Secure.ANDROID_ID));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return deviceInfoJson.toString();
+    }
+
+    // SHA-256 hashing method
+    private String hashSHA256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
     }
 
     // Method baru untuk verifikasi credentials

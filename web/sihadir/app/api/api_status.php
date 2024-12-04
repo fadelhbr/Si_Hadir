@@ -16,7 +16,9 @@ function respondWithError($message, $statusCode = 400)
 function getAttendanceStatus($pdo, $userId)
 {
     try {
-        $today = date("Y-m-d"); // Ambil tanggal hari ini
+        // Set timezone to GMT+7
+        date_default_timezone_set("Asia/Jakarta");
+        $today = date("Y-m-d");
 
         $stmt = $pdo->prepare("
             SELECT
@@ -30,39 +32,52 @@ function getAttendanceStatus($pdo, $userId)
                 users u
             JOIN
                 pegawai p ON u.id = p.user_id
-            JOIN
-                absensi a ON p.id = a.pegawai_id
+            LEFT JOIN
+                absensi a ON p.id = a.pegawai_id AND a.tanggal = :today
             WHERE
-                u.id = :user_id AND a.tanggal = :today
+                u.id = :user_id
             ORDER BY
                 a.tanggal DESC
             LIMIT 1
         ");
 
-        // Bind parameter
         $stmt->bindParam(":user_id", $userId, PDO::PARAM_INT);
         $stmt->bindParam(":today", $today, PDO::PARAM_STR);
 
-        // Execute query
         $stmt->execute();
+
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$result) {
-            respondWithError("No attendance record found for today", 404);
+            $userStmt = $pdo->prepare(
+                "SELECT * FROM users WHERE id = :user_id"
+            );
+            $userStmt->bindParam(":user_id", $userId, PDO::PARAM_INT);
+            $userStmt->execute();
+            $userExists = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$userExists) {
+                respondWithError("User not found", 404);
+            }
+
+            return [
+                "tanggal" => $today,
+                "status_kehadiran" => "Belum Absen",
+                "keterangan" => "Tidak ada catatan absensi hari ini",
+            ];
         }
 
-        // Return the relevant data
         return [
-            "tanggal" => $result["tanggal"],
-            "status_kehadiran" => $result["status_kehadiran"],
-            "keterangan" => $result["keterangan"],
+            "tanggal" => $result["tanggal"] ?? $today,
+            "status_kehadiran" => $result["status_kehadiran"] ?? "Belum Absen",
+            "keterangan" => $result["keterangan"] ?? "Tidak ada keterangan",
         ];
     } catch (PDOException $e) {
         error_log("Database error: " . $e->getMessage());
-        respondWithError("Database error", 500);
+        respondWithError("Database error: " . $e->getMessage(), 500);
     } catch (Exception $e) {
         error_log("General error: " . $e->getMessage());
-        respondWithError("Internal server error", 500);
+        respondWithError("Internal server error: " . $e->getMessage(), 500);
     }
 }
 
