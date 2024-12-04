@@ -12,14 +12,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.teamone.sihadir.R;
 import com.teamone.sihadir.model.Riwayat;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class RiwayatAdapter extends RecyclerView.Adapter<RiwayatAdapter.ViewHolder> {
 
     private List<Riwayat> riwayatList;
-    private static final int PAGE_SIZE = 5; // Menentukan ukuran halaman
-    private int currentPage = 0; // Halaman yang sedang ditampilkan
 
     public RiwayatAdapter(List<Riwayat> riwayatList) {
         this.riwayatList = riwayatList;
@@ -63,11 +60,27 @@ public class RiwayatAdapter extends RecyclerView.Adapter<RiwayatAdapter.ViewHold
         return riwayatList.size();
     }
 
-    // Menambahkan data lebih lanjut ke dalam daftar
-    public void addData(List<Riwayat> newRiwayatList) {
-        int startPos = riwayatList.size();
-        riwayatList.addAll(newRiwayatList);
-        notifyItemRangeInserted(startPos, newRiwayatList.size());
+    // Metode untuk memformat string (menghapus underscore dan mengkapitalisasi)
+    private String formatString(String input) {
+        if (input == null || input.isEmpty()) {
+            return "-";
+        }
+
+        // Menghapus underscore dan menggantinya dengan spasi
+        String replaced = input.replace("_", " ");
+
+        // Mengkapitalisasi huruf pertama setiap kata
+        StringBuilder formatted = new StringBuilder();
+        String[] words = replaced.split(" ");
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                formatted.append(Character.toUpperCase(word.charAt(0)))
+                        .append(word.substring(1).toLowerCase())
+                        .append(" ");
+            }
+        }
+
+        return formatted.toString().trim();
     }
 
     // ViewHolder untuk item data riwayat
@@ -82,36 +95,5 @@ public class RiwayatAdapter extends RecyclerView.Adapter<RiwayatAdapter.ViewHold
             tvWaktuKeluar = itemView.findViewById(R.id.tvWaktuKeluar);
             tvStatus = itemView.findViewById(R.id.tvStatusKehadiran);
         }
-    }
-
-    // Metode untuk mendapatkan data berdasarkan halaman dan ukuran halaman
-    public List<Riwayat> getDataForPage(int page) {
-        int startIndex = page * PAGE_SIZE;
-        int endIndex = Math.min(startIndex + PAGE_SIZE, riwayatList.size());
-
-        return new ArrayList<>(riwayatList.subList(startIndex, endIndex));
-    }
-
-    // Fungsi untuk memformat string: menghapus underscore dan kapitalisasi huruf pertama
-    private String formatString(String input) {
-        if (input == null) {
-            return "";
-        }
-
-        // Ganti underscore dengan spasi
-        String result = input.replace("_", " ");
-
-        // Kapitalisasi huruf pertama dari setiap kata
-        StringBuilder formattedString = new StringBuilder();
-        String[] words = result.split(" ");
-        for (String word : words) {
-            if (word.length() > 0) {
-                formattedString.append(word.substring(0, 1).toUpperCase());
-                formattedString.append(word.substring(1).toLowerCase());
-            }
-            formattedString.append(" ");
-        }
-
-        return formattedString.toString().trim();
     }
 }
