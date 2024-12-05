@@ -43,7 +43,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
     private TextView btnForgotPassword;
-    private static final String API_URL = "http://192.168.1.9/Si_Hadir/web/sihadir/app/api/api_login.php";
+    private static final String API_URL = "http://192.168.0.102/Si_Hadir/web/sihadir/app/api/api_login.php";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     // SharedPreferences keys
@@ -185,16 +185,29 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void animateLoginClick() {
-        // Animasi pada saat tombol login ditekan
-        ObjectAnimator scaleX = ObjectAnimator.ofFloat(btnLogin, "scaleX", 1f, 0.9f, 1f);
-        ObjectAnimator scaleY = ObjectAnimator.ofFloat(btnLogin, "scaleY", 1f, 0.9f, 1f);
-        ObjectAnimator rotation = ObjectAnimator.ofFloat(btnLogin, "rotation", 0f, 10f, -10f, 0f);
+        // Animasi modern dengan efek spring-like
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(btnLogin, "scaleX", 1f, 0.9f, 1.05f, 1f);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(btnLogin, "scaleY", 1f, 0.9f, 1.05f, 1f);
+
+        // Tambahkan efek translasi ringan untuk kesan dinamis
+        ObjectAnimator translationY = ObjectAnimator.ofFloat(btnLogin, "translationY", 0f, -10f, 0f);
+
+        // Efek bayangan dan elevasi
+        ObjectAnimator elevation = ObjectAnimator.ofFloat(btnLogin, "elevation",
+                btnLogin.getElevation(),
+                btnLogin.getElevation() + 10f,
+                btnLogin.getElevation()
+        );
 
         AnimatorSet animatorSet = new AnimatorSet();
-        animatorSet.setDuration(300);
-        animatorSet.setInterpolator(new AccelerateDecelerateInterpolator());
-        animatorSet.playTogether(scaleX, scaleY, rotation);
+        animatorSet.setDuration(350);
+        animatorSet.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        animatorSet.playTogether(scaleX, scaleY, translationY, elevation);
         animatorSet.start();
+
+        // Efek ripple tambahan
+        btnLogin.setPressed(true);
+        btnLogin.postDelayed(() -> btnLogin.setPressed(false), 200);
     }
 
     private void animateLoginSuccess() {

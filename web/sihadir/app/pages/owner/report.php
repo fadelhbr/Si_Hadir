@@ -191,7 +191,7 @@ if (isset($_GET['action'])) {
         <html lang="id">
         <head>
             <meta charset="UTF-8">
-            <title>Laporan Presensi</title>
+            <title>Laporan Absensi</title>
             <style>
                 body { font-family: Arial, sans-serif; }
                 h1 { text-align: center; }
@@ -201,7 +201,7 @@ if (isset($_GET['action'])) {
             </style>
         </head>
         <body>
-            <h1>Laporan Presensi Karyawan</h1>
+            <h1>Laporan Absensi Karyawan</h1>
             ' . $dateRangeTitle . '
             <table>
                 <thead>
@@ -231,7 +231,7 @@ if (isset($_GET['action'])) {
                 $html .= '</tr>';
             }
         } else {
-            $html .= '<tr><td colspan="8" style="text-align: center;">Tidak Ada Data Presensi Karyawan</td></tr>';
+            $html .= '<tr><td colspan="8" style="text-align: center;">Tidak Ada Data Absensi Karyawan</td></tr>';
         }
 
         $html .= '
@@ -243,7 +243,7 @@ if (isset($_GET['action'])) {
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-        $dompdf->stream('laporan_presensi.pdf', array('Attachment' => true));
+        $dompdf->stream('laporan_absensi.pdf', array('Attachment' => true));
         exit;
 
     } elseif ($action === 'excel') {
@@ -251,7 +251,7 @@ if (isset($_GET['action'])) {
         $sheet = $spreadsheet->getActiveSheet();
     
         // Add title and date range if available
-        $sheet->setCellValue('A1', 'LAPORAN PRESENSI KARYAWAN');
+        $sheet->setCellValue('A1', 'LAPORAN ABSENSI KARYAWAN');
         $sheet->mergeCells('A1:G1');
         
         $currentRow = 2;
@@ -283,7 +283,7 @@ if (isset($_GET['action'])) {
             $lastRow = $dataRow - 1;
         } else {
             $dataRow = $currentRow + 1;
-            $sheet->setCellValue('A' . $dataRow, 'Tidak Ada Data Presensi Karyawan');
+            $sheet->setCellValue('A' . $dataRow, 'Tidak Ada Data Absensi Karyawan');
             $sheet->mergeCells('A' . $dataRow . ':G' . $dataRow);
             $lastRow = $dataRow;
         }
@@ -318,7 +318,7 @@ if (isset($_GET['action'])) {
     
         // Set headers for download
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="laporan_presensi.xlsx"');
+        header('Content-Disposition: attachment; filename="laporan_absensi.xlsx"');
         header('Cache-Control: max-age=0');
     
         // Save to output
@@ -469,7 +469,7 @@ if (isset($_GET['action'])) {
                             <path
                                 d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z" />
                         </svg>
-                        Monitor Presensi
+                        Monitor Absensi
                     </a>
                     <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0"
                         href="schedule.php">
@@ -531,7 +531,7 @@ if (isset($_GET['action'])) {
                 <!-- Page content -->
                 <div class="flex-1 bg-blue-50 p-6">
                     <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-3xl font-semibold">Rekap Presensi Karyawan</h1>
+                        <h1 class="text-3xl font-semibold">Rekap Absensi Karyawan</h1>
                         <div class="flex gap-4">
                             <a href="#" onclick="downloadPDF()">
                                 <button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
@@ -582,7 +582,7 @@ if (isset($_GET['action'])) {
                     <!-- Table Section -->
                     <div class="bg-white rounded-lg shadow-md overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-800">Detail Presensi Karyawan</h3>
+                            <h3 class="text-lg font-semibold text-gray-800">Detail Absensi Karyawan</h3>
                         </div>
                         <div class="overflow-x-auto">
                             <table id="reportTable" class="min-w-full divide-y divide-gray-200">
@@ -623,7 +623,7 @@ if (isset($_GET['action'])) {
                                             echo "</tr>";
                                         }
                                     } else {
-                                        echo "<tr><td colspan='7' class='px-6 py-4 text-center'>Tidak ada data presensi karyawan</td></tr>";
+                                        echo "<tr><td colspan='7' class='px-6 py-4 text-center'>Tidak ada data absensi karyawan</td></tr>";
                                     }
                                     ?>
                                 </tbody>
