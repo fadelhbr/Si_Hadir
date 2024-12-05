@@ -40,6 +40,10 @@ ext {
 
 dependencies {
 
+    def lifecycle_version = "2.5.1"
+    implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-livedata:$lifecycle_version"
+
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
@@ -82,10 +86,11 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.10.0'
     implementation 'com.google.code.gson:gson:2.8.9'
 
-    //buat refresh hehe :)
-    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    //buat activity result launcher :)
+    implementation 'androidx.activity:activity-ktx:1.7.2'
+    implementation 'androidx.fragment:fragment-ktx:1.6.1'
 
-    //buat recycleview disuruh bintang :)
-    implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    //buat absensi :)
+    implementation 'com.google.code.gson:gson:2.8.9'
 
 }

@@ -42,7 +42,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/poppins_bold"
-                    android:text="Halo, Fadel 👋🏻"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="24sp"
                     android:textStyle="bold" />
@@ -53,7 +52,6 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:fontFamily="@font/poppins_bold"
-                    android:text="Anda belum absen hari ini"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="16sp" />
             </LinearLayout>
@@ -92,7 +90,6 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginLeft="10dp"
                                 android:fontFamily="@font/poppins_bold"
-                                android:text="Senin, 12 November 2024"
                                 android:textColor="?attr/colorOnPrimary"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
@@ -256,314 +253,337 @@
                                 android:textColor="?attr/colorOnPrimary"
                                 android:textStyle="bold" />
                         </TableRow>
+
+                        <!-- Senin -->
+                        <TableRow
+                            android:id="@+id/rowSenin"
+                            android:background="?attr/colorSurface"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:id="@+id/tvSenin"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="Senin"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvShiftSenin"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamMasukSenin"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamKeluarSenin"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+                        </TableRow>
+
+                        <!-- Selasa -->
+                        <TableRow
+                            android:id="@+id/rowSelasa"
+                            android:background="?attr/colorSurfaceVariant"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:id="@+id/tvSelasa"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="Selasa"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvShiftSelasa"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamMasukSelasa"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamKeluarSelasa"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+                        </TableRow>
+
+                        <!-- Rabu -->
+                        <TableRow
+                            android:id="@+id/rowRabu"
+                            android:background="?attr/colorSurface"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:id="@+id/tvRabu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="Rabu"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvShiftRabu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamMasukRabu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamKeluarRabu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+                        </TableRow>
+
+                        <!-- Kamis -->
+                        <TableRow
+                            android:id="@+id/rowKamis"
+                            android:background="?attr/colorSurfaceVariant"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:id="@+id/tvKamis"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="Kamis"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvShiftKamis"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamMasukKamis"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamKeluarKamis"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+                        </TableRow>
+
+                        <!-- Jumat -->
+                        <TableRow
+                            android:id="@+id/rowJumat"
+                            android:background="?attr/colorSurface"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:id="@+id/tvJumat"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="Jumat"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvShiftJumat"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamMasukJumat"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamKeluarJumat"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+                        </TableRow>
+
+                        <!-- Sabtu -->
+                        <TableRow
+                            android:id="@+id/rowSabtu"
+                            android:background="?attr/colorSurfaceVariant"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:id="@+id/tvSabtu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="Sabtu"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvShiftSabtu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamMasukSabtu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamKeluarSabtu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+                        </TableRow>
+
+                        <!-- Minggu -->
+                        <TableRow
+                            android:id="@+id/rowMinggu"
+                            android:background="@drawable/rounded_table_bottom"
+                            android:layout_marginBottom="12dp"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:id="@+id/tvMinggu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="Minggu"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvShiftMinggu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamMasukMinggu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:id="@+id/tvJamKeluarMinggu"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:gravity="center"
+                                android:text="-"
+                                android:textColor="?attr/colorOnSurface" />
+                        </TableRow>
                     </TableLayout>
-
-                    <!-- Scrollable Content -->
-
-
-
-                        <TableLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginLeft="9dp"
-                            android:layout_marginRight="9dp"
-                            android:stretchColumns="*">
-
-                            <!-- Monday -->
-                            <TableRow
-                                android:background="?attr/colorSurface"
-                                android:padding="12dp">
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Senin"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Pagi"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="08:00"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="16:00"
-                                    android:textColor="?attr/colorOnSurface" />
-                            </TableRow>
-
-                            <!-- Tuesday -->
-                            <TableRow
-                                android:background="?attr/colorSurfaceVariant"
-                                android:padding="12dp">
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Selasa"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Siang"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="13:00"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="21:00"
-                                    android:textColor="?attr/colorOnSurface" />
-                            </TableRow>
-                            <!-- Wednesday -->
-                            <TableRow
-                                android:background="?attr/colorSurface"
-                                android:padding="12dp">
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Rabu"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Pagi"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="08:00"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="16:00"
-                                    android:textColor="?attr/colorOnSurface" />
-                            </TableRow>
-
-                            <!-- Thursday -->
-                            <TableRow
-                                android:background="?attr/colorSurfaceVariant"
-                                android:padding="12dp">
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Kamis"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Siang"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="13:00"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="21:00"
-                                    android:textColor="?attr/colorOnSurface" />
-                            </TableRow>
-
-                            <!-- Friday -->
-                            <TableRow
-                                android:background="?attr/colorSurface"
-                                android:padding="12dp">
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Jumat"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Pagi"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="08:00"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="16:00"
-                                    android:textColor="?attr/colorOnSurface" />
-                            </TableRow>
-
-                            <!-- Saturday -->
-                            <TableRow
-                                android:background="?attr/colorSurfaceVariant"
-                                android:padding="12dp">
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Sabtu"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Libur"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="-"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="-"
-                                    android:textColor="?attr/colorOnSurface" />
-                            </TableRow>
-
-                            <!-- Sunday -->
-                            <TableRow
-                                android:background="@drawable/rounded_table_bottom"
-                                android:layout_marginBottom="12dp"
-                                android:padding="12dp">
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Minggu"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="Libur"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="-"
-                                    android:textColor="?attr/colorOnSurface" />
-
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:text="-"
-                                    android:textColor="?attr/colorOnSurface" />
-                            </TableRow>
-
-                        </TableLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

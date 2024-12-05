@@ -2,28 +2,28 @@
 session_start();
 
 // Check if user is logged in
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
-    header('Location: ../../../login.php');
-    exit;
+if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
+    header("Location: ../../../login.php");
+    exit();
 }
 
 // Check if the user role is employee
-if (isset($_SESSION['role']) && $_SESSION['role'] !== 'owner') {
+if (isset($_SESSION["role"]) && $_SESSION["role"] !== "owner") {
     // Unset session variables and destroy session
     session_unset();
     session_destroy();
 
     // Set headers to prevent caching
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Cache-Control: post-check=0, pre-check=0', false);
-    header('Pragma: no-cache');
+    header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+    header("Cache-Control: post-check=0, pre-check=0", false);
+    header("Pragma: no-cache");
 
-    header('Location: ../../../login.php');
-    exit;
+    header("Location: ../../../login.php");
+    exit();
 }
 
-require '../../../vendor/autoload.php'; // Pastikan path ini sesuai
-require_once '../../../app/auth/auth.php';
+require "../../../vendor/autoload.php"; // Pastikan path ini sesuai
+require_once "../../../app/auth/auth.php";
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -35,70 +35,75 @@ use PhpOffice\PhpSpreadsheet\Style\Font;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
 $earliest_date_query = $pdo->query("
-    SELECT MIN(tanggal) as earliest_date 
+    SELECT MIN(tanggal) as earliest_date
     FROM absensi
 ");
 $earliest_date_result = $earliest_date_query->fetch(PDO::FETCH_ASSOC);
-$minDate = $earliest_date_result['earliest_date'] ? date('Y-m-d', strtotime($earliest_date_result['earliest_date'])) : date('Y-m-d');
-$today = date('Y-m-d');
-$start_date = isset($_POST['start_date']) ? $_POST['start_date'] : null;
-$end_date = isset($_POST['end_date']) ? $_POST['end_date'] : null;
+$minDate = $earliest_date_result["earliest_date"]
+    ? date("Y-m-d", strtotime($earliest_date_result["earliest_date"]))
+    : date("Y-m-d");
+$today = date("Y-m-d");
+$start_date = isset($_POST["start_date"]) ? $_POST["start_date"] : null;
+$end_date = isset($_POST["end_date"]) ? $_POST["end_date"] : null;
 
 if (!empty($start_date) && !empty($end_date)) {
     // Pengecekan format tanggal
-    if (!DateTime::createFromFormat('Y-m-d', $start_date) || !DateTime::createFromFormat('Y-m-d', $end_date)) {
-        die('Invalid date format. Please use YYYY-MM-DD.');
+    if (
+        !DateTime::createFromFormat("Y-m-d", $start_date) ||
+        !DateTime::createFromFormat("Y-m-d", $end_date)
+    ) {
+        die("Invalid date format. Please use YYYY-MM-DD.");
     }
 
     // Menambahkan waktu ke tanggal
-    $start_date_with_time = $start_date . ' 00:00:00';
-    $end_date_with_time = $end_date . ' 23:59:59';
+    $start_date_with_time = $start_date . " 00:00:00";
+    $end_date_with_time = $end_date . " 23:59:59";
 
     // Menyiapkan query dengan filter tanggal
     $stmt = $pdo->prepare("
-    SELECT 
+    SELECT
         u.nama_lengkap AS nama_staff,
         u.jenis_kelamin AS jenis_kelamin,
         SUM(CASE WHEN a.status_kehadiran IN ('hadir', 'terlambat', 'pulang_dahulu', 'tidak_absen_pulang') THEN 1 ELSE 0 END) AS hadir,
         SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
         SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
         SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
-    FROM 
+    FROM
         absensi a
-    JOIN 
+    JOIN
         pegawai p ON a.pegawai_id = p.id
-    JOIN 
+    JOIN
         users u ON p.user_id = u.id
-    WHERE 
+    WHERE
         a.tanggal BETWEEN :start_date AND :end_date  -- Menggunakan kolom tanggal untuk filter
-    GROUP BY 
+    GROUP BY
         u.id  -- Mengelompokkan hanya berdasarkan id pegawai
-    ORDER BY 
+    ORDER BY
         u.nama_lengkap ASC;
 ");
 
     // Mengikat parameter tanggal ke query
-    $stmt->bindParam(':start_date', $start_date_with_time);
-    $stmt->bindParam(':end_date', $end_date_with_time);
+    $stmt->bindParam(":start_date", $start_date_with_time);
+    $stmt->bindParam(":end_date", $end_date_with_time);
 } else {
     // Menyiapkan query tanpa filter tanggal
     $stmt = $pdo->prepare("
-        SELECT 
+        SELECT
             u.nama_lengkap AS nama_staff,
             u.jenis_kelamin AS jenis_kelamin,
             SUM(CASE WHEN a.status_kehadiran IN ('hadir', 'terlambat', 'pulang_dahulu', 'tidak_absen_pulang') THEN 1 ELSE 0 END) AS hadir,
             SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
             SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
             SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
-        FROM 
+        FROM
             absensi a
-        JOIN 
+        JOIN
             pegawai p ON a.pegawai_id = p.id
-        JOIN 
+        JOIN
             users u ON p.user_id = u.id
-        GROUP BY 
+        GROUP BY
             u.id
-        ORDER BY 
+        ORDER BY
             u.nama_lengkap ASC;
     ");
 }
@@ -109,89 +114,94 @@ $stmt->execute();
 // Mengambil hasil query
 $attendanceDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
 //PDF
-if (isset($_GET['action'])) {
-    $action = $_GET['action'];
-    
+if (isset($_GET["action"])) {
+    $action = $_GET["action"];
+
     // Get date range from URL parameters
-    $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : null;
-    $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : null;
-    
+    $start_date = isset($_GET["start_date"]) ? $_GET["start_date"] : null;
+    $end_date = isset($_GET["end_date"]) ? $_GET["end_date"] : null;
+
     // Prepare the query based on date range
     if (!empty($start_date) && !empty($end_date)) {
         echo "Tanggal mulai dan tanggal akhir harus diisi!";
-        $start_date_with_time = $start_date . ' 00:00:00';
-        $end_date_with_time = $end_date . ' 23:59:59';
-        
+        $start_date_with_time = $start_date . " 00:00:00";
+        $end_date_with_time = $end_date . " 23:59:59";
+
         $stmt = $pdo->prepare("
-            SELECT 
+            SELECT
                 u.nama_lengkap AS nama_staff,
                 u.jenis_kelamin AS jenis_kelamin,
                 SUM(CASE WHEN a.status_kehadiran IN ('hadir', 'terlambat', 'pulang_dahulu', 'tidak_absen_pulang') THEN 1 ELSE 0 END) AS hadir,
                 SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
                 SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
                 SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
-            FROM 
+            FROM
                 absensi a
-            JOIN 
+            JOIN
                 pegawai p ON a.pegawai_id = p.id
-            JOIN 
+            JOIN
                 users u ON p.user_id = u.id
-            WHERE 
+            WHERE
                 a.tanggal BETWEEN :start_date AND :end_date
-            GROUP BY 
+            GROUP BY
                 u.id, u.nama_lengkap, u.jenis_kelamin
-            ORDER BY 
+            ORDER BY
                 u.nama_lengkap ASC
         ");
-        
-        $stmt->bindParam(':start_date', $start_date_with_time);
-        $stmt->bindParam(':end_date', $end_date_with_time);
+
+        $stmt->bindParam(":start_date", $start_date_with_time);
+        $stmt->bindParam(":end_date", $end_date_with_time);
     } else {
         // Query without date filter remains the same
         $stmt = $pdo->prepare("
-            SELECT 
+            SELECT
                 u.nama_lengkap AS nama_staff,
                 u.jenis_kelamin AS jenis_kelamin,
                 SUM(CASE WHEN a.status_kehadiran IN ('hadir', 'terlambat', 'pulang_dahulu', 'tidak_absen_pulang') THEN 1 ELSE 0 END) AS hadir,
                 SUM(CASE WHEN a.status_kehadiran = 'alpha' THEN 1 ELSE 0 END) AS alpha,
                 SUM(CASE WHEN a.status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS cuti,
                 SUM(CASE WHEN a.status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS izin
-            FROM 
+            FROM
                 absensi a
-            JOIN 
+            JOIN
                 pegawai p ON a.pegawai_id = p.id
-            JOIN 
+            JOIN
                 users u ON p.user_id = u.id
-            GROUP BY 
+            GROUP BY
                 u.id, u.nama_lengkap, u.jenis_kelamin
-            ORDER BY 
+            ORDER BY
                 u.nama_lengkap ASC
         ");
     }
-    
+
     $stmt->execute();
     $exportData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if ($action === 'print') {
+    if ($action === "print") {
         // Configure Dompdf
         $options = new Options();
-        $options->set('defaultFont', 'Courier');
+        $options->set("defaultFont", "Courier");
         $dompdf = new Dompdf($options);
 
         // Add date range to the title if available
-        $dateRangeTitle = '';
+        $dateRangeTitle = "";
         if (!empty($start_date) && !empty($end_date)) {
-            $dateRangeTitle = '<p style="text-align: left;">Periode: ' . date('d/m/Y', strtotime($start_date)) . ' - ' . date('d/m/Y', strtotime($end_date)) . '</p>';
+            $dateRangeTitle =
+                '<p style="text-align: left;">Periode: ' .
+                date("d/m/Y", strtotime($start_date)) .
+                " - " .
+                date("d/m/Y", strtotime($end_date)) .
+                "</p>";
         }
 
-        $html = '
+        $html =
+            '
         <!DOCTYPE html>
         <html lang="id">
         <head>
             <meta charset="UTF-8">
-            <title>Laporan Presensi</title>
+            <title>Laporan Absensi</title>
             <style>
                 body { font-family: Arial, sans-serif; }
                 h1 { text-align: center; }
@@ -201,8 +211,10 @@ if (isset($_GET['action'])) {
             </style>
         </head>
         <body>
-            <h1>Laporan Presensi Karyawan</h1>
-            ' . $dateRangeTitle . '
+            <h1>Laporan Absensi Karyawan</h1>
+            ' .
+            $dateRangeTitle .
+            '
             <table>
                 <thead>
                     <tr>
@@ -220,18 +232,23 @@ if (isset($_GET['action'])) {
         if (!empty($exportData)) {
             $no = 1;
             foreach ($exportData as $row) {
-                $html .= '<tr>';
-                $html .= '<td>' . $no++ . '</td>';
-                $html .= '<td>' . htmlspecialchars($row['nama_staff']) . '</td>';
-                $html .= '<td>' . htmlspecialchars(ucwords($row['jenis_kelamin'])) . '</td>';
-                $html .= '<td>' . htmlspecialchars($row['hadir']) . '</td>';
-                $html .= '<td>' . htmlspecialchars($row['alpha']) . '</td>';
-                $html .= '<td>' . htmlspecialchars($row['cuti']) . '</td>';
-                $html .= '<td>' . htmlspecialchars($row['izin']) . '</td>';
-                $html .= '</tr>';
+                $html .= "<tr>";
+                $html .= "<td>" . $no++ . "</td>";
+                $html .=
+                    "<td>" . htmlspecialchars($row["nama_staff"]) . "</td>";
+                $html .=
+                    "<td>" .
+                    htmlspecialchars(ucwords($row["jenis_kelamin"])) .
+                    "</td>";
+                $html .= "<td>" . htmlspecialchars($row["hadir"]) . "</td>";
+                $html .= "<td>" . htmlspecialchars($row["alpha"]) . "</td>";
+                $html .= "<td>" . htmlspecialchars($row["cuti"]) . "</td>";
+                $html .= "<td>" . htmlspecialchars($row["izin"]) . "</td>";
+                $html .= "</tr>";
             }
         } else {
-            $html .= '<tr><td colspan="8" style="text-align: center;">Tidak Ada Data Presensi Karyawan</td></tr>';
+            $html .=
+                '<tr><td colspan="8" style="text-align: center;">Tidak Ada Data Absensi Karyawan</td></tr>';
         }
 
         $html .= '
@@ -241,90 +258,135 @@ if (isset($_GET['action'])) {
         </html>';
 
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->setPaper("A4", "portrait");
         $dompdf->render();
-        $dompdf->stream('laporan_presensi.pdf', array('Attachment' => true));
-        exit;
-
-    } elseif ($action === 'excel') {
+        $dompdf->stream("laporan_absensi.pdf", ["Attachment" => true]);
+        exit();
+    } elseif ($action === "excel") {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-    
+
         // Add title and date range if available
-        $sheet->setCellValue('A1', 'LAPORAN PRESENSI KARYAWAN');
-        $sheet->mergeCells('A1:G1');
-        
+        $sheet->setCellValue("A1", "LAPORAN ABSENSI KARYAWAN");
+        $sheet->mergeCells("A1:G1");
+
         $currentRow = 2;
         if (!empty($start_date) && !empty($end_date)) {
-            $sheet->setCellValue('A2', 'Periode: ' . date('d/m/Y', strtotime($start_date)) . ' - ' . date('d/m/Y', strtotime($end_date)));
-            $sheet->mergeCells('A2:G2');
+            $sheet->setCellValue(
+                "A2",
+                "Periode: " .
+                    date("d/m/Y", strtotime($start_date)) .
+                    " - " .
+                    date("d/m/Y", strtotime($end_date))
+            );
+            $sheet->mergeCells("A2:G2");
             $currentRow = 3;
         }
-    
+
         // Add headers
         $currentRow++; // Move to next row for headers
-        $headers = ['No.', 'Nama Karyawan', 'Jenis Kelamin', 'Hadir', 'Alpha', 'Cuti', 'Izin'];
-        $sheet->fromArray($headers, NULL, 'A' . $currentRow);
-    
+        $headers = [
+            "No.",
+            "Nama Karyawan",
+            "Jenis Kelamin",
+            "Hadir",
+            "Alpha",
+            "Cuti",
+            "Izin",
+        ];
+        $sheet->fromArray($headers, null, "A" . $currentRow);
+
         // Add data
         if (!empty($exportData)) {
             $dataRow = $currentRow + 1;
             $no = 1;
             foreach ($exportData as $data) {
-                $sheet->setCellValue('A' . $dataRow, $no++);
-                $sheet->setCellValue('B' . $dataRow, $data['nama_staff']);
-                $sheet->setCellValue('C' . $dataRow, ucwords($data['jenis_kelamin']));
-                $sheet->setCellValue('D' . $dataRow, $data['hadir']);
-                $sheet->setCellValue('E' . $dataRow, $data['alpha']);
-                $sheet->setCellValue('G' . $dataRow, $data['cuti']);
-                $sheet->setCellValue('H' . $dataRow, $data['izin']);
+                $sheet->setCellValue("A" . $dataRow, $no++);
+                $sheet->setCellValue("B" . $dataRow, $data["nama_staff"]);
+                $sheet->setCellValue(
+                    "C" . $dataRow,
+                    ucwords($data["jenis_kelamin"])
+                );
+                $sheet->setCellValue("D" . $dataRow, $data["hadir"]);
+                $sheet->setCellValue("E" . $dataRow, $data["alpha"]);
+                $sheet->setCellValue("G" . $dataRow, $data["cuti"]);
+                $sheet->setCellValue("H" . $dataRow, $data["izin"]);
                 $dataRow++;
             }
             $lastRow = $dataRow - 1;
         } else {
             $dataRow = $currentRow + 1;
-            $sheet->setCellValue('A' . $dataRow, 'Tidak Ada Data Presensi Karyawan');
-            $sheet->mergeCells('A' . $dataRow . ':G' . $dataRow);
+            $sheet->setCellValue(
+                "A" . $dataRow,
+                "Tidak Ada Data Absensi Karyawan"
+            );
+            $sheet->mergeCells("A" . $dataRow . ":G" . $dataRow);
             $lastRow = $dataRow;
         }
-    
+
         // Style the Excel file
         // Header style
-        $headerRange = 'A' . $currentRow . ':G' . $currentRow;
+        $headerRange = "A" . $currentRow . ":G" . $currentRow;
         $sheet->getStyle($headerRange)->getFont()->setBold(true);
-        $sheet->getStyle($headerRange)->getFont()->getColor()->setRGB(Color::COLOR_WHITE);
-        $sheet->getStyle($headerRange)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
-        $sheet->getStyle($headerRange)->getFill()->getStartColor()->setRGB('4F81BD');
-    
+        $sheet
+            ->getStyle($headerRange)
+            ->getFont()
+            ->getColor()
+            ->setRGB(Color::COLOR_WHITE);
+        $sheet
+            ->getStyle($headerRange)
+            ->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+        $sheet
+            ->getStyle($headerRange)
+            ->getFill()
+            ->getStartColor()
+            ->setRGB("4F81BD");
+
         // Title style
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("A1")->getFont()->setBold(true)->setSize(14);
+        $sheet
+            ->getStyle("A1")
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
         if (!empty($start_date) && !empty($end_date)) {
-            $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet
+                ->getStyle("A2")
+                ->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
-    
+
         // Auto-size columns
-        foreach (range('A', 'G') as $column) {
+        foreach (range("A", "G") as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
-    
+
         // Set alignment for all data cells
-        $sheet->getStyle('A' . $currentRow . ':G' . $lastRow)->getAlignment()
-              ->setHorizontal(Alignment::HORIZONTAL_CENTER);
-    
+        $sheet
+            ->getStyle("A" . $currentRow . ":G" . $lastRow)
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
         // Add borders to all cells
-        $sheet->getStyle('A' . $currentRow . ':G' . $lastRow)->getBorders()
-              ->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-    
+        $sheet
+            ->getStyle("A" . $currentRow . ":G" . $lastRow)
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN);
+
         // Set headers for download
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="laporan_presensi.xlsx"');
-        header('Cache-Control: max-age=0');
-    
+        header(
+            "Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+        header(
+            'Content-Disposition: attachment; filename="laporan_absensi.xlsx"'
+        );
+        header("Cache-Control: max-age=0");
+
         // Save to output
         $writer = new Xlsx($spreadsheet);
-        $writer->save('php://output');
-        exit;
+        $writer->save("php://output");
+        exit();
     }
 }
 ?>
@@ -469,7 +531,7 @@ if (isset($_GET['action'])) {
                             <path
                                 d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z" />
                         </svg>
-                        Monitor Presensi
+                        Monitor Absensi
                     </a>
                     <a class="list-group-item list-group-item-action list-group-item-light p-3 border-bottom-0"
                         href="schedule.php">
@@ -531,7 +593,7 @@ if (isset($_GET['action'])) {
                 <!-- Page content -->
                 <div class="flex-1 bg-blue-50 p-6">
                     <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-3xl font-semibold">Rekap Presensi Karyawan</h1>
+                        <h1 class="text-3xl font-semibold">Rekap Absensi Karyawan</h1>
                         <div class="flex gap-4">
                             <a href="#" onclick="downloadPDF()">
                                 <button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
@@ -547,28 +609,42 @@ if (isset($_GET['action'])) {
                     </div>
                     <!-- Filter Section -->
                     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+                        <form method="POST" action="<?php echo htmlspecialchars(
+                            $_SERVER["PHP_SELF"]
+                        ); ?>">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
                                     <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai:</label>
-                                    <input type="date" 
-                                           name="start_date" 
+                                    <input type="date"
+                                           name="start_date"
                                            id="start_date"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                        min="<?php echo $minDate; ?>" 
-                                        max="<?php echo isset($_POST['end_date']) ? $_POST['end_date'] : $today; ?>"
-                                        value="<?php echo isset($_POST['start_date']) ? $_POST['start_date'] : ''; ?>">
+                                        min="<?php echo $minDate; ?>"
+                                        max="<?php echo isset(
+                                            $_POST["end_date"]
+                                        )
+                                            ? $_POST["end_date"]
+                                            : $today; ?>"
+                                        value="<?php echo isset(
+                                            $_POST["start_date"]
+                                        )
+                                            ? $_POST["start_date"]
+                                            : ""; ?>">
 
                                 </div>
                                 <div>
                                     <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir:</label>
-                                    <input type="date" 
-                                           name="end_date" 
+                                    <input type="date"
+                                           name="end_date"
                                            id="end_date"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                        min="<?php echo isset($start_date) ? $start_date : $minDate; ?>"
-                                        max="<?php echo date('Y-m-d'); ?>"
-                                        value="<?php echo isset($end_date) ? $end_date : ''; ?>">
+                                        min="<?php echo isset($start_date)
+                                            ? $start_date
+                                            : $minDate; ?>"
+                                        max="<?php echo date("Y-m-d"); ?>"
+                                        value="<?php echo isset($end_date)
+                                            ? $end_date
+                                            : ""; ?>">
                                 </div>
                                 <div class="flex items-end">
                                     <button type="submit"
@@ -582,7 +658,7 @@ if (isset($_GET['action'])) {
                     <!-- Table Section -->
                     <div class="bg-white rounded-lg shadow-md overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-800">Detail Presensi Karyawan</h3>
+                            <h3 class="text-lg font-semibold text-gray-800">Detail Absensi Karyawan</h3>
                         </div>
                         <div class="overflow-x-auto">
                             <table id="reportTable" class="min-w-full divide-y divide-gray-200">
@@ -610,22 +686,49 @@ if (isset($_GET['action'])) {
                                     </tr>
                                 </thead>
                                 <tbody id="reportTableBody" class="bg-white divide-y divide-gray-200">
-                                    <?php
-                                    if (!empty($attendanceDetails)) {
-                                        foreach ($attendanceDetails as $detail) {
+                                    <?php if (!empty($attendanceDetails)) {
+                                        foreach (
+                                            $attendanceDetails
+                                            as $detail
+                                        ) {
                                             echo "<tr>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['nama_staff']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars(ucwords($detail['jenis_kelamin'])) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['hadir']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['alpha']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['cuti']) . "</td>";
-                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" . htmlspecialchars($detail['izin']) . "</td>";
+                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" .
+                                                htmlspecialchars(
+                                                    $detail["nama_staff"]
+                                                ) .
+                                                "</td>";
+                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" .
+                                                htmlspecialchars(
+                                                    ucwords(
+                                                        $detail["jenis_kelamin"]
+                                                    )
+                                                ) .
+                                                "</td>";
+                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" .
+                                                htmlspecialchars(
+                                                    $detail["hadir"]
+                                                ) .
+                                                "</td>";
+                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" .
+                                                htmlspecialchars(
+                                                    $detail["alpha"]
+                                                ) .
+                                                "</td>";
+                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" .
+                                                htmlspecialchars(
+                                                    $detail["cuti"]
+                                                ) .
+                                                "</td>";
+                                            echo "<td class='px-6 py-4 text-center whitespace-nowrap'>" .
+                                                htmlspecialchars(
+                                                    $detail["izin"]
+                                                ) .
+                                                "</td>";
                                             echo "</tr>";
                                         }
                                     } else {
-                                        echo "<tr><td colspan='7' class='px-6 py-4 text-center'>Tidak ada data presensi karyawan</td></tr>";
-                                    }
-                                    ?>
+                                        echo "<tr><td colspan='7' class='px-6 py-4 text-center'>Tidak ada data absensi karyawan</td></tr>";
+                                    } ?>
                                 </tbody>
                             </table>
                         </div>
@@ -703,7 +806,7 @@ if (isset($_GET['action'])) {
                 startDateInput.addEventListener('change', () => {
                     // Update end date minimum to match start date
                     endDateInput.min = startDateInput.value || "<?php echo $minDate; ?>";
-                    
+
                     // If end date is before new start date, update it
                     if (endDateInput.value && endDateInput.value < startDateInput.value) {
                         endDateInput.value = startDateInput.value;
@@ -714,7 +817,7 @@ if (isset($_GET['action'])) {
                 endDateInput.addEventListener('change', () => {
                     // Update start date maximum to match end date
                     startDateInput.max = endDateInput.value || today;
-                    
+
                     // If start date is after new end date, update it
                     if (startDateInput.value && startDateInput.value > endDateInput.value) {
                         startDateInput.value = endDateInput.value;
@@ -741,8 +844,12 @@ if (isset($_GET['action'])) {
             <script>
                 function downloadPDF() {
                     // Mendapatkan nilai start_date dan end_date
-                    var startDate = "<?php echo isset($start_date) ? $start_date : ''; ?>";
-                    var endDate = "<?php echo isset($end_date) ? $end_date : ''; ?>";
+                    var startDate = "<?php echo isset($start_date)
+                        ? $start_date
+                        : ""; ?>";
+                    var endDate = "<?php echo isset($end_date)
+                        ? $end_date
+                        : ""; ?>";
 
                     // Memeriksa apakah filter tanggal sudah diisi
                     if (startDate === '' || endDate === '') {
@@ -754,8 +861,12 @@ if (isset($_GET['action'])) {
 
                 function downloadExcel() {
                     // Mendapatkan nilai start_date dan end_date
-                    var startDate = "<?php echo isset($start_date) ? $start_date : ''; ?>";
-                    var endDate = "<?php echo isset($end_date) ? $end_date : ''; ?>";
+                    var startDate = "<?php echo isset($start_date)
+                        ? $start_date
+                        : ""; ?>";
+                    var endDate = "<?php echo isset($end_date)
+                        ? $end_date
+                        : ""; ?>";
 
                     // Memeriksa apakah filter tanggal sudah diisi
                     if (startDate === '' || endDate === '') {

@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.1deb5ubuntu1
+-- version 5.2.1deb3
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 25, 2024 at 11:55 AM
--- Server version: 8.0.40-0ubuntu0.22.04.1
--- PHP Version: 8.1.2-1ubuntu2.19
+-- Generation Time: Dec 04, 2024 at 01:53 PM
+-- Server version: 8.0.40-0ubuntu0.24.04.1
+-- PHP Version: 8.3.6
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -25,211 +25,13 @@ DELIMITER $$
 --
 -- Procedures
 --
-CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()  BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()   BEGIN
     -- Nonaktifkan pemeriksaan foreign key terlebih dahulu
-    SET FOREIGN_KEY_CHECKS = 0;
+    SET FOREIGN_KEY_CHECKS = 0$$
 
-    -- Kosongkan tabel absensi
-    TRUNCATE TABLE absensi;
-
-    -- Kosongkan tabel log_akses
-    TRUNCATE TABLE log_akses;
-
-    -- Aktifkan kembali pemeriksaan foreign key
-    SET FOREIGN_KEY_CHECKS = 1;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()  BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()   BEGIN
     -- Deklarasi variabel untuk iterasi pengguna
-    DECLARE done INT DEFAULT FALSE;
-    DECLARE curr_pegawai_id INT;
-    DECLARE curr_shift_id INT;
-    DECLARE curr_jadwal_id INT;
-    DECLARE curr_hari_libur VARCHAR(10);
-    DECLARE status_kehadiran VARCHAR(10) DEFAULT 'alpha';
-    DECLARE hari_ini VARCHAR(10);
-    DECLARE tanggal_hari_ini DATE;
-
-    -- Cursor untuk mengambil semua pegawai yang aktif beserta hari liburnya
-    DECLARE cur_employees CURSOR FOR 
-        SELECT p.id, p.hari_libur
-        FROM pegawai p 
-        JOIN users u ON p.user_id = u.id 
-        WHERE u.role = 'karyawan' AND p.status_aktif = 'aktif';
-    
-    -- Handler untuk mengatur status selesai ketika cursor habis
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-
-    -- Set timezone ke Asia/Jakarta (GMT+7)
-    SET time_zone = '+07:00';
-
-    -- Mendapatkan tanggal hari ini
-    SET tanggal_hari_ini = CURRENT_DATE();
-
-    -- Update status tidak_absen_pulang untuk kemarin jika ada entri
-    IF EXISTS (
-        SELECT 1 
-        FROM absensi 
-        WHERE DATE(tanggal) = DATE(tanggal_hari_ini - INTERVAL 1 DAY)
-    ) THEN
-        UPDATE absensi 
-        SET status_kehadiran = 'tidak_absen_pulang'
-        WHERE DATE(tanggal) = DATE(tanggal_hari_ini - INTERVAL 1 DAY)
-        AND waktu_masuk != '00:00:00'
-        AND waktu_keluar = '00:00:00';
-    END IF;
-
-    -- Mendapatkan nama hari ini dalam bahasa Indonesia
-    SET hari_ini = LOWER(
-        CASE DAYOFWEEK(tanggal_hari_ini)
-            WHEN 1 THEN 'minggu'
-            WHEN 2 THEN 'senin'
-            WHEN 3 THEN 'selasa'
-            WHEN 4 THEN 'rabu'
-            WHEN 5 THEN 'kamis'
-            WHEN 6 THEN 'jumat'
-            WHEN 7 THEN 'sabtu'
-        END
-    );
-
-    -- Membuka cursor
-    OPEN cur_employees;
-
-    -- Memulai loop untuk setiap pegawai
-    read_loop: LOOP
-        -- Mengambil pegawai berikutnya beserta hari liburnya
-        FETCH cur_employees INTO curr_pegawai_id, curr_hari_libur;
-
-        -- Keluar jika tidak ada pegawai lagi
-        IF done THEN 
-            LEAVE read_loop; 
-        END IF;
-
-        -- Memeriksa apakah record jadwal_shift sudah ada untuk hari ini
-        IF NOT EXISTS (
-            SELECT 1 
-            FROM jadwal_shift 
-            WHERE pegawai_id = curr_pegawai_id 
-            AND tanggal = tanggal_hari_ini
-        ) THEN
-            -- Mengambil shift_id terakhir yang aktif untuk pegawai ini
-            SELECT shift_id INTO curr_shift_id 
-            FROM jadwal_shift 
-            WHERE pegawai_id = curr_pegawai_id 
-            AND status = 'aktif' 
-            ORDER BY tanggal DESC LIMIT 1;
-
-            -- Menyisipkan record jadwal_shift baru
-            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status)
-            VALUES (
-                curr_pegawai_id, 
-                IFNULL(curr_shift_id, 1),
-                tanggal_hari_ini, 
-                'aktif'
-            );
-
-            -- Verifikasi apakah penyisipan berhasil
-            SET curr_jadwal_id = LAST_INSERT_ID();
-
-            -- Memastikan bahwa jadwal_shift_id baru ada
-            IF curr_jadwal_id IS NULL THEN
-                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Gagal membuat record jadwal_shift.';
-            END IF;
-        ELSE
-            -- Mengambil jadwal_shift id yang ada untuk hari ini
-            SELECT id, shift_id INTO curr_jadwal_id, curr_shift_ID
-            FROM jadwal_shift 
-            WHERE pegawai_id = curr_pegawai_id 
-            AND tanggal = tanggal_hari_ini
-            AND status = 'aktif' 
-            LIMIT 1;
-        END IF;
-
-        -- Mengatur status kehadiran default
-        SET status_kehadiran = 'alpha';
-        
-        -- Cek apakah hari ini adalah hari libur pegawai
-        IF curr_hari_libur = hari_ini THEN
-            SET status_kehadiran = 'libur';
-        ELSE
-            -- Cek tabel izin jika bukan hari libur
-            IF EXISTS (
-                SELECT 1 
-                FROM izin 
-                WHERE pegawai_id = curr_pegawai_id 
-                AND tanggal = tanggal_hari_ini
-                AND status = 'disetujui'
-            ) THEN
-                SET status_kehadiran = 'izin';
-            ELSEIF EXISTS (
-                -- Cek tabel cuti
-                SELECT 1 
-                FROM cuti 
-                WHERE pegawai_id = curr_pegawai_id 
-                AND tanggal_hari_ini BETWEEN tanggal_mulai AND tanggal_selesai 
-                AND status = 'disetujui'
-            ) THEN
-                SET status_kehadiran = 'cuti';
-            END IF;
-        END IF;
-
-        -- Cek apakah sudah ada record absensi untuk hari ini
-        IF EXISTS (
-            SELECT 1 
-            FROM absensi 
-            WHERE pegawai_id = curr_pegawai_id 
-            AND DATE(tanggal) = tanggal_hari_ini
-        ) THEN
-            -- Update status absensi berdasarkan izin/cuti yang disetujui
-            UPDATE absensi 
-            SET status_kehadiran = (
-                CASE 
-                    WHEN EXISTS (
-                        SELECT 1 
-                        FROM izin 
-                        WHERE pegawai_id = curr_pegawai_id 
-                        AND tanggal = tanggal_hari_ini
-                        AND status = 'disetujui'
-                    ) THEN 'izin'
-                    WHEN EXISTS (
-                        SELECT 1 
-                        FROM cuti 
-                        WHERE pegawai_id = curr_pegawai_id 
-                        AND tanggal_hari_ini BETWEEN tanggal_mulai AND tanggal_selesai 
-                        AND status = 'disetujui'
-                    ) THEN 'cuti'
-                    ELSE status_kehadiran
-                END
-            )
-            WHERE pegawai_id = curr_pegawai_id 
-            AND DATE(tanggal) = tanggal_hari_ini;
-        ELSE
-            -- Insert record baru jika belum ada
-            INSERT INTO absensi (
-                pegawai_id, 
-                jadwal_shift_id, 
-                waktu_masuk, 
-                waktu_keluar, 
-                kode_unik, 
-                status_kehadiran, 
-                tanggal
-            ) VALUES (
-                curr_pegawai_id, 
-                curr_jadwal_id, 
-                '00:00:00', 
-                '00:00:00', 
-                '000000', 
-                status_kehadiran, 
-                tanggal_hari_ini
-            );
-        END IF;
-
-    END LOOP;
-
-    -- Menutup cursor
-    CLOSE cur_employees;
-
-END$$
+    DECLARE done INT DEFAULT FALSE$$
 
 DELIMITER ;
 
@@ -277,15 +79,11 @@ CREATE TRIGGER `before_cuti_insert` BEFORE INSERT ON `cuti` FOR EACH ROW BEGIN
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM cuti
-    );
-END
-$$
+    )$$
 DELIMITER ;
 DELIMITER $$
 CREATE TRIGGER `hitung_durasi_cuti` BEFORE INSERT ON `cuti` FOR EACH ROW BEGIN
-    SET NEW.durasi_cuti = DATEDIFF(NEW.tanggal_selesai, NEW.tanggal_mulai);
-END
-$$
+    SET NEW.durasi_cuti = DATEDIFF(NEW.tanggal_selesai, NEW.tanggal_mulai)$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -363,9 +161,7 @@ CREATE TRIGGER `before_divisi_insert` BEFORE INSERT ON `divisi` FOR EACH ROW BEG
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM divisi
-    );
-END
-$$
+    )$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -393,9 +189,7 @@ CREATE TRIGGER `before_izin_insert` BEFORE INSERT ON `izin` FOR EACH ROW BEGIN
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM izin
-    );
-END
-$$
+    )$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -448,9 +242,7 @@ CREATE TRIGGER `before_jadwal_shift_insert` BEFORE INSERT ON `jadwal_shift` FOR 
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM jadwal_shift
-    );
-END
-$$
+    )$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -478,7 +270,7 @@ CREATE TABLE `log_akses` (
 
 CREATE TABLE `otp_code` (
   `id` int NOT NULL,
-  `otp_code` char(6) COLLATE utf8mb4_bin NOT NULL
+  `otp_code` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -505,9 +297,7 @@ CREATE TRIGGER `before_pegawai_insert` BEFORE INSERT ON `pegawai` FOR EACH ROW B
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM pegawai
-    );
-END
-$$
+    )$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -548,6 +338,13 @@ CREATE TABLE `qr_code` (
   `id` int NOT NULL,
   `kode_unik` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+--
+-- Dumping data for table `qr_code`
+--
+
+INSERT INTO `qr_code` (`id`, `kode_unik`) VALUES
+(122, '4eM8AX');
 
 -- --------------------------------------------------------
 
@@ -735,7 +532,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `cuti`
@@ -765,13 +562,13 @@ ALTER TABLE `jadwal_shift`
 -- AUTO_INCREMENT for table `log_akses`
 --
 ALTER TABLE `log_akses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=938431;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=988486;
 
 --
 -- AUTO_INCREMENT for table `otp_code`
 --
 ALTER TABLE `otp_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992334;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992336;
 
 --
 -- AUTO_INCREMENT for table `pegawai`
@@ -783,19 +580,19 @@ ALTER TABLE `pegawai`
 -- AUTO_INCREMENT for table `qr_code`
 --
 ALTER TABLE `qr_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=123;
 
 --
 -- AUTO_INCREMENT for table `shift`
 --
 ALTER TABLE `shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75588;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75589;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992328;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992329;
 
 --
 -- Constraints for dumped tables

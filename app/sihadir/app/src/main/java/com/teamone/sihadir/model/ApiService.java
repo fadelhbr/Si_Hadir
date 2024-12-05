@@ -1,5 +1,7 @@
 package com.teamone.sihadir.model;
 
+import com.google.gson.JsonObject;
+
 import java.util.Map;
 
 import retrofit2.Call;
@@ -8,6 +10,7 @@ import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Query;
 
 public interface ApiService {
@@ -25,4 +28,14 @@ public interface ApiService {
     Call<ApiResponse> getRiwayatKehadiran(
             @Body Map<String, String> body // Mengirimkan username dan password melalui body
     );
+
+    @POST("api_attendance.php") // Sesuaikan dengan endpoint API Anda
+    Call<AbsensiApiResponse> submitAbsensi(@Body AbsensiRequest request);
+
+    @GET("api_schedule.php")
+    Call<ScheduleResponse> getEmployeeSchedule(@Query("user_id") int userId);
+
+    @GET("api_status.php")
+    Call<AttendanceStatusResponse> getAttendanceStatus(@Query("user_id") int userId);
+
 }

@@ -3,9 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    style="@style/SCREEN"
-    android:background="#F5F6FA">
+    android:layout_height="match_parent">
 
     <!-- Header Section with Better Styling -->
     <androidx.cardview.widget.CardView
@@ -13,79 +11,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardElevation="4dp"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <LinearLayout
-            style="@style/SCREEN_TOP"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:id="@+id/tv_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:fontFamily="@font/poppins_bold"
-                android:text="Permohonan Izin dan Cuti"
-                android:textSize="22sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <!-- Summary Cards -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:orientation="horizontal">
-
-
-                <!-- Cuti Terpakai Card -->
-                <androidx.cardview.widget.CardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="#E8F5E9"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <TextView
-                            style="@style/TEXT"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="sisa hari anda Cuti"
-                            android:textColor="#66BB6A"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            style="@style/TEXT"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="3 Hari"
-                            android:textColor="#2E7D32"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-            </LinearLayout>
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <!-- Tables Container with Improved Styling -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:padding="16dp"
-        style="@style/SCREEN_TOP"
         app:layout_constraintTop_toBottomOf="@id/headerCard"
         app:layout_constraintBottom_toBottomOf="parent">
 
@@ -108,9 +40,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Riwayat Izin"
-                    android:textColor="#1a237e"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:fontFamily="@font/poppins_semibold"/>/>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAjukanIzin"
@@ -118,7 +51,8 @@
                     android:layout_height="wrap_content"
                     android:text="+ Ajukan Izin"
                     android:textSize="12sp"
-                    app:cornerRadius="8dp" />
+                    app:cornerRadius="8dp"
+                    android:fontFamily="@font/poppins_semibold"/>
             </LinearLayout>
 
             <androidx.cardview.widget.CardView
@@ -135,42 +69,56 @@
 
                     <!-- Header Row -->
                     <TableRow
-                        android:background="#F8F9FA"
+                        android:background="@drawable/rounded_table"
                         android:padding="12dp">
 
                         <TextView
                             style="@style/TableHeaderStyle"
-                            android:text="TANGGAL"/>
+                            android:text="TANGGAL"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnPrimary"/>
 
                         <TextView
                             style="@style/TableHeaderStyle"
-                            android:text="JENIS IZIN"/>
+                            android:text="JENIS IZIN"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnPrimary"/>
 
                         <TextView
                             style="@style/TableHeaderStyle"
-                            android:text="KETERANGAN"/>
+                            android:text="KETERANGAN"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnPrimary"/>
 
                         <TextView
                             style="@style/TableHeaderStyle"
-                            android:text="STATUS"/>
+                            android:text="STATUS"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnPrimary"/>
                     </TableRow>
 
                     <!-- Data Rows with Alternating Colors -->
                     <TableRow
-                        android:background="#FFFFFF"
+                        android:background="?attr/colorSurfaceVariant"
                         android:padding="12dp">
 
                         <TextView
                             style="@style/TableContentStyle"
-                            android:text="28/11/2024"/>
+                            android:text="28/11/2024"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnSurface"/>
 
                         <TextView
                             style="@style/TableContentStyle"
-                            android:text="sakit"/>
+                            android:text="sakit"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnSurface"/>
 
                         <TextView
                             style="@style/TableContentStyle"
-                            android:text="demam"/>
+                            android:text="demam"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnSurface"/>
 
                         <TextView
                             android:layout_width="0dp"
@@ -199,9 +147,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Riwayat Cuti"
-                    android:textColor="#1a237e"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:fontFamily="@font/poppins_semibold"/>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAjukanCuti"
@@ -209,7 +158,8 @@
                     android:layout_height="wrap_content"
                     android:text="+ Ajukan Cuti"
                     android:textSize="12sp"
-                    app:cornerRadius="8dp" />
+                    app:cornerRadius="8dp"
+                    android:fontFamily="@font/poppins_semibold"/>
             </LinearLayout>
 
             <androidx.cardview.widget.CardView
@@ -225,34 +175,43 @@
 
                     <!-- Header Row -->
                     <TableRow
-                        android:background="#F8F9FA"
+                        android:background="@drawable/rounded_table"
                         android:padding="12dp">
 
                         <TextView
                             style="@style/TableHeaderStyle"
-                            android:text="TANGGAL MULAI" />
+                            android:text="TANGGAL MULAI"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnPrimary"/>
 
                         <TextView
                             style="@style/TableHeaderStyle"
-                            android:text="TANGGAL SELESAI" />
+                            android:text="TANGGAL SELESAI"  android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnPrimary"/>
 
                         <TextView
                             style="@style/TableHeaderStyle"
-                            android:text="STATUS"/>
+                            android:text="STATUS"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnPrimary"/>
                     </TableRow>
 
                     <!-- Data Row -->
                     <TableRow
-                        android:background="#FFFFFF"
+                        android:background="?attr/colorSurfaceVariant"
                         android:padding="12dp">
 
                         <TextView
                             style="@style/TableContentStyle"
-                            android:text="26/12/2024"/>
+                            android:text="26/12/2024"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnSurface"/>
 
                         <TextView
                             style="@style/TableContentStyle"
-                            android:text="03/01/2025"/>
+                            android:text="03/01/2025"
+                            android:fontFamily="@font/poppins_semibold"
+                            android:textColor="?attr/colorOnSurface"/>
 
 
                         <TextView
