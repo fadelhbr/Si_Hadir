@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1deb3
+-- version 5.2.0
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 06, 2024 at 05:51 AM
--- Server version: 8.0.40-0ubuntu0.24.10.1
--- PHP Version: 8.3.11
+-- Generation Time: Dec 06, 2024 at 06:50 AM
+-- Server version: 8.0.30
+-- PHP Version: 8.1.10
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -27,11 +27,63 @@ DELIMITER $$
 --
 CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()   BEGIN
     -- Nonaktifkan pemeriksaan foreign key terlebih dahulu
-    SET FOREIGN_KEY_CHECKS = 0$$
+    SET FOREIGN_KEY_CHECKS = 0;
+
+    -- Kosongkan tabel absensi
+    TRUNCATE TABLE absensi;
+
+    -- Kosongkan tabel log_akses
+    TRUNCATE TABLE log_akses;
+
+    -- Aktifkan kembali pemeriksaan foreign key
+    SET FOREIGN_KEY_CHECKS = 1;
+END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()   BEGIN
     -- Deklarasi variabel untuk iterasi dan kontrol
-    DECLARE done INT DEFAULT FALSE$$
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE curr_tanggal DATE;
+    
+    -- Cursor untuk mengambil semua tanggal sebelum hari ini dengan absensi tidak lengkap
+    DECLARE cur_incomplete_attendance CURSOR FOR 
+        SELECT DISTINCT DATE(tanggal) AS tanggal
+        FROM absensi 
+        WHERE DATE(tanggal) < CURRENT_DATE()
+        AND waktu_masuk != '00:00:00' 
+        AND waktu_keluar = '00:00:00';
+    
+    -- Handler untuk mengatur status selesai ketika cursor habis
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    -- Set timezone ke Asia/Jakarta (GMT+7)
+    SET time_zone = '+07:00';
+
+    -- Membuka cursor
+    OPEN cur_incomplete_attendance;
+
+    -- Memulai loop untuk setiap tanggal dengan absensi tidak lengkap
+    read_loop: LOOP
+        -- Mengambil tanggal berikutnya
+        FETCH cur_incomplete_attendance INTO curr_tanggal;
+
+        -- Keluar jika tidak ada tanggal lagi
+        IF done THEN 
+            LEAVE read_loop; 
+        END IF;
+
+        -- Update status menjadi tidak_absen_pulang untuk tanggal yang dipilih
+        UPDATE absensi 
+        SET status_kehadiran = 'tidak_absen_pulang'
+        WHERE DATE(tanggal) = curr_tanggal
+        AND waktu_masuk != '00:00:00'
+        AND waktu_keluar = '00:00:00';
+
+    END LOOP;
+
+    -- Menutup cursor
+    CLOSE cur_incomplete_attendance;
+
+END$$
 
 DELIMITER ;
 
@@ -79,11 +131,15 @@ CREATE TRIGGER `before_cuti_insert` BEFORE INSERT ON `cuti` FOR EACH ROW BEGIN
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM cuti
-    )$$
+    );
+END
+$$
 DELIMITER ;
 DELIMITER $$
 CREATE TRIGGER `hitung_durasi_cuti` BEFORE INSERT ON `cuti` FOR EACH ROW BEGIN
-    SET NEW.durasi_cuti = DATEDIFF(NEW.tanggal_selesai, NEW.tanggal_mulai)$$
+    SET NEW.durasi_cuti = DATEDIFF(NEW.tanggal_selesai, NEW.tanggal_mulai);
+END
+$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -161,7 +217,9 @@ CREATE TRIGGER `before_divisi_insert` BEFORE INSERT ON `divisi` FOR EACH ROW BEG
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM divisi
-    )$$
+    );
+END
+$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -189,7 +247,9 @@ CREATE TRIGGER `before_izin_insert` BEFORE INSERT ON `izin` FOR EACH ROW BEGIN
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM izin
-    )$$
+    );
+END
+$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -242,7 +302,9 @@ CREATE TRIGGER `before_jadwal_shift_insert` BEFORE INSERT ON `jadwal_shift` FOR 
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM jadwal_shift
-    )$$
+    );
+END
+$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -297,7 +359,9 @@ CREATE TRIGGER `before_pegawai_insert` BEFORE INSERT ON `pegawai` FOR EACH ROW B
     SET NEW.id = (
         SELECT COALESCE(MAX(id), 0) + 1
         FROM pegawai
-    )$$
+    );
+END
+$$
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -379,7 +443,7 @@ CREATE TABLE `users` (
 --
 DROP TABLE IF EXISTS `cuti_disetujui`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_disetujui`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on((`cuti`.`pegawai_id` = `pegawai`.`id`))) join `users` on((`pegawai`.`user_id` = `users`.`id`))) WHERE (`cuti`.`status` = 'disetujui') ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_disetujui`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on((`cuti`.`pegawai_id` = `pegawai`.`id`))) join `users` on((`pegawai`.`user_id` = `users`.`id`))) WHERE (`cuti`.`status` = 'disetujui')  ;
 
 -- --------------------------------------------------------
 
@@ -388,7 +452,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `cuti_ditolak`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_ditolak`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on((`cuti`.`pegawai_id` = `pegawai`.`id`))) join `users` on((`pegawai`.`user_id` = `users`.`id`))) WHERE (`cuti`.`status` = 'ditolak') ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_ditolak`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on((`cuti`.`pegawai_id` = `pegawai`.`id`))) join `users` on((`pegawai`.`user_id` = `users`.`id`))) WHERE (`cuti`.`status` = 'ditolak')  ;
 
 -- --------------------------------------------------------
 
@@ -397,7 +461,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `cuti_view`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_view`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on((`pegawai`.`id` = `cuti`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_view`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on((`pegawai`.`id` = `cuti`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`)))  ;
 
 -- --------------------------------------------------------
 
@@ -406,7 +470,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `izin_disetujui`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `izin_disetujui`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) WHERE (`izin`.`status` = 'disetujui') ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `izin_disetujui`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) WHERE (`izin`.`status` = 'disetujui')  ;
 
 -- --------------------------------------------------------
 
@@ -415,7 +479,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `izin_ditolak`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `izin_ditolak`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) WHERE (`izin`.`status` = 'ditolak') ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `izin_ditolak`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) WHERE (`izin`.`status` = 'ditolak')  ;
 
 -- --------------------------------------------------------
 
@@ -424,7 +488,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `perizinan_setuju_tolak`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `perizinan_setuju_tolak`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) WHERE (`izin`.`status` in ('disetujui','ditolak')) ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `perizinan_setuju_tolak`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) WHERE (`izin`.`status` in ('disetujui','ditolak'))  ;
 
 -- --------------------------------------------------------
 
@@ -433,7 +497,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `perizinan_view`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `perizinan_view`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `perizinan_view`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`)))  ;
 
 --
 -- Indexes for dumped tables
