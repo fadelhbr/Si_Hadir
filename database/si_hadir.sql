@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 04, 2024 at 01:53 PM
--- Server version: 8.0.40-0ubuntu0.24.04.1
--- PHP Version: 8.3.6
+-- Generation Time: Dec 06, 2024 at 05:51 AM
+-- Server version: 8.0.40-0ubuntu0.24.10.1
+-- PHP Version: 8.3.11
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -30,7 +30,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()   BEGIN
     SET FOREIGN_KEY_CHECKS = 0$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()   BEGIN
-    -- Deklarasi variabel untuk iterasi pengguna
+    -- Deklarasi variabel untuk iterasi dan kontrol
     DECLARE done INT DEFAULT FALSE$$
 
 DELIMITER ;
@@ -93,12 +93,12 @@ DELIMITER ;
 -- (See below for the actual view)
 --
 CREATE TABLE `cuti_disetujui` (
-`nama_staff` varchar(100)
+`durasi_cuti` int
+,`keterangan` text
+,`nama_staff` varchar(100)
+,`status` enum('pending','disetujui','ditolak')
 ,`tanggal_mulai` date
 ,`tanggal_selesai` date
-,`durasi_cuti` int
-,`keterangan` text
-,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -108,12 +108,12 @@ CREATE TABLE `cuti_disetujui` (
 -- (See below for the actual view)
 --
 CREATE TABLE `cuti_ditolak` (
-`nama_staff` varchar(100)
+`durasi_cuti` int
+,`keterangan` text
+,`nama_staff` varchar(100)
+,`status` enum('pending','disetujui','ditolak')
 ,`tanggal_mulai` date
 ,`tanggal_selesai` date
-,`durasi_cuti` int
-,`keterangan` text
-,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -123,12 +123,12 @@ CREATE TABLE `cuti_ditolak` (
 -- (See below for the actual view)
 --
 CREATE TABLE `cuti_view` (
-`nama_staff` varchar(100)
+`durasi_cuti` int
+,`keterangan` text
+,`nama_staff` varchar(100)
+,`status` enum('pending','disetujui','ditolak')
 ,`tanggal_mulai` date
 ,`tanggal_selesai` date
-,`durasi_cuti` int
-,`keterangan` text
-,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -199,11 +199,11 @@ DELIMITER ;
 -- (See below for the actual view)
 --
 CREATE TABLE `izin_disetujui` (
-`nama_lengkap` varchar(100)
-,`tanggal` date
-,`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
+`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
 ,`keterangan` text
+,`nama_lengkap` varchar(100)
 ,`status` enum('pending','disetujui','ditolak')
+,`tanggal` date
 );
 
 -- --------------------------------------------------------
@@ -213,11 +213,11 @@ CREATE TABLE `izin_disetujui` (
 -- (See below for the actual view)
 --
 CREATE TABLE `izin_ditolak` (
-`nama_lengkap` varchar(100)
-,`tanggal` date
-,`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
+`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
 ,`keterangan` text
+,`nama_lengkap` varchar(100)
 ,`status` enum('pending','disetujui','ditolak')
+,`tanggal` date
 );
 
 -- --------------------------------------------------------
@@ -307,11 +307,11 @@ DELIMITER ;
 -- (See below for the actual view)
 --
 CREATE TABLE `perizinan_setuju_tolak` (
-`nama_lengkap` varchar(100)
-,`tanggal` date
-,`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
+`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
 ,`keterangan` text
+,`nama_lengkap` varchar(100)
 ,`status` enum('pending','disetujui','ditolak')
+,`tanggal` date
 );
 
 -- --------------------------------------------------------
@@ -321,11 +321,11 @@ CREATE TABLE `perizinan_setuju_tolak` (
 -- (See below for the actual view)
 --
 CREATE TABLE `perizinan_view` (
-`nama_lengkap` varchar(100)
-,`tanggal` date
-,`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
+`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
 ,`keterangan` text
+,`nama_lengkap` varchar(100)
 ,`status` enum('pending','disetujui','ditolak')
+,`tanggal` date
 );
 
 -- --------------------------------------------------------
@@ -338,13 +338,6 @@ CREATE TABLE `qr_code` (
   `id` int NOT NULL,
   `kode_unik` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
---
--- Dumping data for table `qr_code`
---
-
-INSERT INTO `qr_code` (`id`, `kode_unik`) VALUES
-(122, '4eM8AX');
 
 -- --------------------------------------------------------
 
@@ -532,7 +525,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `cuti`
@@ -562,13 +555,13 @@ ALTER TABLE `jadwal_shift`
 -- AUTO_INCREMENT for table `log_akses`
 --
 ALTER TABLE `log_akses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=988486;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=938431;
 
 --
 -- AUTO_INCREMENT for table `otp_code`
 --
 ALTER TABLE `otp_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992336;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992334;
 
 --
 -- AUTO_INCREMENT for table `pegawai`
@@ -580,19 +573,19 @@ ALTER TABLE `pegawai`
 -- AUTO_INCREMENT for table `qr_code`
 --
 ALTER TABLE `qr_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=123;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
 
 --
 -- AUTO_INCREMENT for table `shift`
 --
 ALTER TABLE `shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75589;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75588;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992329;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992328;
 
 --
 -- Constraints for dumped tables
