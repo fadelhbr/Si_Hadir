@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 06, 2024 at 06:50 AM
+-- Generation Time: Dec 07, 2024 at 01:35 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -40,17 +40,22 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()   BEGIN
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()   BEGIN
-    -- Deklarasi variabel untuk iterasi dan kontrol
+    -- Deklarasi variabel untuk iterasi pengguna
     DECLARE done INT DEFAULT FALSE;
-    DECLARE curr_tanggal DATE;
-    
-    -- Cursor untuk mengambil semua tanggal sebelum hari ini dengan absensi tidak lengkap
-    DECLARE cur_incomplete_attendance CURSOR FOR 
-        SELECT DISTINCT DATE(tanggal) AS tanggal
-        FROM absensi 
-        WHERE DATE(tanggal) < CURRENT_DATE()
-        AND waktu_masuk != '00:00:00' 
-        AND waktu_keluar = '00:00:00';
+    DECLARE curr_pegawai_id INT;
+    DECLARE curr_shift_id INT;
+    DECLARE curr_jadwal_id INT;
+    DECLARE curr_hari_libur VARCHAR(10);
+    DECLARE status_kehadiran VARCHAR(10) DEFAULT 'alpha';
+    DECLARE hari_ini VARCHAR(10);
+    DECLARE tanggal_hari_ini DATE;
+
+    -- Cursor untuk mengambil semua pegawai yang aktif beserta hari liburnya
+    DECLARE cur_employees CURSOR FOR 
+        SELECT p.id, p.hari_libur
+        FROM pegawai p 
+        JOIN users u ON p.user_id = u.id 
+        WHERE u.role = 'karyawan' AND p.status_aktif = 'aktif';
     
     -- Handler untuk mengatur status selesai ketika cursor habis
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -58,30 +63,147 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()   BEGIN
     -- Set timezone ke Asia/Jakarta (GMT+7)
     SET time_zone = '+07:00';
 
+    -- Mendapatkan tanggal hari ini
+    SET tanggal_hari_ini = CURRENT_DATE();
+
+    -- Update status tidak_absen_pulang untuk kemarin jika ada entri
+    IF EXISTS (
+        SELECT 1 
+        FROM absensi 
+        WHERE DATE(tanggal) = DATE(tanggal_hari_ini - INTERVAL 1 DAY)
+    ) THEN
+        UPDATE absensi 
+        SET status_kehadiran = 'tidak_absen_pulang'
+        WHERE DATE(tanggal) = DATE(tanggal_hari_ini - INTERVAL 1 DAY)
+        AND waktu_masuk != '00:00:00'
+        AND waktu_keluar = '00:00:00';
+    END IF;
+
+    -- Mendapatkan nama hari ini dalam bahasa Indonesia
+    SET hari_ini = LOWER(
+        CASE DAYOFWEEK(tanggal_hari_ini)
+            WHEN 1 THEN 'minggu'
+            WHEN 2 THEN 'senin'
+            WHEN 3 THEN 'selasa'
+            WHEN 4 THEN 'rabu'
+            WHEN 5 THEN 'kamis'
+            WHEN 6 THEN 'jumat'
+            WHEN 7 THEN 'sabtu'
+        END
+    );
+
     -- Membuka cursor
-    OPEN cur_incomplete_attendance;
+    OPEN cur_employees;
 
-    -- Memulai loop untuk setiap tanggal dengan absensi tidak lengkap
+    -- Memulai loop untuk setiap pegawai
     read_loop: LOOP
-        -- Mengambil tanggal berikutnya
-        FETCH cur_incomplete_attendance INTO curr_tanggal;
+        -- Mengambil pegawai berikutnya beserta hari liburnya
+        FETCH cur_employees INTO curr_pegawai_id, curr_hari_libur;
 
-        -- Keluar jika tidak ada tanggal lagi
+        -- Keluar jika tidak ada pegawai lagi
         IF done THEN 
             LEAVE read_loop; 
         END IF;
 
-        -- Update status menjadi tidak_absen_pulang untuk tanggal yang dipilih
-        UPDATE absensi 
-        SET status_kehadiran = 'tidak_absen_pulang'
-        WHERE DATE(tanggal) = curr_tanggal
-        AND waktu_masuk != '00:00:00'
-        AND waktu_keluar = '00:00:00';
+        -- Memeriksa apakah record jadwal_shift sudah ada untuk hari ini
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM jadwal_shift 
+            WHERE pegawai_id = curr_pegawai_id 
+            AND tanggal = tanggal_hari_ini
+        ) THEN
+            -- Mengambil shift_id terakhir yang aktif untuk pegawai ini
+            SELECT shift_id INTO curr_shift_id 
+            FROM jadwal_shift 
+            WHERE pegawai_id = curr_pegawai_id 
+            AND status = 'aktif' 
+            ORDER BY tanggal DESC LIMIT 1;
+
+            -- Menyisipkan record jadwal_shift baru
+            INSERT INTO jadwal_shift (pegawai_id, shift_id, tanggal, status)
+            VALUES (
+                curr_pegawai_id, 
+                IFNULL(curr_shift_id, 1),
+                tanggal_hari_ini, 
+                'aktif'
+            );
+
+            -- Verifikasi apakah penyisipan berhasil
+            SET curr_jadwal_id = LAST_INSERT_ID();
+
+            -- Memastikan bahwa jadwal_shift_id baru ada
+            IF curr_jadwal_id IS NULL THEN
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Gagal membuat record jadwal_shift.';
+            END IF;
+        ELSE
+            -- Mengambil jadwal_shift id yang ada untuk hari ini
+            SELECT id, shift_id INTO curr_jadwal_id, curr_shift_ID
+            FROM jadwal_shift 
+            WHERE pegawai_id = curr_pegawai_id 
+            AND tanggal = tanggal_hari_ini
+            AND status = 'aktif' 
+            LIMIT 1;
+        END IF;
+
+        -- Mengatur status kehadiran default
+        SET status_kehadiran = 'alpha';
+        
+        -- Cek apakah hari ini adalah hari libur pegawai
+        IF curr_hari_libur = hari_ini THEN
+            SET status_kehadiran = 'libur';
+        ELSE
+            -- Cek tabel izin jika bukan hari libur
+            IF EXISTS (
+                SELECT 1 
+                FROM izin 
+                WHERE pegawai_id = curr_pegawai_id 
+                AND tanggal = tanggal_hari_ini
+                AND status = 'disetujui'
+            ) THEN
+                SET status_kehadiran = 'izin';
+            ELSEIF EXISTS (
+                -- Cek tabel cuti
+                SELECT 1 
+                FROM cuti 
+                WHERE pegawai_id = curr_pegawai_id 
+                AND tanggal_hari_ini BETWEEN tanggal_mulai AND tanggal_selesai 
+                AND status = 'disetujui'
+            ) THEN
+                SET status_kehadiran = 'cuti';
+            END IF;
+        END IF;
+
+        -- Cek apakah sudah ada record absensi untuk hari ini
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM absensi 
+            WHERE pegawai_id = curr_pegawai_id 
+            AND DATE(tanggal) = tanggal_hari_ini
+        ) THEN
+            -- Insert record baru hanya jika belum ada
+            INSERT INTO absensi (
+                pegawai_id, 
+                jadwal_shift_id, 
+                waktu_masuk, 
+                waktu_keluar, 
+                kode_unik, 
+                status_kehadiran, 
+                tanggal
+            ) VALUES (
+                curr_pegawai_id, 
+                curr_jadwal_id, 
+                '00:00:00', 
+                '00:00:00', 
+                '000000', 
+                status_kehadiran, 
+                tanggal_hari_ini
+            );
+        END IF;
 
     END LOOP;
 
     -- Menutup cursor
-    CLOSE cur_incomplete_attendance;
+    CLOSE cur_employees;
 
 END$$
 
@@ -100,7 +222,7 @@ CREATE TABLE `absensi` (
   `waktu_masuk` time DEFAULT NULL,
   `waktu_keluar` time DEFAULT NULL,
   `kode_unik` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `status_kehadiran` enum('hadir','terlambat','izin','alpha','cuti','pulang_dahulu','tidak_absen_pulang','libur') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'alpha',
+  `status_kehadiran` enum('hadir','terlambat','izin','alpha','cuti','dalam_shift','pulang_dahulu','tidak_absen_pulang','libur') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'alpha',
   `keterangan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
   `tanggal` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
