@@ -211,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Determine attendance status
-                $status = ($currentTime <= $shiftStart) ? 'hadir' : 'terlambat';
+                $status = ($currentTime <= $shiftStart) ? 'dalam_shift' : 'terlambat';
 
                 // Update the attendance record for check-in
                 $query = "UPDATE absensi SET waktu_masuk = CURRENT_TIME(), status_kehadiran = ?, kode_unik = ? WHERE id = ?";
