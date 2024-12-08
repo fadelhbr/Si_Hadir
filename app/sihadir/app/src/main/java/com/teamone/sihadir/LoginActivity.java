@@ -44,7 +44,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
     private TextView btnForgotPassword;
-    private static final String API_URL = "http://192.168.1.3/Si_hadir/Si_Hadir/web/sihadir/app/api/api_login.php";
+    private static final String API_URL = "http://192.168.1.20/Si_Hadir/web/sihadir/app/api/api_login.php";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     // SharedPreferences keys
@@ -55,6 +55,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String PREF_USER_ROLE = "user_role";
     private static final String PREF_NAMA_LENGKAP = "nama_lengkap";
+
+    private static final String PREF_PEGAWAI_ID = "pegawai_id";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,7 +97,7 @@ public class LoginActivity extends AppCompatActivity {
         return preferences.getBoolean(PREF_IS_LOGGED_IN, false);
     }
 
-    private void saveLoginInfo(int userId, String username, String password, String userRole) {
+    private void saveLoginInfo(int userId, String username, String password, String userRole, int pegawaiId) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = preferences.edit();
 
@@ -112,6 +114,7 @@ public class LoginActivity extends AppCompatActivity {
         editor.putString(PREF_PASSWORD, encryptedPassword);
         editor.putString(PREF_USER_ROLE, userRole);
         editor.putString(PREF_NAMA_LENGKAP, displayName);
+        editor.putInt(PREF_PEGAWAI_ID, pegawaiId);
 
         // Verify that editor.apply() is successful
         boolean success = editor.commit(); // Using commit() instead of apply() to verify
@@ -133,6 +136,7 @@ public class LoginActivity extends AppCompatActivity {
         intent.putExtra("user_id", preferences.getInt(PREF_USER_ID, -1));
         intent.putExtra("username", preferences.getString(PREF_USERNAME, ""));
         intent.putExtra("role", preferences.getString(PREF_USER_ROLE, ""));
+        intent.putExtra("pegawai_id", preferences.getInt(PREF_PEGAWAI_ID, -1));
         startActivity(intent);
         finish();
     }
@@ -145,6 +149,7 @@ public class LoginActivity extends AppCompatActivity {
         editor.remove(PREF_USERNAME);
         editor.remove(PREF_USER_ROLE);
         editor.remove(PREF_NAMA_LENGKAP);
+        editor.remove(PREF_PEGAWAI_ID);
         editor.apply();
 
         // Redirect ke LoginActivity
@@ -274,10 +279,11 @@ public class LoginActivity extends AppCompatActivity {
                             int userId = userObj.getInt("id");
                             String userRole = userObj.getString("role");
                             String responseUsername = userObj.getString("username");
+                            int pegawaiId = userObj.optInt("pegawai_id", -1);
 
-                            // Save login info including password
-                            saveLoginInfo(userId, responseUsername, password, userRole);
+                            Log.d("LoginActivity", "pegawaiId received: " + pegawaiId);
 
+                            saveLoginInfo(userId, responseUsername, password, userRole, pegawaiId);
                             Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
                             navigateToMainActivity();
                         } else {

@@ -1,0 +1,56 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:background="?attr/colorSurface">
+
+    <!-- Kolom Tanggal -->
+    <TextView
+        android:id="@+id/tvTanggalMulaiCuti"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.2"
+        android:fontFamily="@font/poppins_semibold"
+        android:text="Tanggal Mulai"
+        android:textSize="12sp"
+        android:layout_marginRight="6dp"
+        android:gravity="center"
+        />
+
+    <!-- Kolom Jadwal Shift -->
+    <TextView
+        android:id="@+id/tvTanggalSelesaiCuti"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:fontFamily="@font/poppins_semibold"
+        android:text="Tanggal Selesai"
+        android:textSize="12sp"
+        android:layout_marginRight="2dp"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/tvKeteranganCuti"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:fontFamily="@font/poppins_semibold"
+        android:text="Keterangan"
+        android:textSize="12sp"
+        android:layout_marginRight="2dp"
+        android:gravity="center" />
+
+    <!-- Kolom Waktu Masuk -->
+    <TextView
+        android:id="@+id/tvStatusCuti"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:fontFamily="@font/poppins_semibold"
+        android:text="Status"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+</LinearLayout>

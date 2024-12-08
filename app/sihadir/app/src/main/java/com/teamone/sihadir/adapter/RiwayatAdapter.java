@@ -35,7 +35,7 @@ public class RiwayatAdapter extends RecyclerView.Adapter<RiwayatAdapter.ViewHold
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_riwayat, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_riwayat_kehadiran, parent, false);
         return new ViewHolder(view);
     }
 

@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class SplashActivity extends AppCompatActivity {
-    private static final String LOCAL_SERVER_IP = "192.168.1.3";
+    private static final String LOCAL_SERVER_IP = "192.168.1.20";
     private static final int CONNECTION_TIMEOUT = 3000; // 3 seconds timeout
 
     @Override

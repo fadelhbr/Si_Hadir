@@ -8,9 +8,9 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.teamone.sihadir.fragment.AbsenFragment;
+import com.teamone.sihadir.fragment.PerizinanFragment;
 import com.teamone.sihadir.fragment.RiwayatFragment;
 import com.teamone.sihadir.fragment.LogoutFragment;
-import com.teamone.sihadir.fragment.PermissionFragment;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
             if (item.getItemId() == R.id.fr_riwayat) {
                 selectedFragment = new RiwayatFragment();
             } else if (item.getItemId() == R.id.fr_perizinan) {
-                selectedFragment = new PermissionFragment();
+                selectedFragment = new PerizinanFragment();
             } else if (item.getItemId() == R.id.fr_logout) {
                 selectedFragment = new LogoutFragment();
             } else if (item.getItemId() == R.id.fr_absen) {

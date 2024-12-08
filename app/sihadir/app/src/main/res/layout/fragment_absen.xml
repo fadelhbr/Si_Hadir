@@ -19,167 +19,158 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-    <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
-
-        <LinearLayout
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingBottom="32dp">
+            android:layout_height="match_parent"
+            android:fillViewport="true">
 
-            <!-- Greeting Section -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:paddingBottom="32dp">
 
-                <TextView
-                    android:id="@+id/userName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/poppins_bold"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/statusChip"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:fontFamily="@font/poppins_bold"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="16sp" />
-            </LinearLayout>
-
-            <!-- Profile Card -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Elevated"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
-
+                <!-- Greeting Section -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:padding="24dp">
 
-                    <!-- Header with Gradient -->
+                    <TextView
+                        android:id="@+id/userName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/poppins_bold"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/statusChip"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="@font/poppins_bold"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <!-- Profile Card -->
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Material3.CardView.Elevated"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="16dp"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp">
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/gradient_primary"
-                        android:orientation="horizontal"
-                        android:padding="20dp">
+                        android:orientation="vertical">
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/dateTimeText"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginLeft="10dp"
-                                android:fontFamily="@font/poppins_bold"
-                                android:textColor="?attr/colorOnPrimary"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <!-- Content Section -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="20dp">
-
-                        <!-- Attendance Code Input -->
+                        <!-- Header with Gradient -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="10dp"
-                            android:layout_marginLeft="9dp"
-                            android:layout_marginRight="9dp"
-                            android:gravity="center"
-                            android:orientation="horizontal">
+                            android:background="@drawable/gradient_primary"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
 
-                            <com.google.android.material.textfield.TextInputLayout
-                                style="@style/CustomTextInputLayout"
+                            <LinearLayout
                                 android:layout_width="0dp"
-                                android:layout_height="55dp"
+                                android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:hint="Masukkan Kode Absensi"
-                                android:paddingTop="0dp"
-                                android:paddingBottom="0dp"
-                                app:boxCornerRadiusBottomEnd="16dp"
-                                app:boxCornerRadiusBottomStart="16dp"
-                                app:boxCornerRadiusTopEnd="16dp"
-                                app:boxCornerRadiusTopStart="16dp"
-                                app:hintEnabled="false">
+                                android:orientation="vertical">
 
-                                <com.google.android.material.textfield.TextInputEditText
-                                    android:id="@+id/codeInput"
-                                    android:layout_width="match_parent"
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:id="@+id/dateTimeText"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginLeft="10dp"
+                                    android:fontFamily="@font/poppins_bold"
+                                    android:textColor="?attr/colorOnPrimary"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                        <!-- Content Section -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="20dp">
+
+                            <!-- Attendance Code Input -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:layout_marginLeft="9dp"
+                                android:layout_marginRight="9dp"
+                                android:gravity="center"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.textfield.TextInputLayout
+                                    style="@style/CustomTextInputLayout"
+                                    android:layout_width="0dp"
                                     android:layout_height="55dp"
-                                    android:fontFamily="@font/poppins_semibold"
-                                    android:gravity="center"
-                                    android:hint="Kode Presensi"
-                                    android:inputType="text"
+                                    android:layout_weight="1"
+                                    android:hint="Masukkan Kode Absensi"
                                     android:paddingTop="0dp"
-                                    android:paddingBottom="0dp" />
-                            </com.google.android.material.textfield.TextInputLayout>
+                                    android:paddingBottom="0dp"
+                                    app:boxCornerRadiusBottomEnd="16dp"
+                                    app:boxCornerRadiusBottomStart="16dp"
+                                    app:boxCornerRadiusTopEnd="16dp"
+                                    app:boxCornerRadiusTopStart="16dp"
+                                    app:hintEnabled="false">
+
+                                    <com.google.android.material.textfield.TextInputEditText
+                                        android:id="@+id/codeInput"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="55dp"
+                                        android:fontFamily="@font/poppins_semibold"
+                                        android:gravity="center"
+                                        android:hint="Kode Presensi"
+                                        android:inputType="text"
+                                        android:paddingTop="0dp"
+                                        android:paddingBottom="0dp" />
+                                </com.google.android.material.textfield.TextInputLayout>
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/scanButton"
+                                    style="@style/Widget.Material3.Button.OutlinedButton"
+                                    android:layout_width="55dp"
+                                    android:layout_height="55dp"
+                                    android:layout_marginStart="12dp"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    app:cornerRadius="16dp"
+                                    app:icon="@drawable/ic_scanner"
+                                    app:iconGravity="textStart"
+                                    app:iconPadding="0dp"
+                                    app:iconSize="24dp" />
+                            </LinearLayout>
 
                             <com.google.android.material.button.MaterialButton
-                                android:id="@+id/scanButton"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="55dp"
-                                android:layout_height="55dp"
-                                android:layout_marginStart="12dp"
-                                android:insetTop="0dp"
-                                android:insetBottom="0dp"
-                                app:cornerRadius="16dp"
-                                app:icon="@drawable/ic_scanner"
-                                app:iconGravity="textStart"
-                                app:iconPadding="0dp"
-                                app:iconSize="24dp" />
+                                android:id="@+id/submitButton"
+                                style="@style/Widget.Material3.Button"
+                                android:layout_width="match_parent"
+                                android:layout_height="60dp"
+                                android:layout_marginTop="20dp"
+                                android:layout_marginLeft="9dp"
+                                android:layout_marginRight="9dp"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:paddingVertical="14dp"
+                                android:text="Submit Presensi"
+                                android:textSize="16sp"
+                                app:cornerRadius="16dp" />
                         </LinearLayout>
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/submitButton"
-                            style="@style/Widget.Material3.Button"
-                            android:layout_width="match_parent"
-                            android:layout_height="60dp"
-                            android:layout_marginTop="20dp"
-                            android:layout_marginLeft="9dp"
-                            android:layout_marginRight="9dp"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:paddingVertical="14dp"
-                            android:text="Submit Presensi"
-                            android:textSize="16sp"
-                            app:cornerRadius="16dp" />
                     </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Schedule Card with Scrollable Table -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Elevated"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -585,8 +576,7 @@
                         </TableRow>
                     </TableLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
