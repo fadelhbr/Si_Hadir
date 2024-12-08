@@ -71,7 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate input
     if (!isset($input['email'])) {
         http_response_code(400);
-        echo json_encode(['error' => 'Invalid input. Email is required.']);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Invalid input. Email is required.'
+        ]);
         exit;
     }
 
@@ -84,7 +87,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate email
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
-        echo json_encode(['error' => 'Invalid email address.']);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Email tidak valid'
+        ]);
         exit;
     }
 
@@ -98,7 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$user) {
         http_response_code(404);
-        echo json_encode(['error' => 'User not found']);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Email tidak terdaftar'
+        ]);
         exit;
     }
 
@@ -117,7 +126,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$stmtUpdateOtp->execute()) {
             http_response_code(500);
-            echo json_encode(['error' => 'Failed to update OTP']);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to update OTP'
+            ]);
             exit;
         }
     } else {
@@ -128,7 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$stmtOtp->execute()) {
             http_response_code(500);
-            echo json_encode(['error' => 'Failed to store OTP']);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to store OTP'
+            ]);
             exit;
         }
 
@@ -143,25 +158,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$stmtUpdateUser->execute()) {
             http_response_code(500);
-            echo json_encode(['error' => 'Failed to update user with OTP']);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to update user with OTP'
+            ]);
             exit;
         }
     }
+
     // Kirim OTP melalui email
     $result = sendOTPEmail($email, $otpCode);
 
     if ($result) {
         http_response_code(200);
-        echo json_encode(['message' => 'OTP email sent successfully']);
+        echo json_encode([
+            'success' => true,
+            'message' => 'OTP Berhasil Dikirim'
+        ]);
     } else {
         http_response_code(500);
-        echo json_encode(['error' => 'Failed to send OTP email']);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Gagal Mengirim OTP'
+        ]);
     }
     exit;
 } else {
     // Method not allowed
     http_response_code(405);
-    echo json_encode(['error' => 'Method Not Allowed']);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Method Not Allowed'
+    ]);
     exit;
 }
-?>

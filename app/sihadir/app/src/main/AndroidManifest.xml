@@ -45,6 +45,12 @@
             android:name=".StartScan"
             android:stateNotNeeded="true"
             android:theme="@style/zxing_CaptureTheme" />
+            <activity
+            android:name=".model.SendOtpActivity" />
+        <activity
+            android:name=".model.ResetPasswordActivity" />
+        <activity
+            android:name=".model.VerifyOtpActivity" />
     </application>
 
 </manifest>

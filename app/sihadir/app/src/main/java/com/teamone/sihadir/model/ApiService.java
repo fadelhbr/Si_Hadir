@@ -38,4 +38,13 @@ public interface ApiService {
     @GET("api_status.php")
     Call<AttendanceStatusResponse> getAttendanceStatus(@Query("user_id") int userId);
 
+    @POST("api_send_otp.php")
+    Call<ApiResponse> sendOtp(@Body SendOtpRequest request);
+
+    @POST("api_verify_otp.php")
+    Call<ApiResponse> verifyOtp(@Body OtpVerificationRequest request);
+    @POST("api_reset_password.php")
+    Call<ApiResponse> resetPassword(@Body ResetPasswordRequest resetPasswordRequest);
 }
+
+

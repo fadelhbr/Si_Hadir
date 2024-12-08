@@ -3,6 +3,7 @@ package com.teamone.sihadir.model;
 public class AbsensiApiResponse {
     private String status;
     private String message;
+
     private AbsensiDetail data;
 
     public String getStatus() {

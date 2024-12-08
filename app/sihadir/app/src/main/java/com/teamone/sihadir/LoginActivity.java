@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 
 import com.google.gson.Gson;
+import com.teamone.sihadir.model.SendOtpActivity;
 
 import org.json.JSONObject;
 
@@ -43,7 +44,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
     private TextView btnForgotPassword;
-    private static final String API_URL = "http://192.168.0.102/Si_Hadir/web/sihadir/app/api/api_login.php";
+    private static final String API_URL = "http://192.168.1.3/Si_hadir/Si_Hadir/web/sihadir/app/api/api_login.php";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     // SharedPreferences keys
@@ -83,9 +84,9 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         btnForgotPassword.setOnClickListener(v -> {
-            // Aksi ketika lupa password diklik
-            Toast.makeText(LoginActivity.this, "Lupa password diklik", Toast.LENGTH_SHORT).show();
-            // Anda bisa menambahkan logika untuk menangani fitur lupa password di sini.
+            // Start OtpActivity when the forgot password button is clicked
+            Intent intent = new Intent(LoginActivity.this, SendOtpActivity.class);
+            startActivity(intent);
         });
     }
 
