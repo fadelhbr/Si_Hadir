@@ -7,81 +7,83 @@
     android:background="?attr/colorSurface"
     style="@style/SCREEN">
 
-        <LinearLayout
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical"
+        android:padding="16dp"
+        tools:ignore="ExtraText"
+        android:layout_marginTop="64dp">
+
+        <TextView
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="16dp"
-            tools:ignore="ExtraText">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Lupa Password"
-                android:textAlignment="center"
-                android:textSize="24sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textStyle="bold"
-                android:fontFamily="@font/poppins_bold"/>
-
-            <ProgressBar
-                android:id="@+id/progressBarSend"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:visibility="gone"
-                android:layout_gravity="center" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Enter your Email Address to send OTP"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textAlignment="center"
-                android:textSize="16sp"
+            android:layout_height="wrap_content"
+            android:text="Lupa Password"
+            android:textAlignment="center"
+            android:textSize="24sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textStyle="bold"
             android:fontFamily="@font/poppins_bold"/>
 
-            <TextView
+        <ProgressBar
+            android:id="@+id/progressBarSend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_gravity="center" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enter your Email Address to send OTP"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textAlignment="center"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp"
+            android:fontFamily="@font/poppins_bold"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kami akan mengirimkan Anda One Time Password (OTP)"
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/Email_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:hint="Masukkan Email"
+            android:textColorHint="?attr/colorOnSurfaceVariant"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/email_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Kami akan mengirimkan Anda One Time Password (OTP)"
-                android:textAlignment="center"
-                android:textSize="14sp"
-                android:layout_marginTop="8dp"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:inputType="textEmailAddress"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:padding="12dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"/>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/Email_layout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:hint="Masukkan Email"
-                android:textColorHint="?attr/colorOnSurfaceVariant"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/email_input"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textEmailAddress"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:padding="12dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSend"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="24dp"
+            android:clickable="true"
+            android:enabled="true"
+            android:focusable="true"
+            android:text="Kirim OTP"
+            android:textSize="16sp"
+            app:cornerRadius="28dp" />
 
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSend"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="24dp"
-                android:clickable="true"
-                android:enabled="true"
-                android:focusable="true"
-                android:text="Kirim OTP"
-                android:textSize="16sp"
-                app:cornerRadius="28dp" />
-
-        </LinearLayout>
+    </LinearLayout>
 </RelativeLayout>
