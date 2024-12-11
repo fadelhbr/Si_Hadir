@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    style="@style/SCREEN"
-    android:background="#F5F6FA">
+    android:layout_height="match_parent">
 
     <!-- SwipeRefreshLayout to Enable Pull-to-Refresh -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -18,8 +17,7 @@
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="16dp"
-            style="@style/SCREEN_TOP">
+            android:padding="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -40,7 +38,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Riwayat Izin"
-                        android:textColor="?attr/colorOnSurface"
+                        android:textColor="?attr/textFillColor"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:fontFamily="@font/poppins_semibold"/>
@@ -77,7 +75,7 @@
                                 android:text="TANGGAL"
                                 android:layout_weight="1"
                                 android:fontFamily="@font/poppins_semibold"
-                                android:textColor="?attr/colorOnPrimary"
+                                android:textColor="@color/white"
                                 android:textSize="12sp"/>
 
                             <TextView
@@ -85,7 +83,7 @@
                                 android:text="JENIS IZIN"
                                 android:layout_weight="1"
                                 android:fontFamily="@font/poppins_semibold"
-                                android:textColor="?attr/colorOnPrimary"
+                                android:textColor="@color/white"
                                 android:textSize="12sp"/>
 
                             <TextView
@@ -93,7 +91,7 @@
                                 android:text="KETERANGAN"
                                 android:layout_weight="1"
                                 android:fontFamily="@font/poppins_semibold"
-                                android:textColor="?attr/colorOnPrimary"
+                                android:textColor="@color/white"
                                 android:textSize="12sp"/>
 
                             <TextView
@@ -101,7 +99,7 @@
                                 android:text="STATUS"
                                 android:layout_weight="1"
                                 android:fontFamily="@font/poppins_semibold"
-                                android:textColor="?attr/colorOnPrimary"
+                                android:textColor="@color/white"
                                 android:textSize="12sp"/>
                         </TableRow>
                         <!-- Data Rows with Alternating Colors -->
@@ -111,6 +109,7 @@
                             android:layout_height="200dp"
                             android:maxHeight="200dp"
                             android:scrollbars="vertical"
+                            android:background="?attr/colorTertiary"
                             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                             tools:listitem="@layout/item_riwayat_izin"/>
                     </TableLayout>
@@ -130,7 +129,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Riwayat Cuti"
-                        android:textColor="?attr/colorOnSurface"
+                        android:textColor="?attr/textFillColor"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:fontFamily="@font/poppins_semibold"/>
@@ -169,7 +168,7 @@
                                 android:layout_weight="1.2"
                                 android:textSize="11dp"
                                 android:fontFamily="@font/poppins_semibold"
-                                android:textColor="?attr/colorOnPrimary"/>
+                                android:textColor="@color/white"/>
 
                             <TextView
                                 style="@style/TableHeaderStyle"
@@ -178,7 +177,7 @@
                                 android:layout_weight="1"
                                 android:textSize="11dp"
                                 android:fontFamily="@font/poppins_semibold"
-                                android:textColor="?attr/colorOnPrimary"/>
+                                android:textColor="@color/white"/>
 
                             <TextView
                                 style="@style/TableHeaderStyle"
@@ -186,14 +185,14 @@
                                 android:textSize="11dp"
                                 android:layout_marginRight="2dp"
                                 android:fontFamily="@font/poppins_semibold"
-                                android:textColor="?attr/colorOnPrimary"/>
+                                android:textColor="@color/white"/>
 
                             <TextView
                                 style="@style/TableHeaderStyle"
                                 android:text="STATUS"
                                 android:textSize="11dp"
                                 android:fontFamily="@font/poppins_semibold"
-                                android:textColor="?attr/colorOnPrimary"/>
+                                android:textColor="@color/white"/>
 
                         </TableRow>
 
@@ -203,6 +202,7 @@
                             android:layout_height="200dp"
                             android:maxHeight="200dp"
                             android:scrollbars="vertical"
+                            android:background="?attr/colorTertiary"
                             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                             tools:listitem="@layout/item_riwayat_cuti"/>
                     </TableLayout>

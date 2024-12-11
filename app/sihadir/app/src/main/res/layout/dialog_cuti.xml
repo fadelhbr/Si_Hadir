@@ -43,30 +43,46 @@
             android:orientation="horizontal"
             android:layout_marginBottom="16dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnTanggalMulai"
-                android:layout_width="0dp"
-                android:layout_weight="1"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:text="Tanggal mulai"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#2196F3"
-                app:icon="@drawable/ic_date"
-                app:iconTint="#FFFFFF"
-                app:iconGravity="end"/>
+                android:orientation="horizontal">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnTanggalSelesai"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Tanggal selesai"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#2196F3"
-                app:icon="@drawable/ic_date"
-                app:iconTint="#FFFFFF"
-                app:iconGravity="end"/>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTanggalMulai"
+                    android:minWidth="0dp"
+                    android:layout_width="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp"
+                    android:text="Tanggal Mulai"
+                    android:textSize="13dp"
+                    android:maxLines="2"
+                    android:textColor="#FFFFFF"
+                    android:backgroundTint="#2196F3"
+                    app:icon="@drawable/ic_date"
+                    app:iconTint="#FFFFFF"
+                    app:iconGravity="end"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTanggalSelesai"
+                    android:layout_width="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="Tanggal Selesai"
+                    android:textSize="13dp"
+                    android:textColor="#FFFFFF"
+                    android:backgroundTint="#2196F3"
+                    app:icon="@drawable/ic_date"
+                    app:iconTint="#FFFFFF"
+                    app:iconGravity="end"/>
+            </LinearLayout>
         </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -91,7 +107,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Ajukan permohonan"
+            android:text="Ajukan Permohonan"
             android:textColor="#FFFFFF"
             android:backgroundTint="#3F51B5"/>
 

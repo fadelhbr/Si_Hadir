@@ -1,4 +1,4 @@
-package com.teamone.sihadir.model;
+package com.teamone.sihadir.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -11,8 +11,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.teamone.sihadir.LoginActivity;
 import com.teamone.sihadir.R;
+import com.teamone.sihadir.model.ApiResponse;
+import com.teamone.sihadir.model.ApiService;
+import com.teamone.sihadir.model.ResetPasswordRequest;
+import com.teamone.sihadir.model.RetrofitClient;
 
 import java.io.IOException;
 

@@ -1,5 +1,7 @@
 package com.teamone.sihadir.adapter;
 
+import android.content.res.Resources;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,10 +34,17 @@ public class RiwayatIzinAdapter extends RecyclerView.Adapter<RiwayatIzinAdapter.
     @Override
     public void onBindViewHolder(@NonNull RiwayatIzinViewHolder holder, int position) {
 
-        if (position % 2 == 0) {
-            holder.itemView.setBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.md_theme_light_surface)); // Even rows
-        } else {
-            holder.itemView.setBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.md_theme_light_surfaceVariant)); // Odd rows
+        TypedValue typedValue = new TypedValue();
+        Resources.Theme theme = holder.itemView.getContext().getTheme();
+
+        // Default background
+        theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true);
+        holder.itemView.setBackgroundColor(typedValue.data);
+
+        // Alternate background color for even/odd rows
+        if (position % 2 == 1) {
+            theme.resolveAttribute(com.google.android.material.R.attr.colorSurfaceVariant, typedValue, true);
+            holder.itemView.setBackgroundColor(typedValue.data);
         }
 
         RiwayatIzin riwayatIzin = riwayatIzinList.get(position);

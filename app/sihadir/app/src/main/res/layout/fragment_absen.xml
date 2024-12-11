@@ -35,14 +35,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="24dp">
+                    android:padding="18dp">
 
                     <TextView
                         android:id="@+id/userName"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/poppins_bold"
-                        android:textColor="?attr/colorOnSurface"
+                        android:textColor="?attr/textFillColor"
                         android:textSize="24sp"
                         android:textStyle="bold" />
 
@@ -52,7 +52,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:fontFamily="@font/poppins_bold"
-                        android:textColor="?attr/colorOnSurface"
+                        android:textColor="?attr/textFillColor"
                         android:textSize="16sp" />
                 </LinearLayout>
 
@@ -90,8 +90,8 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginLeft="10dp"
                                     android:fontFamily="@font/poppins_bold"
-                                    android:textColor="?attr/colorOnPrimary"
                                     android:textSize="18sp"
+                                    android:textColor="@color/white"
                                     android:textStyle="bold" />
                             </LinearLayout>
 
@@ -166,6 +166,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:paddingVertical="14dp"
                                 android:text="Submit Presensi"
+                                android:textStyle="bold"
                                 android:textSize="16sp"
                                 app:cornerRadius="16dp" />
                         </LinearLayout>
@@ -186,7 +187,7 @@
                         android:layout_marginLeft="9dp"
                         android:fontFamily="@font/poppins_bold"
                         android:text="Jadwal Kerja"
-                        android:textColor="?attr/colorOnSurface"
+                        android:textColor="?attr/textFillColor"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
@@ -210,7 +211,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Hari"
-                                android:textColor="?attr/colorOnPrimary"
+                                android:textColor="@color/white"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -221,7 +222,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Shift"
-                                android:textColor="?attr/colorOnPrimary"
+                                android:textColor="@color/white"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -231,7 +232,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Jam Masuk"
-                                android:textColor="?attr/colorOnPrimary"
+                                android:textColor="@color/white"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -241,7 +242,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Jam Keluar"
-                                android:textColor="?attr/colorOnPrimary"
+                                android:textColor="@color/white"
                                 android:textStyle="bold" />
                         </TableRow>
 
@@ -259,7 +260,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Senin"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvShiftSenin"
@@ -269,7 +270,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamMasukSenin"
@@ -279,7 +280,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamKeluarSenin"
@@ -289,7 +290,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
                         </TableRow>
 
                         <!-- Selasa -->
@@ -306,7 +307,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Selasa"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvShiftSelasa"
@@ -316,7 +317,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamMasukSelasa"
@@ -326,7 +327,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamKeluarSelasa"
@@ -336,7 +337,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
                         </TableRow>
 
                         <!-- Rabu -->
@@ -353,7 +354,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Rabu"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvShiftRabu"
@@ -363,7 +364,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamMasukRabu"
@@ -373,7 +374,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamKeluarRabu"
@@ -383,7 +384,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
                         </TableRow>
 
                         <!-- Kamis -->
@@ -400,7 +401,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Kamis"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvShiftKamis"
@@ -410,7 +411,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamMasukKamis"
@@ -420,7 +421,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamKeluarKamis"
@@ -430,7 +431,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
                         </TableRow>
 
                         <!-- Jumat -->
@@ -447,7 +448,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Jumat"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvShiftJumat"
@@ -457,7 +458,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamMasukJumat"
@@ -467,7 +468,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamKeluarJumat"
@@ -477,7 +478,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
                         </TableRow>
 
                         <!-- Sabtu -->
@@ -494,7 +495,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Sabtu"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvShiftSabtu"
@@ -504,7 +505,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamMasukSabtu"
@@ -514,7 +515,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamKeluarSabtu"
@@ -524,7 +525,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
                         </TableRow>
 
                         <!-- Minggu -->
@@ -542,7 +543,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Minggu"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvShiftMinggu"
@@ -552,7 +553,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamMasukMinggu"
@@ -562,7 +563,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
 
                             <TextView
                                 android:id="@+id/tvJamKeluarMinggu"
@@ -572,7 +573,7 @@
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="-"
-                                android:textColor="?attr/colorOnSurface" />
+                                android:textColor="?attr/textFillColor"/>
                         </TableRow>
                     </TableLayout>
                 </LinearLayout>

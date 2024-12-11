@@ -46,8 +46,7 @@ public class PerizinanFragment extends Fragment implements
     private SwipeRefreshLayout swipeRefreshLayout;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_perizinan, container, false);
     }
 
@@ -83,6 +82,7 @@ public class PerizinanFragment extends Fragment implements
                 fetchRiwayatCutiData((RiwayatCutiAdapter) rvTabelRiwayatCuti.getAdapter());
             } else {
                 Log.e("PerizinanFragment", "pegawaiId belum diinisialisasi atau kosong!");
+                swipeRefreshLayout.setRefreshing(false);
             }
         });
     }
@@ -102,6 +102,20 @@ public class PerizinanFragment extends Fragment implements
         if (pegawaiId != -1) {
             fetchRiwayatIzinData(izinAdapter);
             fetchRiwayatCutiData(cutiAdapter);
+        } else {
+            Log.e("PerizinanFragment", "pegawaiId belum diinisialisasi atau kosong!");
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // Ketika fragment dimulai, aktifkan swipe refresh otomatis
+        if (pegawaiId != -1) {
+            swipeRefreshLayout.setRefreshing(true); // Mulai animasi refresh
+            fetchRiwayatIzinData((RiwayatIzinAdapter) rvTabelRiwayatIzin.getAdapter());
+            fetchRiwayatCutiData((RiwayatCutiAdapter) rvTabelRiwayatCuti.getAdapter());
         } else {
             Log.e("PerizinanFragment", "pegawaiId belum diinisialisasi atau kosong!");
         }
@@ -138,6 +152,8 @@ public class PerizinanFragment extends Fragment implements
     }
 
     private void fetchRiwayatCutiData(RiwayatCutiAdapter adapter) {
+        Log.d("PerizinanFragment", "Fetching Cuti Data - Start");
+
         ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
 
         JsonObject requestBody = new JsonObject();
@@ -147,10 +163,17 @@ public class PerizinanFragment extends Fragment implements
         call.enqueue(new Callback<RiwayatCutiResponse>() {
             @Override
             public void onResponse(Call<RiwayatCutiResponse> call, Response<RiwayatCutiResponse> response) {
+                Log.d("PerizinanFragment", "Fetching Cuti Data - Response Received");
+
                 if (response.isSuccessful() && response.body() != null) {
                     RiwayatCutiResponse riwayatCutiResponse = response.body();
                     List<RiwayatCuti> riwayatCutiList = riwayatCutiResponse.getData();
+
+                    Log.d("PerizinanFragment", "Cuti Data Size: " + riwayatCutiList.size());
+
                     adapter.updateData(riwayatCutiList);  // Update RecyclerView dengan data baru
+
+                    Log.d("PerizinanFragment", "Cuti Data Updated in Adapter");
                 } else {
                     Log.e("PerizinanFragment", "Response tidak berhasil");
                 }
@@ -166,7 +189,6 @@ public class PerizinanFragment extends Fragment implements
             }
         });
     }
-
 
     private void showPermissionForm() {
         if (pegawaiId != -1) {

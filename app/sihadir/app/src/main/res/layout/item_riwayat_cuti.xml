@@ -17,7 +17,7 @@
         android:textSize="12sp"
         android:layout_marginRight="6dp"
         android:gravity="center"
-        />
+        android:textColor="?attr/textFillColor"/>
 
     <!-- Kolom Jadwal Shift -->
     <TextView
@@ -29,7 +29,8 @@
         android:text="Tanggal Selesai"
         android:textSize="12sp"
         android:layout_marginRight="2dp"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="?attr/textFillColor"/>
 
     <TextView
         android:id="@+id/tvKeteranganCuti"
@@ -40,7 +41,8 @@
         android:text="Keterangan"
         android:textSize="12sp"
         android:layout_marginRight="2dp"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="?attr/textFillColor"/>
 
     <!-- Kolom Waktu Masuk -->
     <TextView
@@ -51,6 +53,7 @@
         android:fontFamily="@font/poppins_semibold"
         android:text="Status"
         android:textSize="12sp"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="?attr/textFillColor"/>
 
 </LinearLayout>

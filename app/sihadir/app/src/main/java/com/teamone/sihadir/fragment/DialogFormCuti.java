@@ -193,6 +193,16 @@ public class DialogFormCuti extends DialogFragment {
                     // Respons berhasil dari API
                     CutiResponse cutiResponse = response.body();
                     Toast.makeText(requireContext(), cutiResponse.getMessage(), Toast.LENGTH_SHORT).show();
+
+                    // Panggil listener untuk melakukan refresh
+                    if (getParentFragment() instanceof PerizinanFragment) {
+                        ((PerizinanFragment) getParentFragment()).onLeaveSubmitted(
+                                formattedStartDate,
+                                formattedEndDate,
+                                keterangan,
+                                pegawaiId
+                        );
+                    }
                     dismiss(); // Tutup dialog setelah berhasil
                 } else {
                     // Log detail jika gagal

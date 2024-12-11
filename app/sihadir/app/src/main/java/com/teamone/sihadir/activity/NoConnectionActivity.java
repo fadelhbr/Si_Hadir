@@ -1,10 +1,12 @@
-package com.teamone.sihadir;
+package com.teamone.sihadir.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.teamone.sihadir.R;
 
 public class NoConnectionActivity extends AppCompatActivity {
 

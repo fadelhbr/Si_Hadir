@@ -9,7 +9,7 @@ import android.widget.Button;
 import androidx.fragment.app.Fragment;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.teamone.sihadir.LoginActivity;
+import com.teamone.sihadir.activity.LoginActivity;
 import com.teamone.sihadir.R;
 
 public class LogoutFragment extends Fragment {

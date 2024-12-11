@@ -1,4 +1,4 @@
-package com.teamone.sihadir.model;
+package com.teamone.sihadir.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -15,6 +15,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.teamone.sihadir.R;
+import com.teamone.sihadir.model.ApiResponse;
+import com.teamone.sihadir.model.ApiService;
+import com.teamone.sihadir.model.OtpVerificationRequest;
+import com.teamone.sihadir.model.RetrofitClient;
+import com.teamone.sihadir.model.SendOtpRequest;
 
 import retrofit2.Call;
 import retrofit2.Callback;

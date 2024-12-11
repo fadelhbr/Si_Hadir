@@ -164,6 +164,7 @@ public class DialogFormPerizinan extends DialogFragment {
         String keterangan = edtKeterangan.getText().toString().trim();
         String jenisIzin = spinnerJenisIzin.getText().toString();
         String tanggal = selectedDate; // Mengambil tanggal yang dipilih
+        String myFormat = "yyyy/MM/dd";
 
         // Menyesuaikan dengan format ENUM di database
         if (jenisIzin.equals("Sakit")) {
@@ -184,6 +185,7 @@ public class DialogFormPerizinan extends DialogFragment {
         ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
         Call<IzinResponse> call = apiService.submitIzinRequest(new IzinRequest(pegawaiId, tanggal, jenisIzin, keterangan));
 
+        String finalJenisIzin = jenisIzin;
         call.enqueue(new Callback<IzinResponse>() {
             @Override
             public void onResponse(@NonNull Call<IzinResponse> call, @NonNull Response<IzinResponse> response) {
@@ -195,6 +197,15 @@ public class DialogFormPerizinan extends DialogFragment {
                     } else {
                         // Pengajuan izin berhasil
                         Toast.makeText(requireContext(), izinResponse.getMessage(), Toast.LENGTH_SHORT).show();
+
+                        // Panggil listener untuk melakukan refresh
+                        if (getParentFragment() instanceof PerizinanFragment) {
+                            ((PerizinanFragment) getParentFragment()).onPermissionSubmitted(
+                                    finalJenisIzin,
+                                    tanggal,
+                                    keterangan
+                            );
+                        }
                         dismiss(); // Tutup dialog setelah berhasil
                     }
                 } else {

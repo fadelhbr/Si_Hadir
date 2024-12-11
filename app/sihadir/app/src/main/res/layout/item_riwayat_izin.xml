@@ -16,6 +16,7 @@
         android:text="Tanggal"
         android:textSize="12sp"
         android:gravity="center"
+        android:textColor="?attr/textFillColor"
         />
 
     <!-- Kolom Jadwal Shift -->
@@ -27,7 +28,8 @@
         android:fontFamily="@font/poppins_semibold"
         android:text="Jenis Izin"
         android:textSize="12sp"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="?attr/textFillColor"/>
 
     <!-- Kolom Waktu Masuk -->
     <TextView
@@ -38,7 +40,8 @@
         android:fontFamily="@font/poppins_semibold"
         android:text="Keterangan"
         android:textSize="12sp"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="?attr/textFillColor"/>
 
     <!--  Kolom Waktu Keluar  -->
     <TextView
@@ -49,6 +52,7 @@
         android:fontFamily="@font/poppins_semibold"
         android:text="Status"
         android:textSize="12sp"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="?attr/textFillColor"/>
 
 </LinearLayout>

@@ -10,7 +10,7 @@
         android:layout_centerInParent="true"
         android:text="Si Hadir"
         android:fontFamily="@font/poppins_bold"
-        android:textColor="?attr/colorOnSurface"
+        android:textColor="?attr/textFillColor"
         android:textSize="36sp"
         android:textStyle="bold"/>
 
