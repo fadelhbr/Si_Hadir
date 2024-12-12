@@ -424,6 +424,13 @@ try {
                                         <?php
                                         switch ($record['status_kehadiran']) {
                                             case 'hadir':
+                                                $statusKehadiran = "Hadir";
+                                                $statusClass = "px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm";
+                                                break;
+                                            case 'dalam_shift':
+                                                $statusKehadiran = "Dalam Shift";
+                                                $statusClass = "px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm";
+                                                break;
                                             case 'terlambat':
                                                 $statusKehadiran = "Terlambat";
                                                 $statusClass = "px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm";

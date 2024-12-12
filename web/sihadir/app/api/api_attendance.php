@@ -210,7 +210,7 @@ try {
         }
 
         // Determine status based on check-in time
-        $status = $currentTime > $shiftStart ? "terlambat" : "hadir";
+        $status = $currentTime > $shiftStart ? "terlambat" : "dalam_shift";
 
         // Update database untuk absensi masuk
         $stmt = $pdo->prepare("
@@ -254,7 +254,7 @@ try {
             );
         }
 
-        // Determine status and keterangan
+        // checkout
         $status = $isEarlyLeave ? "pulang_dahulu" : "hadir";
         $keterangan = $isEarlyLeave ? "Pulang lebih awal dari jadwal" : null;
 

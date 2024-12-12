@@ -1,231 +1,213 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Header Section with Better Styling -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/headerCard"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardElevation="4dp"
-        app:layout_constraintTop_toTopOf="parent"/>
-
-    <!-- Tables Container with Improved Styling -->
-    <androidx.core.widget.NestedScrollView
+    <!-- SwipeRefreshLayout to Enable Pull-to-Refresh -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:padding="16dp"
-        app:layout_constraintTop_toBottomOf="@id/headerCard"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <LinearLayout
+        <!-- Tables Container with Improved Styling -->
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_height="match_parent"
+            android:padding="16dp">
 
-            <!-- Tabel Cuti Section -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="12dp">
+                android:orientation="vertical">
 
-                <TextView
-                    style="@style/TEXT"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Riwayat Izin"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:fontFamily="@font/poppins_semibold"/>/>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAjukanIzin"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+ Ajukan Izin"
-                    android:textSize="12sp"
-                    app:cornerRadius="8dp"
-                    android:fontFamily="@font/poppins_semibold"/>
-            </LinearLayout>
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
-
-                <TableLayout
+                <!-- Tabel Izin Section -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:stretchColumns="*">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
 
-                    <!-- Header Row -->
-                    <TableRow
-                        android:background="@drawable/rounded_table"
-                        android:padding="12dp">
+                    <TextView
+                        style="@style/TEXT"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Riwayat Izin"
+                        android:textColor="?attr/textFillColor"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/poppins_semibold"/>
 
-                        <TextView
-                            style="@style/TableHeaderStyle"
-                            android:text="TANGGAL"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnPrimary"/>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAjukanIzin"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="+ Ajukan Izin"
+                        android:textSize="12sp"
+                        app:cornerRadius="8dp"
+                        android:fontFamily="@font/poppins_semibold"/>
+                </LinearLayout>
 
-                        <TextView
-                            style="@style/TableHeaderStyle"
-                            android:text="JENIS IZIN"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnPrimary"/>
-
-                        <TextView
-                            style="@style/TableHeaderStyle"
-                            android:text="KETERANGAN"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnPrimary"/>
-
-                        <TextView
-                            style="@style/TableHeaderStyle"
-                            android:text="STATUS"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnPrimary"/>
-                    </TableRow>
-
-                    <!-- Data Rows with Alternating Colors -->
-                    <TableRow
-                        android:background="?attr/colorSurfaceVariant"
-                        android:padding="12dp">
-
-                        <TextView
-                            style="@style/TableContentStyle"
-                            android:text="28/11/2024"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnSurface"/>
-
-                        <TextView
-                            style="@style/TableContentStyle"
-                            android:text="sakit"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnSurface"/>
-
-                        <TextView
-                            style="@style/TableContentStyle"
-                            android:text="demam"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnSurface"/>
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Disetujui"
-                            style="@style/TEXT"
-                            android:textAlignment="center"
-                            android:textColor="#4CAF50"
-                            android:background="@drawable/status_approved_bg"/>
-                    </TableRow>
-                </TableLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- Tabel Izin Section -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="12dp">
-
-                <TextView
-                    style="@style/TEXT"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Riwayat Cuti"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:fontFamily="@font/poppins_semibold"/>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAjukanCuti"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+ Ajukan Cuti"
-                    android:textSize="12sp"
-                    app:cornerRadius="8dp"
-                    android:fontFamily="@font/poppins_semibold"/>
-            </LinearLayout>
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
-
-                <TableLayout
+                <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:stretchColumns="*">
+                    android:layout_marginBottom="24dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
 
-                    <!-- Header Row -->
-                    <TableRow
-                        android:background="@drawable/rounded_table"
-                        android:padding="12dp">
+                    <TableLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:stretchColumns="*">
 
-                        <TextView
-                            style="@style/TableHeaderStyle"
-                            android:text="TANGGAL MULAI"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnPrimary"/>
+                        <!-- Header Row -->
+                        <TableRow
+                            android:background="@drawable/rounded_table"
+                            android:padding="12dp">
 
-                        <TextView
-                            style="@style/TableHeaderStyle"
-                            android:text="TANGGAL SELESAI"  android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnPrimary"/>
+                            <TextView
+                                style="@style/TableHeaderStyle"
+                                android:text="TANGGAL"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:textColor="@color/white"
+                                android:textSize="12sp"/>
 
-                        <TextView
-                            style="@style/TableHeaderStyle"
-                            android:text="STATUS"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnPrimary"/>
-                    </TableRow>
+                            <TextView
+                                style="@style/TableHeaderStyle"
+                                android:text="JENIS IZIN"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:textColor="@color/white"
+                                android:textSize="12sp"/>
 
-                    <!-- Data Row -->
-                    <TableRow
-                        android:background="?attr/colorSurfaceVariant"
-                        android:padding="12dp">
+                            <TextView
+                                style="@style/TableHeaderStyle"
+                                android:text="KETERANGAN"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:textColor="@color/white"
+                                android:textSize="12sp"/>
 
-                        <TextView
-                            style="@style/TableContentStyle"
-                            android:text="26/12/2024"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnSurface"/>
+                            <TextView
+                                style="@style/TableHeaderStyle"
+                                android:text="STATUS"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:textColor="@color/white"
+                                android:textSize="12sp"/>
+                        </TableRow>
+                        <!-- Data Rows with Alternating Colors -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvTabelRiwayatIzin"
+                            android:layout_width="match_parent"
+                            android:layout_height="200dp"
+                            android:maxHeight="200dp"
+                            android:scrollbars="vertical"
+                            android:background="?attr/colorTertiary"
+                            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                            tools:listitem="@layout/item_riwayat_izin"/>
+                    </TableLayout>
+                </androidx.cardview.widget.CardView>
 
-                        <TextView
-                            style="@style/TableContentStyle"
-                            android:text="03/01/2025"
-                            android:fontFamily="@font/poppins_semibold"
-                            android:textColor="?attr/colorOnSurface"/>
+                <!-- Tabel Cuti Section -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
 
+                    <TextView
+                        style="@style/TEXT"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Riwayat Cuti"
+                        android:textColor="?attr/textFillColor"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/poppins_semibold"/>
 
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Disetujui"
-                            style="@style/TEXT"
-                            android:textAlignment="center"
-                            android:textColor="#4CAF50"
-                            android:background="@drawable/status_approved_bg"/>
-                    </TableRow>
-                </TableLayout>
-            </androidx.cardview.widget.CardView>
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAjukanCuti"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="+ Ajukan Cuti"
+                        android:textSize="12sp"
+                        app:cornerRadius="8dp"
+                        android:fontFamily="@font/poppins_semibold"/>
+                </LinearLayout>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+
+                    <TableLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:stretchColumns="*">
+
+                        <!-- Header Row -->
+                        <TableRow
+                            android:background="@drawable/rounded_table"
+                            android:padding="12dp">
+
+                            <TextView
+                                style="@style/TableHeaderStyle"
+                                android:text="TANGGAL
+                                MULAI"
+                                android:layout_marginRight="8dp"
+                                android:layout_weight="1.2"
+                                android:textSize="11dp"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:textColor="@color/white"/>
+
+                            <TextView
+                                style="@style/TableHeaderStyle"
+                                android:text="TANGGAL SELESAI"
+                                android:layout_marginRight="6dp"
+                                android:layout_weight="1"
+                                android:textSize="11dp"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:textColor="@color/white"/>
+
+                            <TextView
+                                style="@style/TableHeaderStyle"
+                                android:text="KETERANGAN"
+                                android:textSize="11dp"
+                                android:layout_marginRight="2dp"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:textColor="@color/white"/>
+
+                            <TextView
+                                style="@style/TableHeaderStyle"
+                                android:text="STATUS"
+                                android:textSize="11dp"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:textColor="@color/white"/>
+
+                        </TableRow>
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvTabelRiwayatCuti"
+                            android:layout_width="match_parent"
+                            android:layout_height="200dp"
+                            android:maxHeight="200dp"
+                            android:scrollbars="vertical"
+                            android:background="?attr/colorTertiary"
+                            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                            tools:listitem="@layout/item_riwayat_cuti"/>
+                    </TableLayout>
+                </androidx.cardview.widget.CardView>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

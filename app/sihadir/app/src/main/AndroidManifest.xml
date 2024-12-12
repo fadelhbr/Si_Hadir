@@ -20,16 +20,16 @@
         android:theme="@style/Theme.Sihadir"
         tools:targetApi="31">
         <activity
-            android:name=".NoConnectionActivity"
+            android:name=".activity.NoConnectionActivity"
             android:exported="false" />
         <activity
-            android:name=".OnboardingActivity"
+            android:name=".activity.OnboardingActivity"
             android:exported="false" />
         <activity
             android:name=".adapter.OnboardingAdapter"
             android:exported="false" />
         <activity
-            android:name=".SplashActivity"
+            android:name=".activity.SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,14 +37,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".LoginActivity" />
+        <activity android:name=".activity.LoginActivity" />
         <activity
-            android:name=".MainActivity"
+            android:name=".activity.MainActivity"
             android:exported="true" />
         <activity
             android:name=".StartScan"
             android:stateNotNeeded="true"
             android:theme="@style/zxing_CaptureTheme" />
+            <activity
+            android:name=".activity.SendOtpActivity" />
+        <activity
+            android:name=".activity.ResetPasswordActivity" />
+        <activity
+            android:name=".activity.VerifyOtpActivity" />
     </application>
 
 </manifest>
