@@ -373,7 +373,7 @@ public class AbsenFragment extends Fragment {
         // Map status to user-friendly text and potentially different colors
         switch (status.toLowerCase()) {
             case "hadir":
-                TVemployeeId.setText("Anda sudah absensi hari ini");
+                TVemployeeId.setText("Anda sudah presensi hari ini");
                 break;
             case "izin":
                 TVemployeeId.setText("Anda hari ini izin");
@@ -385,7 +385,7 @@ public class AbsenFragment extends Fragment {
                 TVemployeeId.setText("Anda sakit, semoga lekas sembuh");
                 break;
             case "alpha":
-                TVemployeeId.setText("Anda belum absensi hari ini");
+                TVemployeeId.setText("Anda belum presensi hari ini");
                 break;
             case "pulang_dahulu":
                 TVemployeeId.setText("Anda pulang dahulu hari ini");
