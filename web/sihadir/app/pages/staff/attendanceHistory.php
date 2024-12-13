@@ -199,7 +199,10 @@ try {
 
             <!-- Page content-->
             <div class="container-fluid p-4">
-                <h1 class="text-3xl font-semibold mb-4">Riwayat Kehadiran</h1>
+            <h1 class="text-3xl font-semibold mb-4">Riwayat Kehadiran</h1>
+    <!-- Tabel Kehadiran -->
+    <div id="activityTable" class="table-container max-h-[300px] overflow-y-auto scrollbar-hide bg-gradient-to-r from-white via-gray-100 to-white rounded-xl shadow-xl border border-gray-100">
+        <table class="min-w-full divide-y divide-gray-200">
                 <!-- Tabel Kehadiran -->
                 <div id="activityTable" class="table-container max-h-[300px] overflow-y-auto scrollbar-hide">
                     <table class="min-w-full divide-y divide-gray-200">
