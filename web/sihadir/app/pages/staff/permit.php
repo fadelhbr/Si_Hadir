@@ -514,6 +514,7 @@ try {
                 </div>
                 </div>
 
+                <div id="tableSwitchContainer">
                 <div class="bg-white shadow rounded-lg p-4 mb-4">
                     <div class="flex items-center mb-4">
                         <label class="switch">
@@ -821,141 +822,150 @@ try {
                         return true;
                     }
                 </script>
-
                 <script>
-                    function toggleTableswitch() {
-                        const isChecked = document.getElementById('tableSwitch').checked;
-                        const tableLabel = document.getElementById('tableLabel');
+                </script>
+<script>
+    // Function to show alert above the table switch
+    function showAlert(message, type) {
+        // Find the table switch container
+        const tableSwitchContainer = document.getElementById('tableSwitchContainer');
+        
+        // If table switch container doesn't exist, exit
+        if (!tableSwitchContainer) return;
 
-                        if (isChecked) {
-                            document.getElementById('izinTable').classList.add('hidden');
-                            document.getElementById('cutiTable').classList.remove('hidden');
-                            tableLabel.textContent = "Riwayat Cuti";
-                        } else {
-                            document.getElementById('izinTable').classList.remove('hidden');
-                            document.getElementById('cutiTable').classList.add('hidden');
-                            tableLabel.textContent = "Riwayat Izin";
-                        }
+        // Remove any existing alert
+        const existingAlert = document.getElementById('table-alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+
+        // Create alert element
+        const alert = document.createElement('div');
+        alert.id = 'table-alert';
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.style.marginBottom = '15px'; // Add some space before the table switch
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        // Insert the alert right before the table switch container
+        tableSwitchContainer.parentNode.insertBefore(alert, tableSwitchContainer);
+    }
+
+    function toggleTableswitch() {
+        const isChecked = document.getElementById('tableSwitch').checked;
+        const tableLabel = document.getElementById('tableLabel');
+
+        if (isChecked) {
+            document.getElementById('izinTable').classList.add('hidden');
+            document.getElementById('cutiTable').classList.remove('hidden');
+            tableLabel.textContent = "Riwayat Cuti";
+        } else {
+            document.getElementById('izinTable').classList.remove('hidden');
+            document.getElementById('cutiTable').classList.add('hidden');
+            tableLabel.textContent = "Riwayat Izin";
+        }
+    }
+
+    // Sidebar toggle functionality
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarWrapper = document.getElementById('sidebar-wrapper');
+
+    sidebarToggle.addEventListener('click', function () {
+        sidebarWrapper.classList.toggle('collapsed');
+    });
+
+    document.getElementById('permitRequestForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('permit.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('permitRequestModal'));
+                modal.hide();
+
+                showAlert(data.message || 'Pengajuan izin berhasil disubmit!', data.status === 'success' ? 'success' : 'danger');
+
+                // Tambah delay sebelum reload
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
+            });
+    });
+
+    document.getElementById('leaveRequestForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('permit.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('leaveRequestModal'));
+                modal.hide();
+
+                showAlert(data.message || 'Pengajuan cuti berhasil disubmit!', data.status === 'success' ? 'success' : 'danger');
+
+                // Tambah delay sebelum reload
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
+            });
+    });
+
+    // Handle URL parameters for alerts on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status');
+        const message = urlParams.get('message');
+
+        if (status === 'success') {
+            showAlert('Pengajuan berhasil disubmit!', 'success');
+        } else if (status === 'error') {
+            showAlert(`Error: ${message || 'Terjadi kesalahan'}`, 'danger');
+        }
+    });
+
+    // Previous search functionality remains the same
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('searchDate');
+        const tableRows = document.querySelectorAll('table tbody tr');
+
+        searchInput.addEventListener('input', function () {
+            const searchTerm = this.value.trim().toLowerCase();
+
+            tableRows.forEach(row => {
+                const dateCell = row.querySelector('td:first-child');
+                if (dateCell) {
+                    const date = dateCell.textContent.trim().toLowerCase();
+                    if (date.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
                     }
-
-                    // Sidebar toggle functionality
-                    const sidebarToggle = document.getElementById('sidebarToggle');
-                    const sidebarWrapper = document.getElementById('sidebar-wrapper');
-
-                    sidebarToggle.addEventListener('click', function () {
-                        sidebarWrapper.classList.toggle('collapsed');
-                    });
-
-                    function showAlert(message, type = 'success') {
-                        const alertContainer = document.getElementById('alertContainer');
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-                        alertDiv.role = 'alert';
-
-                        alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-
-                        alertContainer.appendChild(alertDiv);
-
-                        setTimeout(() => {
-                            const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
-                            alert.close();
-                        }, 5000);
-                    }
-                </script>
-                <script>
-                    document.getElementById('permitRequestForm').addEventListener('submit', function (e) {
-                        e.preventDefault();
-
-                        const formData = new FormData(this);
-
-                        fetch('permit.php', {
-                            method: 'POST',
-                            body: formData
-                        })
-                            .then(response => response.json()) // Ubah ke json()
-                            .then(data => {
-                                const modal = bootstrap.Modal.getInstance(document.getElementById('permitRequestModal'));
-                                modal.hide();
-
-                                showAlert(data.message || 'Pengajuan izin berhasil disubmit!', data.status === 'success' ? 'success' : 'danger');
-
-                                // Tambah delay sebelum reload
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1500);
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
-                            });
-                    });
-
-                    document.getElementById('leaveRequestForm').addEventListener('submit', function (e) {
-                        e.preventDefault();
-
-                        const formData = new FormData(this);
-
-                        fetch('permit.php', {
-                            method: 'POST',
-                            body: formData
-                        })
-                            .then(response => response.json()) // Ubah ke json()
-                            .then(data => {
-                                const modal = bootstrap.Modal.getInstance(document.getElementById('leaveRequestModal'));
-                                modal.hide();
-
-                                showAlert(data.message || 'Pengajuan cuti berhasil disubmit!', data.status === 'success' ? 'success' : 'danger');
-
-                                // Tambah delay sebelum reload
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1500);
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                showAlert('Terjadi kesalahan saat mengirim pengajuan', 'danger');
-                            });
-                    });
-
-                    // Handle URL parameters for alerts on page load
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const status = urlParams.get('status');
-                        const message = urlParams.get('message');
-
-                        if (status === 'success') {
-                            showAlert('Pengajuan berhasil disubmit!', 'success');
-                        } else if (status === 'error') {
-                            showAlert(`Error: ${message || 'Terjadi kesalahan'}`, 'danger');
-                        }
-                    });
-                </script>
-
-                <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const searchInput = document.getElementById('searchDate');
-                        const tableRows = document.querySelectorAll('table tbody tr');
-
-                        searchInput.addEventListener('input', function () {
-                            const searchTerm = this.value.trim().toLowerCase();
-
-                            tableRows.forEach(row => {
-                                const dateCell = row.querySelector('td:first-child');
-                                if (dateCell) {
-                                    const date = dateCell.textContent.trim().toLowerCase();
-                                    if (date.includes(searchTerm)) {
-                                        row.style.display = '';
-                                    } else {
-                                        row.style.display = 'none';
-                                    }
-                                }
-                            });
-                        });
-                    });
-                </script>
+                }
+            });
+        });
+    });
+</script>
+</script>
 </body>
 
 </html>
