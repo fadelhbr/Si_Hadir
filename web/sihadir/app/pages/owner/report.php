@@ -292,7 +292,7 @@ if (isset($_GET['action'])) {
         // Add title and date range if available
         $sheet->setCellValue('A1', 'LAPORAN ABSENSI KARYAWAN');
         $sheet->mergeCells('A1:H1');
-
+        
         $currentRow = 2;
         if (!empty($start_date) && !empty($end_date)) {
             $sheet->setCellValue('A2', 'Periode: ' . date('d/m/Y', strtotime($start_date)) . ' - ' . date('d/m/Y', strtotime($end_date)));
@@ -572,20 +572,27 @@ if (isset($_GET['action'])) {
                 <div class="flex-1 bg-blue-50 p-6">
                     <div class="flex justify-between items-center mb-6">
                         <h1 class="text-3xl font-semibold">Rekap Absensi Karyawan</h1>
-                        <div class="flex gap-4">
-                            <a
-                                href="?action=print&start_date=<?php echo isset($start_date) ? $start_date : ''; ?>&end_date=<?php echo isset($end_date) ? $end_date : ''; ?>">
-                                <button class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
-                                    Download PDF
-                                </button>
-                            </a>
-                            <a
-                                href="?action=excel&start_date=<?php echo isset($start_date) ? $start_date : ''; ?>&end_date=<?php echo isset($end_date) ? $end_date : ''; ?>">
-                                <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
-                                    Download Excel
-                                </button>
-                            </a>
-                        </div>
+                        <!-- HTML -->
+<div class="flex gap-4">
+    <a id="pdfDownloadLink" href="#" class="pointer-events-none">
+        <button id="pdfDownloadBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg 
+            hover:bg-red-600 
+            disabled:opacity-50 disabled:cursor-not-allowed 
+            disabled:hover:bg-red-500 
+            transition-all duration-300">
+            Download PDF
+        </button>
+    </a>
+    <a id="excelDownloadLink" href="#" class="pointer-events-none">
+        <button id="excelDownloadBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg 
+            hover:bg-green-600 
+            disabled:opacity-50 disabled:cursor-not-allowed 
+            disabled:hover:bg-green-500 
+            transition-all duration-300">
+            Download Excel
+        </button>
+    </a>
+</div>
                     </div>
                     <!-- Filter Section -->
                     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -733,84 +740,105 @@ if (isset($_GET['action'])) {
             </script>
 
             <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    // Get date input elements
-                    const startDateInput = document.getElementById('start_date');
-                    const endDateInput = document.getElementById('end_date');
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const filterForm = document.querySelector('form');
+    const pdfDownloadLink = document.getElementById('pdfDownloadLink');
+    const excelDownloadLink = document.getElementById('excelDownloadLink');
+    const pdfDownloadBtn = document.getElementById('pdfDownloadBtn');
+    const excelDownloadBtn = document.getElementById('excelDownloadBtn');
 
-                    // Ensure these dates come from PHP 
-                    const minDate = "<?php echo $minDate; ?>"; // Earliest date with attendance data
-                    const maxDate = "<?php echo $maxDate; ?>"; // Latest date with attendance data
+    // Utility function to disable download buttons
+    function disableDownloadButtons() {
+        pdfDownloadLink.href = '#';
+        excelDownloadLink.href = '#';
+        
+        pdfDownloadLink.classList.add('pointer-events-none');
+        excelDownloadLink.classList.add('pointer-events-none');
+        
+        pdfDownloadBtn.disabled = true;
+        excelDownloadBtn.disabled = true;
+    }
 
-                    // Set initial constraints
-                    startDateInput.min = minDate;
-                    startDateInput.max = maxDate;
-                    endDateInput.min = minDate;
-                    endDateInput.max = maxDate;
+    // Utility function to enable download buttons
+    function enableDownloadButtons(startDate, endDate) {
+        pdfDownloadLink.href = `?action=print&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+        excelDownloadLink.href = `?action=excel&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+        
+        pdfDownloadLink.classList.remove('pointer-events-none');
+        excelDownloadLink.classList.remove('pointer-events-none');
+        
+        pdfDownloadBtn.disabled = false;
+        excelDownloadBtn.disabled = false;
+    }
 
-                    // Function to validate date inputs
-                    function validateDateInputs() {
-                        // If start date is empty, reset everything
-                        if (!startDateInput.value) {
-                            endDateInput.value = '';
-                            startDateInput.value = '';
-                            return;
-                        }
+    // Utility function to validate date inputs
+    function validateDates() {
+        // Check if both dates are filled
+        if (!startDateInput.value || !endDateInput.value) {
+            disableDownloadButtons();
+            return false;
+        }
 
-                        // Ensure start date is within valid range
-                        if (startDateInput.value < minDate) {
-                            startDateInput.value = minDate;
-                        }
-                        if (startDateInput.value > maxDate) {
-                            startDateInput.value = maxDate;
-                        }
+        // Ensure start date is before or equal to end date
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
 
-                        // Update end date constraints
-                        endDateInput.min = startDateInput.value;
+        if (startDate > endDate) {
+            alert('Start date must be before or equal to end date.');
+            disableDownloadButtons();
+            return false;
+        }
 
-                        // If end date is not set, set it to start date
-                        if (!endDateInput.value) {
-                            endDateInput.value = startDateInput.value;
-                        }
+        return true;
+    }
 
-                        // Ensure end date is not before start date
-                        if (endDateInput.value < startDateInput.value) {
-                            endDateInput.value = startDateInput.value;
-                        }
+    // Event listener for start date input
+    startDateInput.addEventListener('change', function() {
+        // Reset end date
+        endDateInput.value = ''; 
+        
+        // Update min attribute of end date input
+        endDateInput.min = this.value;
+        
+        // Disable download buttons
+        disableDownloadButtons();
+    });
 
-                        // Ensure end date is within valid range
-                        if (endDateInput.value > maxDate) {
-                            endDateInput.value = maxDate;
-                        }
-                        if (endDateInput.value < minDate) {
-                            endDateInput.value = minDate;
-                        }
-                    }
+    // Event listener for end date input
+    endDateInput.addEventListener('change', function() {
+        disableDownloadButtons();
+        validateDates();
+    });
 
-                    // Event listeners for start date
-                    startDateInput.addEventListener('change', function () {
-                        validateDateInputs();
-                    });
+    // Handle form submission
+    filterForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent automatic form submission
 
-                    // Event listeners for end date
-                    endDateInput.addEventListener('change', function () {
-                        validateDateInputs();
-                    });
+        if (validateDates()) {
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
 
-                    // Prevent manual input of invalid dates
-                    function preventInvalidInput(input) {
-                        input.addEventListener('input', function () {
-                            // Remove any characters that aren't numbers or hyphens
-                            this.value = this.value.replace(/[^0-9-]/g, '');
-                        });
-                    }
+            // Enable download buttons with correct URLs
+            enableDownloadButtons(startDate, endDate);
 
-                    preventInvalidInput(startDateInput);
-                    preventInvalidInput(endDateInput);
+            // Submit the form to filter data
+            this.submit();
+        }
+    });
 
-                    // Initial validation on page load
-                    validateDateInputs();
-                });
+    // After PHP form processing, check if data is filtered
+    const isDataFiltered = <?php echo isset($start_date) && isset($end_date) ? 'true' : 'false'; ?>;
+    
+    if (isDataFiltered) {
+        enableDownloadButtons('<?php echo isset($start_date) ? $start_date : ''; ?>', 
+                               '<?php echo isset($end_date) ? $end_date : ''; ?>');
+    } else {
+        // Initial setup to disable download buttons
+        disableDownloadButtons();
+    }
+});
             </script>
 
     </body>
