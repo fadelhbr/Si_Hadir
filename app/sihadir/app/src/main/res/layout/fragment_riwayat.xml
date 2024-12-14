@@ -234,7 +234,7 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:text="Hadir"
-                                        android:textSize="12sp"
+                                        android:textSize="14sp"
                                         android:textStyle="bold"
                                         android:textColor="?attr/textFillColor"/>
 
@@ -271,7 +271,7 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:text="Tidak Hadir"
-                                        android:textSize="12sp"
+                                        android:textSize="14sp"
                                         android:textStyle="bold"
                                         android:textColor="?attr/textFillColor"/>
 
@@ -316,7 +316,7 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:text="Cuti dan Izin"
-                                        android:textSize="12sp"
+                                        android:textSize="14sp"
                                         android:textStyle="bold"
                                         android:textColor="?attr/textFillColor"/>
 
@@ -353,7 +353,7 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:text="Pulang Awal"
-                                        android:textSize="12sp"
+                                        android:textSize="14sp"
                                         android:textStyle="bold"
                                         android:textColor="?attr/textFillColor"/>
 

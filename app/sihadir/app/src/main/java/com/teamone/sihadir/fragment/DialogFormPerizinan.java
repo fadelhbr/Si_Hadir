@@ -31,6 +31,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import org.json.JSONObject;
+import java.io.IOException;
+
 public class DialogFormPerizinan extends DialogFragment {
     private AutoCompleteTextView spinnerJenisIzin;
     private TextInputEditText edtKeterangan;
@@ -163,16 +166,15 @@ public class DialogFormPerizinan extends DialogFragment {
     private void submitForm() {
         String keterangan = edtKeterangan.getText().toString().trim();
         String jenisIzin = spinnerJenisIzin.getText().toString();
-        String tanggal = selectedDate; // Mengambil tanggal yang dipilih
-        String myFormat = "yyyy/MM/dd";
+        String tanggal = selectedDate;
 
-        // Menyesuaikan dengan format ENUM di database
+        // Convert display names to database enum values
         if (jenisIzin.equals("Sakit")) {
-            jenisIzin = "sakit";  // Sesuaikan dengan format ENUM di database
+            jenisIzin = "sakit";
         } else if (jenisIzin.equals("Keperluan Pribadi")) {
-            jenisIzin = "keperluan_pribadi";  // Sesuaikan dengan format ENUM di database
+            jenisIzin = "keperluan_pribadi";
         } else if (jenisIzin.equals("Dinas Luar")) {
-            jenisIzin = "dinas_luar";  // Sesuaikan dengan format ENUM di database
+            jenisIzin = "dinas_luar";
         }
 
         // Cek apakah semua data telah diisi
@@ -189,27 +191,59 @@ public class DialogFormPerizinan extends DialogFragment {
         call.enqueue(new Callback<IzinResponse>() {
             @Override
             public void onResponse(@NonNull Call<IzinResponse> call, @NonNull Response<IzinResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
+                if (response.isSuccessful()) {
+                    // Response successful (HTTP 200)
                     IzinResponse izinResponse = response.body();
-                    if ("error".equals(izinResponse.getStatus()) && izinResponse.getMessage().contains("Tanggal tersebut")) {
-                        // Tanggal sudah digunakan, tampilkan pesan error dari API
-                        Toast.makeText(requireContext(), izinResponse.getMessage(), Toast.LENGTH_SHORT).show();
-                    } else {
-                        // Pengajuan izin berhasil
-                        Toast.makeText(requireContext(), izinResponse.getMessage(), Toast.LENGTH_SHORT).show();
+                    if (izinResponse != null) {
+                        if ("success".equals(izinResponse.getStatus())) {
+                            // Pengajuan izin berhasil
+                            Toast.makeText(requireContext(), izinResponse.getMessage(), Toast.LENGTH_SHORT).show();
 
-                        // Panggil listener untuk melakukan refresh
-                        if (getParentFragment() instanceof PerizinanFragment) {
-                            ((PerizinanFragment) getParentFragment()).onPermissionSubmitted(
-                                    finalJenisIzin,
-                                    tanggal,
-                                    keterangan
-                            );
+                            // Panggil listener untuk melakukan refresh
+                            if (getParentFragment() instanceof PerizinanFragment) {
+                                ((PerizinanFragment) getParentFragment()).onPermissionSubmitted(
+                                        finalJenisIzin,
+                                        tanggal,
+                                        keterangan
+                                );
+                            }
+                            dismiss(); // Tutup dialog setelah berhasil
+                        } else {
+                            // Status bukan success
+                            Toast.makeText(requireContext(),
+                                    izinResponse.getMessage() != null ?
+                                            izinResponse.getMessage() :
+                                            "Gagal mengajukan izin",
+                                    Toast.LENGTH_SHORT).show();
                         }
-                        dismiss(); // Tutup dialog setelah berhasil
+                    } else {
+                        Toast.makeText(requireContext(), "Respon kosong dari server", Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    Toast.makeText(requireContext(), "Gagal mengajukan izin, coba lagi.", Toast.LENGTH_SHORT).show();
+                    // Response not successful (HTTP error)
+                    try {
+                        // Coba parsing error body
+                        if (response.errorBody() != null) {
+                            String errorBodyString = response.errorBody().string();
+                            Log.e("IzinAPI", "Error Body: " + errorBodyString);
+
+                            // Coba parsing error body sebagai JSON
+                            JSONObject errorJson = new JSONObject(errorBodyString);
+                            String errorMessage = errorJson.getString("message");
+
+                            // Tambahkan penanganan pesan error spesifik
+                            if (errorMessage.contains("Tidak dapat mengajukan izin, sudah ada izin atau cuti di tanggal tersebut")) {
+                                Toast.makeText(requireContext(), "Tidak dapat mengajukan izin, sudah ada izin atau cuti di tanggal tersebut", Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show();
+                            }
+                        } else {
+                            Toast.makeText(requireContext(), "Gagal mengajukan izin, coba lagi.", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception e) {
+                        Log.e("IzinAPI", "Error parsing error body", e);
+                        Toast.makeText(requireContext(), "Gagal mengajukan izin, coba lagi.", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
@@ -217,7 +251,7 @@ public class DialogFormPerizinan extends DialogFragment {
             public void onFailure(@NonNull Call<IzinResponse> call, @NonNull Throwable t) {
                 // Handle kegagalan jaringan atau lainnya
                 Log.e("IzinAPI", "onFailure: " + t.getMessage(), t);
-                Toast.makeText(requireContext(), "Terjadi kesalahan, silakan coba lagi", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Terjadi kesalahan: " + t.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }

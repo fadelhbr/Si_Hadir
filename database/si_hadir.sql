@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.0
+-- version 5.1.1deb5ubuntu1
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 07, 2024 at 01:35 PM
--- Server version: 8.0.30
--- PHP Version: 8.1.10
+-- Generation Time: Dec 13, 2024 at 10:54 AM
+-- Server version: 10.6.18-MariaDB-0ubuntu0.22.04.1
+-- PHP Version: 8.1.2-1ubuntu2.20
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -25,7 +25,7 @@ DELIMITER $$
 --
 -- Procedures
 --
-CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()  BEGIN
     -- Nonaktifkan pemeriksaan foreign key terlebih dahulu
     SET FOREIGN_KEY_CHECKS = 0;
 
@@ -39,7 +39,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `reset_database_tables` ()   BEGIN
     SET FOREIGN_KEY_CHECKS = 1;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()  BEGIN
     -- Deklarasi variabel untuk iterasi pengguna
     DECLARE done INT DEFAULT FALSE;
     DECLARE curr_pegawai_id INT;
@@ -173,6 +173,22 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `update_attendance` ()   BEGIN
             END IF;
         END IF;
 
+        -- Update absensi jika ada izin valid untuk hari ini
+        IF status_kehadiran = 'izin' THEN
+            UPDATE absensi 
+            SET status_kehadiran = 'izin'
+            WHERE pegawai_id = curr_pegawai_id 
+            AND DATE(tanggal) = tanggal_hari_ini;
+        END IF;
+
+        -- Update absensi jika ada cuti valid untuk hari ini
+        IF status_kehadiran = 'cuti' THEN
+            UPDATE absensi 
+            SET status_kehadiran = 'cuti'
+            WHERE pegawai_id = curr_pegawai_id 
+            AND DATE(tanggal) = tanggal_hari_ini;
+        END IF;
+
         -- Cek apakah sudah ada record absensi untuk hari ini
         IF NOT EXISTS (
             SELECT 1 
@@ -216,15 +232,15 @@ DELIMITER ;
 --
 
 CREATE TABLE `absensi` (
-  `id` int NOT NULL,
-  `pegawai_id` int NOT NULL,
-  `jadwal_shift_id` int NOT NULL,
+  `id` int(11) NOT NULL,
+  `pegawai_id` int(11) NOT NULL,
+  `jadwal_shift_id` int(11) NOT NULL,
   `waktu_masuk` time DEFAULT NULL,
   `waktu_keluar` time DEFAULT NULL,
-  `kode_unik` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `status_kehadiran` enum('hadir','terlambat','izin','alpha','cuti','dalam_shift','pulang_dahulu','tidak_absen_pulang','libur') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'alpha',
-  `keterangan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
-  `tanggal` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `kode_unik` char(6) NOT NULL,
+  `status_kehadiran` enum('hadir','terlambat','izin','alpha','cuti','dalam_shift','pulang_dahulu','tidak_absen_pulang','libur') NOT NULL DEFAULT 'alpha',
+  `keterangan` text DEFAULT NULL,
+  `tanggal` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -234,15 +250,15 @@ CREATE TABLE `absensi` (
 --
 
 CREATE TABLE `cuti` (
-  `id` int NOT NULL,
-  `pegawai_id` int NOT NULL,
+  `id` int(11) NOT NULL,
+  `pegawai_id` int(11) NOT NULL,
   `tanggal_mulai` date NOT NULL,
   `tanggal_selesai` date NOT NULL,
-  `durasi_cuti` int DEFAULT NULL,
-  `keterangan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
-  `status` enum('pending','disetujui','ditolak') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `durasi_cuti` int(11) DEFAULT NULL,
+  `keterangan` text DEFAULT NULL,
+  `status` enum('pending','disetujui','ditolak') NOT NULL DEFAULT 'pending',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
@@ -271,12 +287,12 @@ DELIMITER ;
 -- (See below for the actual view)
 --
 CREATE TABLE `cuti_disetujui` (
-`durasi_cuti` int
-,`keterangan` text
-,`nama_staff` varchar(100)
-,`status` enum('pending','disetujui','ditolak')
+`nama_staff` varchar(100)
 ,`tanggal_mulai` date
 ,`tanggal_selesai` date
+,`durasi_cuti` int(11)
+,`keterangan` text
+,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -286,12 +302,12 @@ CREATE TABLE `cuti_disetujui` (
 -- (See below for the actual view)
 --
 CREATE TABLE `cuti_ditolak` (
-`durasi_cuti` int
-,`keterangan` text
-,`nama_staff` varchar(100)
-,`status` enum('pending','disetujui','ditolak')
+`nama_staff` varchar(100)
 ,`tanggal_mulai` date
 ,`tanggal_selesai` date
+,`durasi_cuti` int(11)
+,`keterangan` text
+,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -301,12 +317,12 @@ CREATE TABLE `cuti_ditolak` (
 -- (See below for the actual view)
 --
 CREATE TABLE `cuti_view` (
-`durasi_cuti` int
-,`keterangan` text
-,`nama_staff` varchar(100)
-,`status` enum('pending','disetujui','ditolak')
+`nama_staff` varchar(100)
 ,`tanggal_mulai` date
 ,`tanggal_selesai` date
+,`durasi_cuti` int(11)
+,`keterangan` text
+,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -316,9 +332,9 @@ CREATE TABLE `cuti_view` (
 --
 
 CREATE TABLE `divisi` (
-  `id` int NOT NULL,
-  `nama_divisi` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `id` int(11) NOT NULL,
+  `nama_divisi` varchar(50) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
@@ -351,14 +367,14 @@ DELIMITER ;
 --
 
 CREATE TABLE `izin` (
-  `id` int NOT NULL,
-  `pegawai_id` int NOT NULL,
+  `id` int(11) NOT NULL,
+  `pegawai_id` int(11) NOT NULL,
   `tanggal` date NOT NULL,
-  `jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `keterangan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
-  `status` enum('pending','disetujui','ditolak') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'pending',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit') NOT NULL,
+  `keterangan` text DEFAULT NULL,
+  `status` enum('pending','disetujui','ditolak') NOT NULL DEFAULT 'pending',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
@@ -381,11 +397,11 @@ DELIMITER ;
 -- (See below for the actual view)
 --
 CREATE TABLE `izin_disetujui` (
-`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
-,`keterangan` text
-,`nama_lengkap` varchar(100)
-,`status` enum('pending','disetujui','ditolak')
+`nama_lengkap` varchar(100)
 ,`tanggal` date
+,`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
+,`keterangan` text
+,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -395,11 +411,11 @@ CREATE TABLE `izin_disetujui` (
 -- (See below for the actual view)
 --
 CREATE TABLE `izin_ditolak` (
-`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
-,`keterangan` text
-,`nama_lengkap` varchar(100)
-,`status` enum('pending','disetujui','ditolak')
+`nama_lengkap` varchar(100)
 ,`tanggal` date
+,`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
+,`keterangan` text
+,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -409,11 +425,11 @@ CREATE TABLE `izin_ditolak` (
 --
 
 CREATE TABLE `jadwal_shift` (
-  `id` int NOT NULL,
-  `pegawai_id` int NOT NULL,
-  `shift_id` int NOT NULL,
+  `id` int(11) NOT NULL,
+  `pegawai_id` int(11) NOT NULL,
+  `shift_id` int(11) NOT NULL,
   `tanggal` date NOT NULL,
-  `status` enum('aktif','nonaktif') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT 'aktif'
+  `status` enum('aktif','nonaktif') DEFAULT 'aktif'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
@@ -436,14 +452,14 @@ DELIMITER ;
 --
 
 CREATE TABLE `log_akses` (
-  `id` int NOT NULL,
-  `user_id` int NOT NULL,
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
   `waktu` datetime DEFAULT NULL,
-  `ip_address` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `device_info` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
-  `status` enum('logout','login','first_registration') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
-  `device_hash` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
-  `device_details` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin
+  `ip_address` varchar(45) NOT NULL,
+  `device_info` varchar(255) DEFAULT NULL,
+  `status` enum('logout','login','first_registration') DEFAULT NULL,
+  `device_hash` varchar(64) DEFAULT NULL,
+  `device_details` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -453,8 +469,8 @@ CREATE TABLE `log_akses` (
 --
 
 CREATE TABLE `otp_code` (
-  `id` int NOT NULL,
-  `otp_code` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+  `id` int(11) NOT NULL,
+  `otp_code` char(6) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -464,13 +480,13 @@ CREATE TABLE `otp_code` (
 --
 
 CREATE TABLE `pegawai` (
-  `id` int NOT NULL,
-  `user_id` int NOT NULL,
-  `divisi_id` int NOT NULL,
-  `status_aktif` enum('aktif','nonaktif') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT 'aktif',
-  `hari_libur` enum('senin','selasa','rabu','kamis','jumat','sabtu','minggu') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `divisi_id` int(11) NOT NULL,
+  `status_aktif` enum('aktif','nonaktif') DEFAULT 'aktif',
+  `hari_libur` enum('senin','selasa','rabu','kamis','jumat','sabtu','minggu') NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
@@ -493,11 +509,11 @@ DELIMITER ;
 -- (See below for the actual view)
 --
 CREATE TABLE `perizinan_setuju_tolak` (
-`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
-,`keterangan` text
-,`nama_lengkap` varchar(100)
-,`status` enum('pending','disetujui','ditolak')
+`nama_lengkap` varchar(100)
 ,`tanggal` date
+,`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
+,`keterangan` text
+,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -507,11 +523,11 @@ CREATE TABLE `perizinan_setuju_tolak` (
 -- (See below for the actual view)
 --
 CREATE TABLE `perizinan_view` (
-`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
-,`keterangan` text
-,`nama_lengkap` varchar(100)
-,`status` enum('pending','disetujui','ditolak')
+`nama_lengkap` varchar(100)
 ,`tanggal` date
+,`jenis_izin` enum('keperluan_pribadi','dinas_luar','sakit')
+,`keterangan` text
+,`status` enum('pending','disetujui','ditolak')
 );
 
 -- --------------------------------------------------------
@@ -521,8 +537,8 @@ CREATE TABLE `perizinan_view` (
 --
 
 CREATE TABLE `qr_code` (
-  `id` int NOT NULL,
-  `kode_unik` char(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+  `id` int(11) NOT NULL,
+  `kode_unik` char(6) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -532,8 +548,8 @@ CREATE TABLE `qr_code` (
 --
 
 CREATE TABLE `shift` (
-  `id` int NOT NULL,
-  `nama_shift` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `id` int(11) NOT NULL,
+  `nama_shift` varchar(50) NOT NULL,
   `jam_masuk` time NOT NULL,
   `jam_keluar` time NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
@@ -545,17 +561,17 @@ CREATE TABLE `shift` (
 --
 
 CREATE TABLE `users` (
-  `id` int NOT NULL,
-  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `nama_lengkap` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `jenis_kelamin` enum('laki','perempuan') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `role` enum('owner','karyawan') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `no_telp` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
-  `id_otp` int NOT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `id` int(11) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `nama_lengkap` varchar(100) NOT NULL,
+  `jenis_kelamin` enum('laki','perempuan') NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `role` enum('owner','karyawan') NOT NULL,
+  `no_telp` varchar(15) DEFAULT NULL,
+  `id_otp` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -565,7 +581,7 @@ CREATE TABLE `users` (
 --
 DROP TABLE IF EXISTS `cuti_disetujui`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_disetujui`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on((`cuti`.`pegawai_id` = `pegawai`.`id`))) join `users` on((`pegawai`.`user_id` = `users`.`id`))) WHERE (`cuti`.`status` = 'disetujui')  ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_disetujui`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on(`cuti`.`pegawai_id` = `pegawai`.`id`)) join `users` on(`pegawai`.`user_id` = `users`.`id`)) WHERE `cuti`.`status` = 'disetujui' ;
 
 -- --------------------------------------------------------
 
@@ -574,7 +590,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `cuti_ditolak`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_ditolak`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on((`cuti`.`pegawai_id` = `pegawai`.`id`))) join `users` on((`pegawai`.`user_id` = `users`.`id`))) WHERE (`cuti`.`status` = 'ditolak')  ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_ditolak`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on(`cuti`.`pegawai_id` = `pegawai`.`id`)) join `users` on(`pegawai`.`user_id` = `users`.`id`)) WHERE `cuti`.`status` = 'ditolak' ;
 
 -- --------------------------------------------------------
 
@@ -583,7 +599,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `cuti_view`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_view`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on((`pegawai`.`id` = `cuti`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`)))  ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `cuti_view`  AS SELECT `users`.`nama_lengkap` AS `nama_staff`, `cuti`.`tanggal_mulai` AS `tanggal_mulai`, `cuti`.`tanggal_selesai` AS `tanggal_selesai`, `cuti`.`durasi_cuti` AS `durasi_cuti`, `cuti`.`keterangan` AS `keterangan`, `cuti`.`status` AS `status` FROM ((`cuti` join `pegawai` on(`pegawai`.`id` = `cuti`.`pegawai_id`)) join `users` on(`users`.`id` = `pegawai`.`user_id`)) ;
 
 -- --------------------------------------------------------
 
@@ -592,7 +608,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `izin_disetujui`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `izin_disetujui`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) WHERE (`izin`.`status` = 'disetujui')  ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `izin_disetujui`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on(`pegawai`.`id` = `izin`.`pegawai_id`)) join `users` on(`users`.`id` = `pegawai`.`user_id`)) WHERE `izin`.`status` = 'disetujui' ;
 
 -- --------------------------------------------------------
 
@@ -601,7 +617,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `izin_ditolak`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `izin_ditolak`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) WHERE (`izin`.`status` = 'ditolak')  ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `izin_ditolak`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on(`pegawai`.`id` = `izin`.`pegawai_id`)) join `users` on(`users`.`id` = `pegawai`.`user_id`)) WHERE `izin`.`status` = 'ditolak' ;
 
 -- --------------------------------------------------------
 
@@ -610,7 +626,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `perizinan_setuju_tolak`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `perizinan_setuju_tolak`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`))) WHERE (`izin`.`status` in ('disetujui','ditolak'))  ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `perizinan_setuju_tolak`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on(`pegawai`.`id` = `izin`.`pegawai_id`)) join `users` on(`users`.`id` = `pegawai`.`user_id`)) WHERE `izin`.`status` in ('disetujui','ditolak') ;
 
 -- --------------------------------------------------------
 
@@ -619,7 +635,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `perizinan_view`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `perizinan_view`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on((`pegawai`.`id` = `izin`.`pegawai_id`))) join `users` on((`users`.`id` = `pegawai`.`user_id`)))  ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `perizinan_view`  AS SELECT `users`.`nama_lengkap` AS `nama_lengkap`, `izin`.`tanggal` AS `tanggal`, `izin`.`jenis_izin` AS `jenis_izin`, `izin`.`keterangan` AS `keterangan`, `izin`.`status` AS `status` FROM ((`izin` join `pegawai` on(`pegawai`.`id` = `izin`.`pegawai_id`)) join `users` on(`users`.`id` = `pegawai`.`user_id`)) ;
 
 --
 -- Indexes for dumped tables
@@ -711,67 +727,67 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `cuti`
 --
 ALTER TABLE `cuti`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=654325;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=654325;
 
 --
 -- AUTO_INCREMENT for table `divisi`
 --
 ALTER TABLE `divisi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=234237;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=234237;
 
 --
 -- AUTO_INCREMENT for table `izin`
 --
 ALTER TABLE `izin`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12314140;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12314140;
 
 --
 -- AUTO_INCREMENT for table `jadwal_shift`
 --
 ALTER TABLE `jadwal_shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `log_akses`
 --
 ALTER TABLE `log_akses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=938431;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=996008;
 
 --
 -- AUTO_INCREMENT for table `otp_code`
 --
 ALTER TABLE `otp_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992334;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992336;
 
 --
 -- AUTO_INCREMENT for table `pegawai`
 --
 ALTER TABLE `pegawai`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `qr_code`
 --
 ALTER TABLE `qr_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
 
 --
 -- AUTO_INCREMENT for table `shift`
 --
 ALTER TABLE `shift`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75588;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75589;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992328;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=992329;
 
 --
 -- Constraints for dumped tables
@@ -830,7 +846,7 @@ CREATE DEFINER=`root`@`localhost` EVENT `auto_clear_database` ON SCHEDULE EVERY 
     CALL reset_database_table();
 END$$
 
-CREATE DEFINER=`root`@`localhost` EVENT `auto_insert_absensi_event` ON SCHEDULE EVERY 10 SECOND STARTS '2024-11-07 16:54:05' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
+CREATE DEFINER=`root`@`localhost` EVENT `auto_insert_absensi_event` ON SCHEDULE EVERY 3 SECOND STARTS '2024-11-07 16:54:05' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
     CALL update_attendance();
 END$$
 

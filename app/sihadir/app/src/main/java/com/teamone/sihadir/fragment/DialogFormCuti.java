@@ -21,6 +21,8 @@ import com.teamone.sihadir.model.CutiRequest;
 import com.teamone.sihadir.model.CutiResponse;
 import com.teamone.sihadir.model.RetrofitClient;
 
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
@@ -205,16 +207,24 @@ public class DialogFormCuti extends DialogFragment {
                     }
                     dismiss(); // Tutup dialog setelah berhasil
                 } else {
-                    // Log detail jika gagal
-                    Log.e("CutiAPI", "Error: " + response.code() + ", Message: " + response.message());
+                    // Handle error responses from the server
                     try {
                         if (response.errorBody() != null) {
-                            Log.e("CutiAPI", "Error Body: " + response.errorBody().string());
+                            String errorBody = response.errorBody().string();
+                            JSONObject errorJson = new JSONObject(errorBody);
+                            String errorMessage = errorJson.getString("message");
+
+                            // Check for the specific error message about overlapping dates
+                            if (errorMessage.contains("sudah ada izin atau cuti pada periode tersebut")) {
+                                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(requireContext(), "Gagal mengajukan cuti: " + errorMessage, Toast.LENGTH_SHORT).show();
+                            }
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Log.e("CutiAPI", "Error parsing error response", e);
+                        Toast.makeText(requireContext(), "Gagal mengajukan cuti", Toast.LENGTH_SHORT).show();
                     }
-                    Toast.makeText(requireContext(), "Gagal mengajukan cuti: " + response.message(), Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -226,5 +236,4 @@ public class DialogFormCuti extends DialogFragment {
             }
         });
     }
-
 }
