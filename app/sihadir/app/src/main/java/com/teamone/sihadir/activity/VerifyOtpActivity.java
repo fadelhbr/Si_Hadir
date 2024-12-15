@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -162,8 +163,10 @@ public class VerifyOtpActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                     progressBar.setVisibility(View.GONE);
+                    Log.d("OTP-Response", "Response code: " + response.code());
                     if (response.isSuccessful() && response.body() != null) {
                         ApiResponse apiResponse = response.body();
+                        Log.d("OTP-Response", "Success: " + apiResponse.isSuccess());
                         if (apiResponse.isSuccess()) {
                             Toast.makeText(VerifyOtpActivity.this, "Verifikasi berhasil", Toast.LENGTH_SHORT).show();
                             Intent intent = new Intent(VerifyOtpActivity.this, ResetPasswordActivity.class);
@@ -174,13 +177,14 @@ public class VerifyOtpActivity extends AppCompatActivity {
                             Toast.makeText(VerifyOtpActivity.this, "OTP tidak valid", Toast.LENGTH_SHORT).show();
                         }
                     } else {
-                        Toast.makeText(VerifyOtpActivity.this, "Terjadi kesalahan saat verifikasi", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(VerifyOtpActivity.this, "OTP Tidak Valid", Toast.LENGTH_SHORT).show();
                     }
                 }
 
                 @Override
                 public void onFailure(Call<ApiResponse> call, Throwable t) {
                     progressBar.setVisibility(View.GONE);
+                    Log.e("OTP-Failure", "Error: " + t.getMessage());
                     Toast.makeText(VerifyOtpActivity.this, "Gagal menghubungi server", Toast.LENGTH_SHORT).show();
                 }
             });

@@ -33,7 +33,7 @@ function sendOTPEmail($toEmail, $otpCode)
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
         $mail->Username = 'sihadir.service@gmail.com';
-        $mail->Password = 'iduk xkqe erys redy'; // Pastikan ini aman
+        $mail->Password = 'fyue kujk rrrr kepf'; // Pastikan ini aman
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
