@@ -51,7 +51,7 @@ public class SendOtpActivity extends AppCompatActivity {
         if (isValidEmail(email)) {
             sendOtpToEmail(email); // Memanggil fungsi sendOtpToEmail
         } else {
-            Toast.makeText(this, "Email tidak valid", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Email Tidak Valid", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -70,6 +70,7 @@ public class SendOtpActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     ApiResponse apiResponse = response.body();
                     if (apiResponse.isSuccess()) {
+                        Toast.makeText(SendOtpActivity.this, "OTP Berhasil Dikirim", Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(SendOtpActivity.this, VerifyOtpActivity.class);
                         intent.putExtra("email", email);
                         startActivity(intent);
@@ -77,7 +78,7 @@ public class SendOtpActivity extends AppCompatActivity {
                         Toast.makeText(SendOtpActivity.this, "Gagal mengirim OTP", Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    Toast.makeText(SendOtpActivity.this, "Terjadi kesalahan", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SendOtpActivity.this, "Email Tidak Terdaftar", Toast.LENGTH_SHORT).show();
                 }
             }
 
