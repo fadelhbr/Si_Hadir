@@ -62,13 +62,6 @@ Si Hadir dibangun dengan teknologi berikut:
 - **Database**: MySQL
 
 ---
-Berikut adalah isi file `README.md` yang siap untuk Anda salin:
-
-```markdown
-# SiHadir
-
-SiHadir adalah aplikasi untuk mengelola absensi secara online. Berikut adalah langkah-langkah untuk menginstal dan mengonfigurasi aplikasi SiHadir.
-
 ## Instalasi
 
 ### 1. Clone Repositori
