@@ -7,28 +7,36 @@
 ## Fitur Utama
 
 - **📍 Absensi Hanya di Lokasi Kantor**
-    Memanfaatkan validasi lokasi, absensi hanya dapat dilakukan di area kantor  melalui validasi IP Address atau jaringan lokal.
+
+  Memanfaatkan validasi lokasi, absensi hanya dapat dilakukan di area kantor  melalui validasi IP Address atau jaringan lokal.
 
 - **🔒 Keamanan Akun Terjamin**
-    Sistem memastikan bahwa setiap akun hanya dapat digunakan oleh pemiliknya. Validasi perangkat dan aktivitas pengguna mencegah karyawan saling bertukar akun.
+
+  Sistem memastikan bahwa setiap akun hanya dapat digunakan oleh pemiliknya. Validasi perangkat dan aktivitas pengguna mencegah karyawan saling bertukar akun.
 
 - **📊 Laporan Kehadiran Otomatis**
-    Sistem menghasilkan laporan yang terperinci untuk evaluasi dan pengambilan keputusan.
+
+  Sistem menghasilkan laporan yang terperinci untuk evaluasi dan pengambilan keputusan.
 
 - **📱 Absensi dengan QR Code dan Kode Unik**
-    Mempercepat proses absensi menggunakan teknologi QR Code dan kode unik, sehingga lebih praktis dan efisien.
+
+  Mempercepat proses absensi menggunakan teknologi QR Code dan kode unik, sehingga lebih praktis dan efisien.
 
 - **📑 Pengajuan Cuti dan Izin Online**
-    Pengajuan cuti atau izin dilakukan secara online dengan alur persetujuan yang terintegrasi.
+
+  Pengajuan cuti atau izin dilakukan secara online dengan alur persetujuan yang terintegrasi.
 
 - **👀 Monitoring Kehadiran Real-Time**
-    Pantau kehadiran secara langsung dengan pembaruan data kehadiran secara real-time.
+
+  Pantau kehadiran secara langsung dengan pembaruan data kehadiran secara real-time.
 
 - **✉️ OTP Email Recovery**
-    Pemulihan akun yang aman melalui pengiriman kode OTP ke email pengguna.
+
+  Pemulihan akun yang aman melalui pengiriman kode OTP ke email pengguna.
 
 - **⚡ Sistem Cepat dan Aman**
-    Sistem dirancang untuk memberikan pengalaman pengguna yang cepat tanpa mengorbankan keamanan data.
+
+  Sistem dirancang untuk memberikan pengalaman pengguna yang cepat tanpa mengorbankan keamanan data.
 
 ---
 
