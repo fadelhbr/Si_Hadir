@@ -184,7 +184,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:layout_marginBottom="16dp"
-                        android:layout_marginLeft="9dp"
+                        android:layout_marginLeft="7dp"
                         android:fontFamily="@font/poppins_bold"
                         android:text="Jadwal Kerja"
                         android:textColor="?attr/textFillColor"
@@ -192,11 +192,21 @@
                         android:textStyle="bold" />
 
                     <!-- Fixed Header -->
-                    <TableLayout
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginLeft="9dp"
-                        android:layout_marginRight="9dp"
+                        android:layout_marginBottom="20dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginRight="5dp"
+                        android:layout_marginLeft="5dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="2dp"
+                        app:strokeWidth="0dp"
+                        app:cardPreventCornerOverlap="true">
+
+                    <TableLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
                         android:stretchColumns="*">
 
                         <TableRow
@@ -207,7 +217,8 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:layout_marginTop="10dp"
+                                android:layout_marginTop="8dp"
+                                android:textSize="16dp"
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Hari"
@@ -218,7 +229,8 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:layout_marginTop="10dp"
+                                android:layout_marginTop="8dp"
+                                android:textSize="16dp"
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
                                 android:text="Shift"
@@ -229,9 +241,12 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
+                                android:textSize="13dp"
+                                android:layout_marginBottom="4dp"
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
-                                android:text="Jam Masuk"
+                                android:text="Jam
+                                Masuk"
                                 android:textColor="@color/white"
                                 android:textStyle="bold" />
 
@@ -239,9 +254,12 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
+                                android:textSize="13dp"
+                                android:layout_marginBottom="4dp"
                                 android:fontFamily="@font/poppins_semibold"
                                 android:gravity="center"
-                                android:text="Jam Keluar"
+                                android:text="Jam
+                                Keluar"
                                 android:textColor="@color/white"
                                 android:textStyle="bold" />
                         </TableRow>
@@ -576,6 +594,7 @@
                                 android:textColor="?attr/textFillColor"/>
                         </TableRow>
                     </TableLayout>
+                </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>

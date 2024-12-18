@@ -37,6 +37,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="20dp"
                     android:layout_marginTop="4dp"
+                    android:layout_marginRight="4dp"
+                    android:layout_marginLeft="4dp"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="2dp">
 
