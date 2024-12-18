@@ -79,5 +79,5 @@ Si Hadir dibangun dengan teknologi berikut:
    $mail->Password = '*****'; // aplication password
    ```
 
-4. Import file SQL ke database MySQL, file database (.sql) berada di `Si_Hadir/database/si_hadir.sql`, penamaan database harus sama dengan nama file, gunakan dbms terbaru (mariadb/mysql server versi 10.11 ke atas).
+4. Import file SQL ke database MySQL, file database (.sql) berada di `Si_Hadir/database/si_hadir.sql`, penamaan database harus sama dengan nama file, gunakan dbms terbaru (mariadb/mysql server versi 10.11 ke atas dan gunakan >=php 8.1).
 5. Jalankan aplikasi di server lokal.
