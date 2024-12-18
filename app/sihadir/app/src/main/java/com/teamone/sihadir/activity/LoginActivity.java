@@ -41,7 +41,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText usernameEditText, passwordEditText;
     private Button btnLogin;
     private TextView btnForgotPassword;
-    private static final String API_URL = "http://192.168.1.14/Si_Hadir/web/sihadir/app/api/api_login.php";
+    private static final String API_URL = "http://192.168.0.110/app/api/api_login.php";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     // SharedPreferences keys
