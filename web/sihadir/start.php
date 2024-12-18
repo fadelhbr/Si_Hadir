@@ -275,7 +275,7 @@ if (!isset($_SESSION['setup']) || $_SESSION['setup'] !== true) {
                     <i class="fas fa-user-plus"></i>
                     Daftar Sebagai Owner
                 </a>
-                <a href="http://localhost/build/si_hadir.apk" class="btn btn-secondary" download>
+                <a href="/build/si_hadir.apk" class="btn btn-secondary" download>
                     <i class="fas fa-download"></i>
                     Download Aplikasi
                 </a>
