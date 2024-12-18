@@ -62,7 +62,7 @@
         android:layout_weight="1"
         android:fontFamily="@font/poppins_semibold"
         android:text="Status"
-        android:textSize="13sp"
+        android:textSize="12sp"
         android:gravity="center"
         android:textColor="?attr/textFillColor"/>
 </LinearLayout>

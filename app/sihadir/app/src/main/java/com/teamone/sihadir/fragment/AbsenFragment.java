@@ -421,7 +421,7 @@ public class AbsenFragment extends Fragment {
             // Validasi panjang kode
             if (scannedCode.length() > 6) {
                 // Jika lebih dari 6 digit, tampilkan pesan error
-                showErrorDialog("Kode Tidak Valid", "Kode absensi harus 6 digit atau kurang");
+                showErrorDialog("Kode Tidak Valid", "Kode presensi harus 6 digit atau kurang");
             } else {
                 // Langsung submit kode yang di-scan
                 submitAbsensiWithScannedCode(scannedCode);
@@ -432,7 +432,7 @@ public class AbsenFragment extends Fragment {
     private void submitAbsensi() {
         String absensiCode = codeInput.getText().toString().trim();
         if (absensiCode.isEmpty()) {
-            showErrorDialog("Kode Kosong", "Silakan scan atau masukkan kode absensi");
+            showErrorDialog("Kode Kosong", "Silakan scan atau masukkan kode presensi");
             return;
         }
 
@@ -477,7 +477,7 @@ public class AbsenFragment extends Fragment {
                         codeInput.setText("");
                     }
                 } else {
-                    showErrorDialog("Gagal", "Tidak dapat mengirim absensi. Silakan coba lagi.");
+                    showErrorDialog("Gagal", "Tidak dapat mengirim presensi. Silakan coba lagi.");
                 }
             }
 
@@ -509,7 +509,7 @@ public class AbsenFragment extends Fragment {
                         showErrorDialog("Gagal", apiResponse.getMessage());
                     }
                 } else {
-                    showErrorDialog("Gagal", "Tidak dapat mengirim absensi. Silakan coba lagi.");
+                    showErrorDialog("Gagal", "Tidak dapat mengirim presensi. Silakan coba lagi.");
                 }
             }
 

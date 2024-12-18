@@ -77,7 +77,7 @@ function getOrCreateAttendanceRecord($pdo, $employeeId, $date, $shiftId)
         return [
             "status" => "unavailable",
             "message" =>
-                "Tidak dapat melakukan absensi karena status " .
+                "Tidak dapat melakukan presensi karena status " .
                 $existingLeave["status_kehadiran"],
         ];
     }
@@ -145,7 +145,7 @@ try {
 
     // Check holiday status
     if (checkHolidayStatus($pdo, $employee["id"], $currentDate)) {
-        sendResponse("error", "Tidak dapat melakukan absensi pada hari libur");
+        sendResponse("error", "Tidak dapat melakukan presensi pada hari libur");
     }
 
     $pdo->beginTransaction();
@@ -181,7 +181,7 @@ try {
         $attendance["waktu_keluar"] != "00:00:00"
     ) {
         throw new Exception(
-            "Sudah melakukan absensi masuk dan keluar untuk hari ini"
+            "Sudah melakukan presensi masuk dan keluar untuk hari ini"
         );
     }
 
@@ -197,7 +197,7 @@ try {
         // Cek apakah terlalu awal
         if ($currentTime < $earliestCheckInTime) {
             throw new Exception(
-                "Terlalu awal untuk absen. Absensi dimulai 45 menit sebelum jadwal shift pada pukul " .
+                "Terlalu awal untuk presensi. Presnesi dimulai 45 menit sebelum jadwal shift pada pukul " .
                     $earliestCheckInTime->format("H:i")
             );
         }
@@ -221,7 +221,7 @@ try {
             WHERE id = ?
         ");
         if (!$stmt->execute([$status, $uniqueCode, $attendance["id"]])) {
-            throw new Exception("Gagal mencatat absensi masuk");
+            throw new Exception("Gagal mencatat presensi masuk");
         }
 
         // Persiapkan respons data
@@ -234,7 +234,7 @@ try {
         $pdo->commit(); // Commit jika berhasil
         sendResponse(
             "success",
-            "Absensi masuk berhasil dicatat",
+            "Presensi masuk berhasil dicatat",
             $responseData
         );
     } elseif ($attendance["waktu_keluar"] == "00:00:00") {
@@ -276,7 +276,7 @@ try {
                 $attendance["id"],
             ])
         ) {
-            throw new Exception("Gagal mencatat absensi keluar");
+            throw new Exception("Gagal mencatat presensi keluar");
         }
 
         $responseData = [
@@ -289,7 +289,7 @@ try {
         $pdo->commit();
         sendResponse(
             "success",
-            "Absensi keluar berhasil dicatat",
+            "Presensi keluar berhasil dicatat",
             $responseData
         );
     }

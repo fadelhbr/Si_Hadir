@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$otpRecord || $otpRecord['otp_code'] !== $otpCode) {
         http_response_code(400);
-        echo json_encode(['error' => 'Invalid OTP code.']);
+        echo json_encode(['error' => 'OTP Tidak Valid']);
         exit;
     }
 
